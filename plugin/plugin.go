@@ -16,6 +16,7 @@ plugin.Exec() can be used to easily run external commands sending their stdin/st
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -43,12 +44,12 @@ type Opt struct {
 }
 
 type Plugin interface {
-	Validate(ShieldEndpoint) error
-	Backup(ShieldEndpoint) error
-	Restore(ShieldEndpoint) error
-	Store(ShieldEndpoint) (string, int64, error)
-	Retrieve(ShieldEndpoint, string) error
-	Purge(ShieldEndpoint, string) error
+	Validate(io.Writer, ShieldEndpoint) error
+	Backup(io.Writer, io.Writer, ShieldEndpoint) error
+	Restore(io.Reader, io.Writer, ShieldEndpoint) error
+	Store(io.Reader, io.Writer, ShieldEndpoint) (string, int64, error)
+	Retrieve(io.Writer, io.Writer, ShieldEndpoint, string) error
+	Purge(io.Writer, ShieldEndpoint, string) error
 	Meta() PluginInfo
 }
 
@@ -332,21 +333,21 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 		if err != nil {
 			return err
 		}
-		err = p.Validate(endpoint)
+		err = p.Validate(os.Stdout, endpoint)
 
 	case "backup":
 		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
-		err = p.Backup(endpoint)
+		err = p.Backup(os.Stdout, os.Stderr, endpoint)
 
 	case "restore":
 		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
-		err = p.Restore(endpoint)
+		err = p.Restore(os.Stdin, os.Stderr, endpoint)
 
 	case "store":
 		endpoint, err = getEndpoint(opt.Endpoint)
@@ -354,7 +355,7 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 			return err
 		}
 
-		key, size, err = p.Store(endpoint)
+		key, size, err = p.Store(os.Stdin, os.Stdout, endpoint)
 		if opt.Text {
 			fmt.Printf("%s\n", key)
 
@@ -382,7 +383,7 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 		if opt.Key == "" {
 			return MissingRestoreKeyError{}
 		}
-		err = p.Retrieve(endpoint, opt.Key)
+		err = p.Retrieve(os.Stdout, os.Stdout, endpoint, opt.Key)
 
 	case "purge":
 		endpoint, err = getEndpoint(opt.Endpoint)
@@ -392,7 +393,7 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 		if opt.Key == "" {
 			return MissingRestoreKeyError{}
 		}
-		err = p.Purge(endpoint, opt.Key)
+		err = p.Purge(os.Stdout, endpoint, opt.Key)
 
 	default:
 		return UnsupportedActionError{Action: mode}

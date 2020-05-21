@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"io"
 	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
@@ -150,7 +151,7 @@ func (p MongoPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p MongoPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p MongoPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -159,41 +160,41 @@ func (p MongoPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("mongo_host", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 mongo_host          %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 mongo_host          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 mongo_host}          using default host @C{%s}\n", DefaultHost)
+		fmt.Fprintf(log, "@G{\u2713 mongo_host}          using default host @C{%s}\n", DefaultHost)
 	} else {
-		fmt.Printf("@G{\u2713 mongo_host}          @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 mongo_host}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mongo_port", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 mongo_port          %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 mongo_port          %s}\n", err)
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 mongo_port}          using default port @C{%s}\n", DefaultPort)
+		fmt.Fprintf(log, "@G{\u2713 mongo_port}          using default port @C{%s}\n", DefaultPort)
 	} else {
-		fmt.Printf("@G{\u2713 mongo_port}          @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 mongo_port}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mongo_user", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 mongo_user          %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 mongo_user          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 mongo_user}          (none)\n")
+		fmt.Fprintf(log, "@G{\u2713 mongo_user}          (none)\n")
 	} else {
-		fmt.Printf("@G{\u2713 mongo_user}          @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 mongo_user}          @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("mongo_password", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 mongo_password      %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 mongo_password      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 mongo_password}      (none)\n")
+		fmt.Fprintf(log, "@G{\u2713 mongo_password}      (none)\n")
 	} else {
-		fmt.Printf("@G{\u2713 mongo_password}      @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 mongo_password}      @C{%s}\n", plugin.Redact(s))
 	}
 
 	if fail {
@@ -203,7 +204,7 @@ func (p MongoPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 }
 
 // Backup mongo database
-func (p MongoPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p MongoPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	mongo, err := mongoConnectionInfo(endpoint)
 	if err != nil {
 		return err
@@ -211,11 +212,11 @@ func (p MongoPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	cmd := fmt.Sprintf("%s/mongodump %s %s", mongo.Bin, connectionString(mongo), mongo.DumpOptions)
 	plugin.DEBUG("Executing: `%s`", cmd)
-	return plugin.Exec(cmd, plugin.STDOUT)
+	return plugin.Exec(cmd, nil, out, log)
 }
 
 // Restore mongo database
-func (p MongoPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p MongoPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	mongo, err := mongoConnectionInfo(endpoint)
 	if err != nil {
 		return err
@@ -223,18 +224,18 @@ func (p MongoPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 	cmd := fmt.Sprintf("%s/mongorestore %s %s", mongo.Bin, connectionString(mongo), mongo.RestoreOptions)
 	plugin.DEBUG("Exec: %s", cmd)
-	return plugin.Exec(cmd, plugin.STDIN)
+	return plugin.Exec(cmd, in, log, log)
 }
 
-func (p MongoPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p MongoPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p MongoPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p MongoPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p MongoPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p MongoPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 

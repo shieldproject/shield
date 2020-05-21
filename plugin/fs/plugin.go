@@ -144,7 +144,7 @@ func getFSConfig(endpoint plugin.ShieldEndpoint) (*FSConfig, error) {
 	}, nil
 }
 
-func (p FSPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p FSPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		b    bool
@@ -154,40 +154,40 @@ func (p FSPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	b, err = endpoint.BooleanValueDefault("strict", false)
 	if err != nil {
-		fmt.Printf("@R{\u2717 strict    %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 strict    %s}\n", err)
 		fail = true
 	} else if b {
-		fmt.Printf("@G{\u2713 strict}    @C{yes} - files that go missing are considered an error\n")
+		fmt.Fprintf(log, "@G{\u2713 strict}    @C{yes} - files that go missing are considered an error\n")
 	} else {
-		fmt.Printf("@G{\u2713 strict}    @C{no} (default)\n")
+		fmt.Fprintf(log, "@G{\u2713 strict}    @C{no} (default)\n")
 	}
 
 	s, err = endpoint.StringValue("base_dir")
 	if err != nil {
-		fmt.Printf("@R{\u2717 base_dir  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 base_dir  %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 base_dir}  files in @C{%s} will be backed up\n", s)
+		fmt.Fprintf(log, "@G{\u2713 base_dir}  files in @C{%s} will be backed up\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("include", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 include   %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 include   %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 include}   all files will be included\n")
+		fmt.Fprintf(log, "@G{\u2713 include}   all files will be included\n")
 	} else {
-		fmt.Printf("@G{\u2713 include}   only files matching @C{%s} will be backed up\n", s)
+		fmt.Fprintf(log, "@G{\u2713 include}   only files matching @C{%s} will be backed up\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("exclude", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 base_dir  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 base_dir  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 exclude}   no files will be excluded\n")
+		fmt.Fprintf(log, "@G{\u2713 exclude}   no files will be excluded\n")
 	} else {
-		fmt.Printf("@G{\u2713 exclude}   files matching @C{%s} will be skipped\n", s)
+		fmt.Fprintf(log, "@G{\u2713 exclude}   files matching @C{%s} will be skipped\n", s)
 	}
 
 	if fail {
@@ -196,13 +196,13 @@ func (p FSPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p FSPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	cfg, err := getFSConfig(endpoint)
 	if err != nil {
 		return err
 	}
 
-	archive := tar.NewWriter(os.Stdout)
+	archive := tar.NewWriter(out)
 	copyBuf := make([]byte, 32*1024)
 	n := 0
 	walker := func(path string, info os.FileInfo, err error) error {
@@ -212,21 +212,21 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		}
 
 		if cfg.Verbose {
-			fmt.Fprintf(os.Stderr, " - found '%s' ... ", path)
+			fmt.Fprintf(log, " - found '%s' ... ", path)
 		}
 		if info == nil {
 			if _, ok := err.(*os.PathError); !cfg.Strict && ok {
-				fmt.Fprintf(os.Stderr, "no longer exists; skipping.\n")
+				fmt.Fprintf(log, "no longer exists; skipping.\n")
 				return nil
 			} else {
-				fmt.Fprintf(os.Stderr, "FAILED\n")
+				fmt.Fprintf(log, "FAILED\n")
 				return fmt.Errorf("failed to walk %s: %s", path, err)
 			}
 		}
 
 		if !cfg.Match(info.Name()) {
 			if cfg.Verbose {
-				fmt.Fprintf(os.Stderr, "ignoring (per include/exclude)\n")
+				fmt.Fprintf(log, "ignoring (per include/exclude)\n")
 			}
 			if info.IsDir() {
 				return filepath.SkipDir
@@ -235,7 +235,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		}
 		n += 1
 		if cfg.Verbose {
-			fmt.Fprintf(os.Stderr, "ok\n")
+			fmt.Fprintf(log, "ok\n")
 		}
 
 		link := ""
@@ -273,16 +273,16 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		return fmt.Errorf("unable to archive special file '%s'", path)
 	}
 
-	fmt.Fprintf(os.Stderr, "backing up files in '%s'...\n", cfg.BasePath)
+	fmt.Fprintf(log, "backing up files in '%s'...\n", cfg.BasePath)
 	if err := filepath.Walk(cfg.BasePath, walker); err != nil {
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "done; found %d files / directories to archive...\n\n", n)
+	fmt.Fprintf(log, "done; found %d files / directories to archive...\n\n", n)
 
 	return archive.Close()
 }
 
-func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p FSPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	cfg, err := getFSConfig(endpoint)
 	if err != nil {
 		return err
@@ -293,7 +293,7 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	n := 0
-	archive := tar.NewReader(os.Stdin)
+	archive := tar.NewReader(in)
 	copyBuf := make([]byte, 32*1024)
 	for {
 		header, err := archive.Next()
@@ -307,60 +307,60 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		info := header.FileInfo()
 		path := fmt.Sprintf("%s/%s", cfg.BasePath, header.Name)
 		n += 1
-		fmt.Fprintf(os.Stderr, " - restoring '%s'... ", path)
+		fmt.Fprintf(log, " - restoring '%s'... ", path)
 		if info.Mode().IsDir() {
 			if err := os.MkdirAll(path, 0777); err != nil {
-				fmt.Fprintf(os.Stderr, "FAILED (could not create directory)\n")
+				fmt.Fprintf(log, "FAILED (could not create directory)\n")
 				return err
 			}
-			fmt.Fprintf(os.Stderr, "created directory\n")
+			fmt.Fprintf(log, "created directory\n")
 
 		} else if info.Mode().IsRegular() {
 			f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, info.Mode())
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "FAILED (could not create new file)\n")
+				fmt.Fprintf(log, "FAILED (could not create new file)\n")
 				return err
 			}
 			if _, err := io.CopyBuffer(f, archive, copyBuf); err != nil {
-				fmt.Fprintf(os.Stderr, "FAILED (could not copy data to disk)\n")
+				fmt.Fprintf(log, "FAILED (could not copy data to disk)\n")
 				return err
 			}
-			fmt.Fprintf(os.Stderr, "created file\n")
+			fmt.Fprintf(log, "created file\n")
 
 		} else {
-			fmt.Fprintf(os.Stderr, "FAILED (not a regular file or a directory)\n")
+			fmt.Fprintf(log, "FAILED (not a regular file or a directory)\n")
 			return fmt.Errorf("unable to unpack special file '%s'", path)
 		}
 
 		/* put things back the way they were... */
 		if err := os.Chtimes(path, header.AccessTime, header.ModTime); err != nil {
-			fmt.Fprintf(os.Stderr, "FAILED (could not set atime / mtime / ctime)\n")
+			fmt.Fprintf(log, "FAILED (could not set atime / mtime / ctime)\n")
 			return err
 		}
 		if err := os.Chown(path, header.Uid, header.Gid); err != nil {
-			fmt.Fprintf(os.Stderr, "FAILED (could not set user ownership)\n")
+			fmt.Fprintf(log, "FAILED (could not set user ownership)\n")
 			return err
 		}
 		if err := os.Chmod(path, info.Mode()); err != nil {
-			fmt.Fprintf(os.Stderr, "FAILED (could not set group ownership)\n")
+			fmt.Fprintf(log, "FAILED (could not set group ownership)\n")
 			return err
 		}
 
-		fmt.Fprintf(os.Stderr, "ok\n")
+		fmt.Fprintf(log, "ok\n")
 	}
 
-	fmt.Fprintf(os.Stderr, "done; restored %d files / directories...\n\n", n)
+	fmt.Fprintf(log, "done; restored %d files / directories...\n\n", n)
 	return nil
 }
 
-func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p FSPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p FSPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p FSPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p FSPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p FSPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }

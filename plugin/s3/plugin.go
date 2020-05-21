@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -222,7 +221,7 @@ func (p S3Plugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p S3Plugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s3_host, scheme, host, port string
 
@@ -232,136 +231,136 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err := endpoint.StringValueDefault("s3_host", DefaultS3Host)
 	if err != nil {
-		fmt.Printf("@R{\u2717 s3_host               %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 s3_host               %s}\n", err)
 		fail = true
 	} else {
 		s3_host = s /* save for s3_port reporting */
 		scheme, host, port = parse(s)
 		if host != s3_host {
-			fmt.Printf("@G{\u2713 s3_host}               @C{%s} via @C{%s} (from @C{%s})\n", host, scheme, s)
+			fmt.Fprintf(log, "@G{\u2713 s3_host}               @C{%s} via @C{%s} (from @C{%s})\n", host, scheme, s)
 		} else {
-			fmt.Printf("@G{\u2713 s3_host}               @C{%s} via @C{%s}\n", s, scheme)
+			fmt.Fprintf(log, "@G{\u2713 s3_host}               @C{%s} via @C{%s}\n", s, scheme)
 		}
 	}
 
 	s, err = endpoint.StringValueDefault("s3_port", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 s3_port               %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 s3_port               %s}\n", err)
 		fail = true
 	} else {
 		if h, err := endpoint.StringValueDefault("s3_host", ""); s != "" && err == nil && h == "" {
-			fmt.Printf("@R{\u2717 s3_port               %s but s3_host cannot be empty}\n", s)
+			fmt.Fprintf(log, "@R{\u2717 s3_port               %s but s3_host cannot be empty}\n", s)
 			fail = true
 		} else if s == "" {
-			fmt.Printf("@G{\u2713 s3_port}               @C{%s} (from s3_host: @C{%s})\n", port, h)
+			fmt.Fprintf(log, "@G{\u2713 s3_port}               @C{%s} (from s3_host: @C{%s})\n", port, h)
 		} else {
-			fmt.Printf("@G{\u2713 s3_port}               @C{%s} (manually overridden)\n", s)
+			fmt.Fprintf(log, "@G{\u2713 s3_port}               @C{%s} (manually overridden)\n", s)
 		}
 	}
 
 	useInstanceProfiles, err := endpoint.BooleanValueDefault("use_instance_profile", DefaultUseInstanceProfiles)
 	if err != nil {
-		fmt.Printf("@R{\u2717 use_instance_profile   %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 use_instance_profile   %s}\n", err)
 		fail = true
 	} else if useInstanceProfiles {
-		fmt.Printf("@G{\u2713 use_instance_profile}  @C{yes}, AWS Instance Profiles @Y{WILL} be used\n")
+		fmt.Fprintf(log, "@G{\u2713 use_instance_profile}  @C{yes}, AWS Instance Profiles @Y{WILL} be used\n")
 	} else {
-		fmt.Printf("@G{\u2713 use_instance_profile}  @C{no}, AWS Instance Profiles will @Y{NOT} be used\n")
+		fmt.Fprintf(log, "@G{\u2713 use_instance_profile}  @C{no}, AWS Instance Profiles will @Y{NOT} be used\n")
 	}
 
 	if !useInstanceProfiles {
 		s, err = endpoint.StringValue("access_key_id")
 		if err != nil {
-			fmt.Printf("@R{\u2717 access_key_id         %s}\n", err)
+			fmt.Fprintf(log, "@R{\u2717 access_key_id         %s}\n", err)
 			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 access_key_id}         @C{%s}\n", plugin.Redact(s))
+			fmt.Fprintf(log, "@G{\u2713 access_key_id}         @C{%s}\n", plugin.Redact(s))
 		}
 
 		s, err = endpoint.StringValue("secret_access_key")
 		if err != nil {
-			fmt.Printf("@R{\u2717 secret_access_key     %s}\n", err)
+			fmt.Fprintf(log, "@R{\u2717 secret_access_key     %s}\n", err)
 			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 secret_access_key}     @C{%s}\n", plugin.Redact(s))
+			fmt.Fprintf(log, "@G{\u2713 secret_access_key}     @C{%s}\n", plugin.Redact(s))
 		}
 	}
 
 	s, err = endpoint.StringValueDefault("region", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 region                %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 region                %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 region}                @C{%s} (default)\n", DefaultRegion)
+		fmt.Fprintf(log, "@G{\u2713 region}                @C{%s} (default)\n", DefaultRegion)
 	} else {
-		fmt.Printf("@G{\u2713 region}                @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 region}                @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("bucket")
 	if err != nil {
-		fmt.Printf("@R{\u2717 bucket                %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 bucket                %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@R{\u2717 bucket                no s3 bucket specified}\n")
+		fmt.Fprintf(log, "@R{\u2717 bucket                no s3 bucket specified}\n")
 		fail = true
 	} else if !validBucketName(s) {
-		fmt.Printf("@R{\u2717 bucket                '%s' is an invalid bucket name (must be all lowercase)}\n", s)
+		fmt.Fprintf(log, "@R{\u2717 bucket                '%s' is an invalid bucket name (must be all lowercase)}\n", s)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bucket}                @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 bucket}                @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 prefix                %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 prefix                %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 prefix}                (none)\n")
+		fmt.Fprintf(log, "@G{\u2713 prefix}                (none)\n")
 	} else {
 		s = strings.TrimLeft(s, "/")
-		fmt.Printf("@G{\u2713 prefix}                @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 prefix}                @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("signature_version", DefaultSigVersion)
 	if err != nil {
-		fmt.Printf("@R{\u2717 signature_version     %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 signature_version     %s}\n", err)
 		fail = true
 	} else if !validSigVersion(s) {
-		fmt.Printf("@R{\u2717 signature_version     Unexpected signature version '%s' found (expecting '2' or '4')}\n", s)
+		fmt.Fprintf(log, "@R{\u2717 signature_version     Unexpected signature version '%s' found (expecting '2' or '4')}\n", s)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 signature_version}     @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 signature_version}     @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("part_size", DefaultPartSize)
 	if err != nil {
-		fmt.Printf("@R{\u2717 part_size             %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 part_size             %s}\n", err)
 		fail = true
 	} else if !validPartSize(s) {
-		fmt.Printf("@R{\u2717 part_size             Invalid part size '%s'}\n", s)
+		fmt.Fprintf(log, "@R{\u2717 part_size             Invalid part size '%s'}\n", s)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 part_size}             @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 part_size}             @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("socks5_proxy", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 socks5_proxy          %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 socks5_proxy          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 socks5_proxy}          (no proxy will be used)\n")
+		fmt.Fprintf(log, "@G{\u2713 socks5_proxy}          (no proxy will be used)\n")
 	} else {
-		fmt.Printf("@G{\u2713 socks5_proxy}          @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 socks5_proxy}          @C{%s}\n", s)
 	}
 
 	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", DefaultSkipSSLValidation)
 	if err != nil {
-		fmt.Printf("@R{\u2717 skip_ssl_validation   %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 skip_ssl_validation   %s}\n", err)
 		fail = true
 	} else if tf {
-		fmt.Printf("@G{\u2713 skip_ssl_validation}   @C{yes}, SSL will @Y{NOT} be validated\n")
+		fmt.Fprintf(log, "@G{\u2713 skip_ssl_validation}   @C{yes}, SSL will @Y{NOT} be validated\n")
 	} else {
-		fmt.Printf("@G{\u2713 skip_ssl_validation}   @C{no}, SSL @Y{WILL} be validated\n")
+		fmt.Fprintf(log, "@G{\u2713 skip_ssl_validation}   @C{no}, SSL @Y{WILL} be validated\n")
 	}
 
 	if fail {
@@ -370,15 +369,15 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p S3Plugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p S3Plugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p S3Plugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p S3Plugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p S3Plugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	c, err := getS3ConnInfo(endpoint)
 	if err != nil {
 		return "", 0, err
@@ -407,7 +406,7 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	}
 
 	plugin.Infof("streaming standard input to s3 in %d-byte blocks", c.PartSize)
-	size, err := upload.Stream(os.Stdin, c.PartSize)
+	size, err := upload.Stream(in, c.PartSize)
 	if err != nil {
 		return "", 0, err
 	}
@@ -421,7 +420,7 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return path, size, nil
 }
 
-func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p S3Plugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	e, err := getS3ConnInfo(endpoint)
 	if err != nil {
 		return err
@@ -448,7 +447,7 @@ func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	}
 
 	plugin.Infof("streaming backup archive to standard output")
-	n, err := io.Copy(os.Stdout, reader)
+	n, err := io.Copy(out, reader)
 	if err != nil {
 		return err
 	}
@@ -457,7 +456,7 @@ func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	return nil
 }
 
-func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p S3Plugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	e, err := getS3ConnInfo(endpoint)
 	if err != nil {
 		return err

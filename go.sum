@@ -110,6 +110,8 @@ github.com/jhunt/shield-storage-gateway v0.0.0-20200518172352-e7f4ba702b4c h1:xE
 github.com/jhunt/shield-storage-gateway v0.0.0-20200518172352-e7f4ba702b4c/go.mod h1:W3/tje2t0ompkKXUGN5QQmonuDSRwru5gfgsiihrVpI=
 github.com/jhunt/shield-storage-gateway v0.0.0-20200518195451-60c65d70daad h1:Kfou8UNVBmPtro3TWj2S5LmyBZdmZuT7eNW5a+uNYJ8=
 github.com/jhunt/shield-storage-gateway v0.0.0-20200518195451-60c65d70daad/go.mod h1:W3/tje2t0ompkKXUGN5QQmonuDSRwru5gfgsiihrVpI=
+github.com/jhunt/shield-storage-gateway v0.0.0-20200521135823-ceb24ff0859d h1:SrsTWqIXxOeXwtXs/bv5uUCPtRO57+L6ULYuYs0AkQE=
+github.com/jhunt/shield-storage-gateway v0.0.0-20200521135823-ceb24ff0859d/go.mod h1:W3/tje2t0ompkKXUGN5QQmonuDSRwru5gfgsiihrVpI=
 github.com/jmoiron/sqlx v0.0.0-20160615151803-bdae0c3219c3 h1:O3uSi37r0VhywMlg5lN/eB2LwYnBLhLbfXHxpMVNcWk=
 github.com/jmoiron/sqlx v0.0.0-20160615151803-bdae0c3219c3/go.mod h1:IiEW3SEiiErVyFdH8NTuWjSifiEQKUoyK3LNqr2kCHU=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=

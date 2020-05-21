@@ -52,7 +52,7 @@ func (p MockPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p MockPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p MockPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		err  error
 		fail bool
@@ -65,69 +65,69 @@ func (p MockPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	)
 	s, err = endpoint.StringValue("string1")
 	if err != nil {
-		fmt.Printf("@R{\u2717 string1              %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 string1              %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 string1}              @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 string1}              @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("string2", "not set")
 	if err != nil {
-		fmt.Printf("@R{\u2717 string2              %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 string2              %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 string2}              @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 string2}              @C{%s}\n", s)
 	}
 
 	f, err = endpoint.FloatValue("float1")
 	if err != nil {
-		fmt.Printf("@R{\u2717 float1               %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 float1               %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 float1}               @C{%v}\n", f)
+		fmt.Fprintf(log, "@G{\u2713 float1}               @C{%v}\n", f)
 	}
 
 	f, err = endpoint.FloatValueDefault("float2", 42.0)
 	if err != nil {
-		fmt.Printf("@R{\u2717 float2               %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 float2               %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 float2}               @C{%v}\n", f)
+		fmt.Fprintf(log, "@G{\u2713 float2}               @C{%v}\n", f)
 	}
 
 	b, err = endpoint.BooleanValue("bool1")
 	if err != nil {
-		fmt.Printf("@R{\u2717 bool1                %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 bool1                %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bool1}                @C{%v}\n", b)
+		fmt.Fprintf(log, "@G{\u2713 bool1}                @C{%v}\n", b)
 	}
 
 	b, err = endpoint.BooleanValueDefault("bool2", true)
 	if err != nil {
-		fmt.Printf("@R{\u2717 bool2                %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 bool2                %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bool2}                @C{%v}\n", b)
+		fmt.Fprintf(log, "@G{\u2713 bool2}                @C{%v}\n", b)
 	}
 
 	l, err = endpoint.ArrayValue("list")
 	if err != nil {
-		fmt.Printf("@R{\u2717 list                 %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 list                 %s}\n", err)
 		fail = true
 	} else {
 		for i, v := range l {
-			fmt.Printf("@G{\u2713 list}                 @C{[%d] = %v}\n", i, v)
+			fmt.Fprintf(log, "@G{\u2713 list}                 @C{[%d] = %v}\n", i, v)
 		}
 	}
 
 	m, err = endpoint.MapValue("map")
 	if err != nil {
-		fmt.Printf("@R{\u2717 map                  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 map                  %s}\n", err)
 		fail = true
 	} else {
 		for k, v := range m {
-			fmt.Printf("@G{\u2713 map}                  @C{'%s' = %v}\n", k, v)
+			fmt.Fprintf(log, "@G{\u2713 map}                  @C{'%s' = %v}\n", k, v)
 		}
 	}
 
@@ -146,25 +146,25 @@ func Nowhere() io.Writer {
 	return out
 }
 
-func (p MockPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
-	fmt.Fprintf(os.Stdout, "mock data\n")
+func (p MockPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
+	fmt.Fprintf(out, "mock data\n")
 	return nil
 }
 
-func (p MockPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
-	_, err := io.Copy(Nowhere(), os.Stdin)
+func (p MockPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
+	_, err := io.Copy(Nowhere(), in)
 	return err
 }
 
-func (p MockPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p MockPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "fake-storage-key", 0, nil
 }
 
-func (p MockPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
-	fmt.Fprintf(os.Stdout, "mock backup\n")
+func (p MockPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
+	fmt.Fprintf(out, "mock backup\n")
 	return nil
 }
 
-func (p MockPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p MockPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return nil
 }

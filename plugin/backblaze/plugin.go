@@ -3,7 +3,6 @@ package backblaze
 import (
 	"context"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -93,7 +92,7 @@ func (p BackblazePlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p BackblazePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p BackblazePlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -103,41 +102,41 @@ func (p BackblazePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	//BEGIN AUTH VALIDATION
 	s, err = endpoint.StringValue("access_key_id")
 	if err != nil {
-		fmt.Printf("@R{\u2717 access_key_id        %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 access_key_id        %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 access_key_id}        @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 access_key_id}        @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValue("secret_access_key")
 	if err != nil {
-		fmt.Printf("@R{\u2717 secret_access_key    %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 secret_access_key    %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 secret_access_key}    @C{%s}\n", plugin.Redact(s))
 	}
 	//END AUTH VALIDATION
 
 	s, err = endpoint.StringValue("bucket")
 	if err != nil {
-		fmt.Printf("@R{\u2717 bucket               %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 bucket               %s}\n", err)
 		fail = true
 	} else if !validBucketName(s) {
-		fmt.Printf("@R{\u2717 bucket               '%s' is an invalid bucket name (must be all lowercase)}\n", s)
+		fmt.Fprintf(log, "@R{\u2717 bucket               '%s' is an invalid bucket name (must be all lowercase)}\n", s)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bucket}               @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 bucket}               @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
-		fmt.Printf("@R{\u2717 prefix               %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 prefix               %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 prefix}               (none)\n")
+		fmt.Fprintf(log, "@G{\u2713 prefix}               (none)\n")
 	} else {
 		s = strings.TrimLeft(s, "/")
-		fmt.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 prefix}               @C{%s}\n", s)
 	}
 
 	if fail {
@@ -146,15 +145,15 @@ func (p BackblazePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p BackblazePlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p BackblazePlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p BackblazePlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p BackblazePlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p BackblazePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p BackblazePlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	c, err := getB2ConnInfo(endpoint)
 	if err != nil {
 		return "", 0, err
@@ -175,7 +174,7 @@ func (p BackblazePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, e
 	}
 	obj := bucket.Object(strings.TrimPrefix(path, "/"))
 	w := obj.NewWriter(ctx)
-	io.Copy(w, os.Stdin)
+	io.Copy(w, in)
 
 	if err != nil {
 		return "", 0, err
@@ -192,7 +191,7 @@ func (p BackblazePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, e
 	return path, size, nil
 }
 
-func (p BackblazePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p BackblazePlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	e, err := getB2ConnInfo(endpoint)
 	if err != nil {
 		return err
@@ -214,11 +213,11 @@ func (p BackblazePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) e
 		return err
 	}
 
-	_, err = io.Copy(os.Stdout, reader)
+	_, err = io.Copy(out, reader)
 	return err
 }
 
-func (p BackblazePlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p BackblazePlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	e, err := getB2ConnInfo(endpoint)
 	if err != nil {
 		return err

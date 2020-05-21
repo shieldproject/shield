@@ -83,7 +83,7 @@ func (p ConsulPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p ConsulPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		b    bool
@@ -93,40 +93,40 @@ func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("host", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 host                  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 host                  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2717 host                  using default host @C{%s}}\n", DefaultHostPort)
+		fmt.Fprintf(log, "@G{\u2717 host                  using default host @C{%s}}\n", DefaultHostPort)
 	} else {
-		fmt.Printf("@G{\u2713 host}                  @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 host}                  @C{%s}\n", s)
 	}
 
 	b, err = endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
-		fmt.Printf("@R{\u2717 skip_ssl_validation   %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 skip_ssl_validation   %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 skip_ssl_validation}   @C{%t}\n", b)
+		fmt.Fprintf(log, "@G{\u2713 skip_ssl_validation}   @C{%t}\n", b)
 	}
 
 	s, err = endpoint.StringValueDefault("username", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 username              %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 username              %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 username}              no username\n")
+		fmt.Fprintf(log, "@G{\u2713 username}              no username\n")
 	} else {
-		fmt.Printf("@G{\u2713 username}              @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 username}              @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("password", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 password              %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 password              %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 password}              no password\n")
+		fmt.Fprintf(log, "@G{\u2713 password}              no password\n")
 	} else {
-		fmt.Printf("@G{\u2713 password}              @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 password}              @C{%s}\n", plugin.Redact(s))
 	}
 
 	if fail {
@@ -135,9 +135,9 @@ func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p ConsulPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p ConsulPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 
-	encoder := json.NewEncoder(os.Stdout)
+	encoder := json.NewEncoder(out)
 
 	client, err := consulClient(endpoint)
 	if err != nil {
@@ -158,14 +158,14 @@ func (p ConsulPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	return err
 }
 
-func (p ConsulPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p ConsulPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	client, err := consulClient(endpoint)
 	if err != nil {
 		return err
 	}
 
 	kvClient := client.KV()
-	decoder := json.NewDecoder(os.Stdin)
+	decoder := json.NewDecoder(in)
 
 	var kvs []api.KVPair
 	var kv api.KVPair
@@ -188,15 +188,15 @@ func (p ConsulPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p ConsulPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p ConsulPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p ConsulPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p ConsulPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p ConsulPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p ConsulPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 

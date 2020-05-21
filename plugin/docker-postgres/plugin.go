@@ -67,21 +67,21 @@ func dockerClient(endpoint plugin.ShieldEndpoint) (*docker.Client, error) {
 	return c, nil
 }
 
-func (p DockerPostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p DockerPostgresPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s   string
 		err error
 	)
 	s, err = endpoint.StringValue("socket")
 	if err != nil {
-		fmt.Printf("@G{\u2713 socket}  using default socket @C{%s}\n", DefaultSocket)
+		fmt.Fprintf(log, "@G{\u2713 socket}  using default socket @C{%s}\n", DefaultSocket)
 	} else {
-		fmt.Printf("@G{\u2713 socket}  using socket @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 socket}  using socket @C{%s}\n", s)
 	}
 	return nil
 }
 
-func (p DockerPostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p DockerPostgresPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	c, err := dockerClient(endpoint)
 	if err != nil {
 		return err
@@ -96,7 +96,7 @@ func (p DockerPostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	plugin.DEBUG("found %d running containers to backup", len(registry))
 
 	// start a tar stream
-	archive := NewArchiveWriter(os.Stdout)
+	archive := NewArchiveWriter(out)
 
 	// determine our working dir for backup buffer files
 	tmpdir, err := endpoint.StringValue("/tmp")
@@ -159,7 +159,7 @@ func (p DockerPostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p DockerPostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p DockerPostgresPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	c, err := dockerClient(endpoint)
 	if err != nil {
 		return err
@@ -176,7 +176,7 @@ func (p DockerPostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	fail := MultiError{Message: "failed to restore all postgres containers"}
 
 	// treat stdin as a tar stream
-	archive := NewArchiveReader(os.Stdin)
+	archive := NewArchiveReader(in)
 	for {
 		var info docker.Container
 		data, err := archive.Next(&info)
@@ -256,15 +256,15 @@ func (p DockerPostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p DockerPostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p DockerPostgresPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p DockerPostgresPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p DockerPostgresPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p DockerPostgresPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p DockerPostgresPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 

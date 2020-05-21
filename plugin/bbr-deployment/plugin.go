@@ -102,7 +102,6 @@ func Run() {
 		},
 	}
 
-	fmt.Fprintf(os.Stderr, "bbr plugin starting up...\n")
 	plugin.Run(bbr)
 }
 
@@ -122,63 +121,63 @@ func (p BBRPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p BBRPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p BBRPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	fail := false
 
 	if s, err := endpoint.StringValueDefault("bindir", DefaultBinDir); err != nil {
-		fmt.Printf("@R{\u2717 bindir           %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 bindir           %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bindir}           @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 bindir}           @C{%s}\n", s)
 	}
 
 	if s, err := endpoint.StringValueDefault("tmpdir", os.TempDir()); err != nil {
-		fmt.Printf("@R{\u2717 tmpdir           %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 tmpdir           %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 tmpdir}           @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 tmpdir}           @C{%s}\n", s)
 	}
 
 	if s, err := endpoint.StringValue("director"); err != nil {
-		fmt.Printf("@R{\u2717 director         %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 director         %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 director}         @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 director}         @C{%s}\n", s)
 	}
 
 	if s, err := endpoint.StringValue("ca_cert"); err != nil {
-		fmt.Printf("@R{\u2717 ca_cert          %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 ca_cert          %s}\n", err)
 		fail = true
 	} else {
 		/* FIXME: validate that it is an X.509 PEM certificate */
 		lines := strings.Split(s, "\n")
-		fmt.Printf("@G{\u2713 ca_cert}          @C{%s}\n", lines[0])
+		fmt.Fprintf(log, "@G{\u2713 ca_cert}          @C{%s}\n", lines[0])
 		if len(lines) > 1 {
 			for _, line := range lines[1:] {
-				fmt.Printf("                   @C{%s}\n", line)
+				fmt.Fprintf(log, "                   @C{%s}\n", line)
 			}
 		}
 	}
 
 	if s, err := endpoint.StringValue("username"); err != nil {
-		fmt.Printf("@R{\u2717 username    %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 username    %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 username}    @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 username}    @C{%s}\n", s)
 	}
 
 	if s, err := endpoint.StringValue("password"); err != nil {
-		fmt.Printf("@R{\u2717 password    %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 password    %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 password}    @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 password}    @C{%s}\n", plugin.Redact(s))
 	}
 
 	if s, err := endpoint.StringValue("deployment"); err != nil {
-		fmt.Printf("@R{\u2717 deployment       %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 deployment       %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 deployment}       @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 deployment}       @C{%s}\n", s)
 	}
 
 	if fail {
@@ -204,7 +203,7 @@ func persist(dir, contents string) (string, error) {
 	return f.Name(), nil
 }
 
-func (p BBRPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p BBRPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var cmd *exec.Cmd
 
 	bbr, err := getDetails(endpoint)
@@ -212,26 +211,26 @@ func (p BBRPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Setting up temporary workspace directory...\n")
+	fmt.Fprintf(log, "Setting up temporary workspace directory...\n")
 	workspace, err := ioutil.TempDir(bbr.TempDir, "shield-bbr-*")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(workspace)
-	fmt.Fprintf(os.Stderr, "  workspace is '%s'\n", workspace)
+	fmt.Fprintf(log, "  workspace is '%s'\n", workspace)
 
-	fmt.Fprintf(os.Stderr, "Changing working directory to workspace...\n")
+	fmt.Fprintf(log, "Changing working directory to workspace...\n")
 	if err := os.Chdir(workspace); err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Writing CA Certificate file to disk...\n")
+	fmt.Fprintf(log, "Writing CA Certificate file to disk...\n")
 	ca, err := persist(bbr.TempDir, bbr.CACert)
 	if err != nil {
 		return err
 	}
 	defer os.Remove(ca)
-	fmt.Fprintf(os.Stderr, "  wrote to '%s'\n", ca)
+	fmt.Fprintf(log, "  wrote to '%s'\n", ca)
 
 	cmd = exec.Command(fmt.Sprintf("%s/bbr", bbr.BinDir),
 		"deployment",
@@ -241,41 +240,41 @@ func (p BBRPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		"--deployment", bbr.Deployment,
 		"--ca-cert", ca,
 		"backup")
-	fmt.Fprintf(os.Stderr, "\nRunning BRR CLI...\n")
-	fmt.Fprintf(os.Stderr, "  %s/bbr deployment \\\n", bbr.BinDir)
-	fmt.Fprintf(os.Stderr, "    --target %s \\\n", bbr.Director)
-	fmt.Fprintf(os.Stderr, "    --username %s \\\n", bbr.Username)
-	fmt.Fprintf(os.Stderr, "    --password %s \\\n", plugin.Redact(bbr.Password))
-	fmt.Fprintf(os.Stderr, "    --deployment %s \\\n", bbr.Deployment)
-	fmt.Fprintf(os.Stderr, "    --ca-cert %s \\\n", ca)
-	fmt.Fprintf(os.Stderr, "    backup\n\n\n")
+	fmt.Fprintf(log, "\nRunning BRR CLI...\n")
+	fmt.Fprintf(log, "  %s/bbr deployment \\\n", bbr.BinDir)
+	fmt.Fprintf(log, "    --target %s \\\n", bbr.Director)
+	fmt.Fprintf(log, "    --username %s \\\n", bbr.Username)
+	fmt.Fprintf(log, "    --password %s \\\n", plugin.Redact(bbr.Password))
+	fmt.Fprintf(log, "    --deployment %s \\\n", bbr.Deployment)
+	fmt.Fprintf(log, "    --ca-cert %s \\\n", ca)
+	fmt.Fprintf(log, "    backup\n\n\n")
 
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = log
+	cmd.Stderr = log
 
-	fmt.Fprintf(os.Stderr, "----------------------------------------------------------\n")
+	fmt.Fprintf(log, "----------------------------------------------------------\n")
 	err = cmd.Run()
-	fmt.Fprintf(os.Stderr, "----------------------------------------------------------\n\n\n")
+	fmt.Fprintf(log, "----------------------------------------------------------\n\n\n")
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Combining BBR output files into an uncompressed tarball...\n")
-	archive := tar.NewWriter(os.Stdout)
+	fmt.Fprintf(log, "Combining BBR output files into an uncompressed tarball...\n")
+	archive := tar.NewWriter(out)
 	err = filepath.Walk(workspace, func(path string, info os.FileInfo, err error) error {
-		fmt.Fprintf(os.Stderr, "  - analyzing %s ... ", path)
+		fmt.Fprintf(log, "  - analyzing %s ... ", path)
 		rel, err := filepath.Rel(workspace, path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "@R{FAILED}\n")
+			fmt.Fprintf(log, "@R{FAILED}\n")
 			return err
 		}
 
 		if !strings.HasPrefix(rel, bbr.Deployment) {
-			fmt.Fprintf(os.Stderr, "skipping\n")
+			fmt.Fprintf(log, "skipping\n")
 			return nil
 		}
 
-		fmt.Fprintf(os.Stderr, "INCLUDING\n")
+		fmt.Fprintf(log, "INCLUDING\n")
 		h, err := tar.FileInfoHeader(info, "")
 		if err != nil {
 			return err
@@ -300,7 +299,7 @@ func (p BBRPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p BBRPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p BBRPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var cmd *exec.Cmd
 
 	bbr, err := getDetails(endpoint)
@@ -308,20 +307,20 @@ func (p BBRPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Setting up temporary workspace directory...\n")
+	fmt.Fprintf(log, "Setting up temporary workspace directory...\n")
 	workspace, err := ioutil.TempDir(bbr.TempDir, "shield-bbr-*")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(workspace)
-	fmt.Fprintf(os.Stderr, "  workspace is '%s'\n", workspace)
+	fmt.Fprintf(log, "  workspace is '%s'\n", workspace)
 
-	fmt.Fprintf(os.Stderr, "Changing working directory to workspace...\n")
+	fmt.Fprintf(log, "Changing working directory to workspace...\n")
 	if err := os.Chdir(workspace); err != nil {
 		return err
 	}
 
-	archive := tar.NewReader(os.Stdin)
+	archive := tar.NewReader(in)
 	for {
 		h, err := archive.Next()
 		if err == io.EOF {
@@ -350,13 +349,13 @@ func (p BBRPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return fmt.Errorf("Found too many BBR artifacts (%d) in backup archive!", len(artifacts))
 	}
 
-	fmt.Fprintf(os.Stderr, "Writing CA Certificate file to disk...\n")
+	fmt.Fprintf(log, "Writing CA Certificate file to disk...\n")
 	ca, err := persist(bbr.TempDir, bbr.CACert)
 	if err != nil {
 		return err
 	}
 	defer os.Remove(ca)
-	fmt.Fprintf(os.Stderr, "  wrote to '%s'\n", ca)
+	fmt.Fprintf(log, "  wrote to '%s'\n", ca)
 
 	cmd = exec.Command(fmt.Sprintf("%s/bbr", bbr.BinDir),
 		"deployment",
@@ -368,33 +367,33 @@ func (p BBRPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		"restore",
 		"--artifact-path", artifacts[0])
 
-	fmt.Fprintf(os.Stderr, "\nRunning BRR CLI...\n")
-	fmt.Fprintf(os.Stderr, "  %s/bbr deployment \\\n", bbr.BinDir)
-	fmt.Fprintf(os.Stderr, "    --target %s \\\n", bbr.Director)
-	fmt.Fprintf(os.Stderr, "    --username %s \\\n", bbr.Username)
-	fmt.Fprintf(os.Stderr, "    --password %s \\\n", plugin.Redact(bbr.Password))
-	fmt.Fprintf(os.Stderr, "    --deployment %s \\\n", bbr.Deployment)
-	fmt.Fprintf(os.Stderr, "    --ca-cert %s \\\n", ca)
-	fmt.Fprintf(os.Stderr, "    restore \\\n")
-	fmt.Fprintf(os.Stderr, "    --artifact-path %s \\\n\n\n", artifacts[0])
+	fmt.Fprintf(log, "\nRunning BRR CLI...\n")
+	fmt.Fprintf(log, "  %s/bbr deployment \\\n", bbr.BinDir)
+	fmt.Fprintf(log, "    --target %s \\\n", bbr.Director)
+	fmt.Fprintf(log, "    --username %s \\\n", bbr.Username)
+	fmt.Fprintf(log, "    --password %s \\\n", plugin.Redact(bbr.Password))
+	fmt.Fprintf(log, "    --deployment %s \\\n", bbr.Deployment)
+	fmt.Fprintf(log, "    --ca-cert %s \\\n", ca)
+	fmt.Fprintf(log, "    restore \\\n")
+	fmt.Fprintf(log, "    --artifact-path %s \\\n\n\n", artifacts[0])
 
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	fmt.Fprintf(os.Stderr, "----------------------------------------------------------\n")
+	cmd.Stdout = log
+	cmd.Stderr = log
+	fmt.Fprintf(log, "----------------------------------------------------------\n")
 	err = cmd.Run()
-	fmt.Fprintf(os.Stderr, "----------------------------------------------------------\n\n\n")
+	fmt.Fprintf(log, "----------------------------------------------------------\n\n\n")
 	return err
 }
 
-func (p BBRPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p BBRPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p BBRPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p BBRPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p BBRPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) error {
+func (p BBRPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, key string) error {
 	return plugin.UNIMPLEMENTED
 }
 

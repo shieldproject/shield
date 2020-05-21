@@ -2,6 +2,7 @@ package vault
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -83,7 +84,7 @@ func (p VaultPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p VaultPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p VaultPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -92,36 +93,36 @@ func (p VaultPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("url")
 	if err != nil {
-		fmt.Printf("@R{\u2717 url                  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 url                  %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 url}                  @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 url}                  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("token")
 	if err != nil {
-		fmt.Printf("@R{\u2717 token                %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 token                %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 token}                @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 token}                @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("subtree", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 subtree              %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 subtree              %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 subtree}              @C{secret}/* (everything)\n")
+		fmt.Fprintf(log, "@G{\u2713 subtree}              @C{secret}/* (everything)\n")
 	} else {
-		fmt.Printf("@G{\u2713 subtree}              @C{%s}/*\n", s)
+		fmt.Fprintf(log, "@G{\u2713 subtree}              @C{%s}/*\n", s)
 	}
 
 	yes, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
-		fmt.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 skip_ssl_validation  %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{%t}\n", yes)
+		fmt.Fprintf(log, "@G{\u2713 skip_ssl_validation}  @C{%t}\n", yes)
 	}
 
 	if fail {
@@ -130,7 +131,7 @@ func (p VaultPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p VaultPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p VaultPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	v, subtree, err := connect(endpoint)
 	if err != nil {
 		return err
@@ -146,10 +147,11 @@ func (p VaultPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	return Write(output)
+	fmt.Fprintf(out, "%s\n", output)
+	return nil
 }
 
-func (p VaultPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p VaultPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		preserve   bool
 		data, prev string
@@ -167,7 +169,7 @@ func (p VaultPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 	plugin.DEBUG("Reading contents of backup archive...")
 	var input []byte
-	if input, err = Read(subtree); err != nil {
+	if input, err = ioutil.ReadAll(in); err != nil {
 		return err
 	}
 
@@ -188,26 +190,26 @@ func (p VaultPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	plugin.DEBUG("Restoring %d paths to the Vault...", len(data))
-	if err = Import(v, input); err != nil {
+	if err = Import(v, input, log); err != nil {
 		return err
 	}
 
 	if prev != "" {
 		plugin.DEBUG("Replacing seal keys for current Vault (overwriting those from the backup archive)...")
-		return Import(v, []byte(prev))
+		return Import(v, []byte(prev), log)
 	}
 	return nil
 }
 
-func (p VaultPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p VaultPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p VaultPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p VaultPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p VaultPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p VaultPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
@@ -359,7 +361,7 @@ func Export(v *vault.Vault, path string) (string, error) {
 	return string(b), nil
 }
 
-func Import(v *vault.Vault, backup []byte) error {
+func Import(v *vault.Vault, backup []byte, log io.Writer) error {
 	type importFunc func([]byte) error
 
 	v1Import := func(input []byte) error {
@@ -373,7 +375,7 @@ func Import(v *vault.Vault, backup []byte) error {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stderr, "wrote %s\n", path)
+			fmt.Fprintf(log, "wrote %s\n", path)
 		}
 		return nil
 	}
@@ -474,13 +476,4 @@ func Import(v *vault.Vault, backup []byte) error {
 	}
 
 	return fn(backup)
-}
-
-func Read(subtree string) ([]byte, error) {
-	return ioutil.ReadAll(os.Stdin)
-}
-
-func Write(output string) error {
-	fmt.Printf("%s\n", output)
-	return nil
 }

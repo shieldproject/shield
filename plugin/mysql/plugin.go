@@ -3,6 +3,7 @@ package mysql
 import (
 	"database/sql"
 	"errors"
+	"io"
 	"os"
 
 	// sql drivers
@@ -134,7 +135,7 @@ func (p MySQLPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p MySQLPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p MySQLPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -143,67 +144,67 @@ func (p MySQLPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("mysql_host", DefaultHost)
 	if err != nil {
-		fmt.Printf("@R{\u2717 mysql_host          %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 mysql_host          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 mysql_host}          using default host @C{%s}\n", DefaultHost)
+		fmt.Fprintf(log, "@G{\u2713 mysql_host}          using default host @C{%s}\n", DefaultHost)
 	} else {
-		fmt.Printf("@G{\u2713 mysql_host}          @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 mysql_host}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_port", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 mysql_port          %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 mysql_port          %s}\n", err)
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 mysql_port}          using default port @C{%s}\n", DefaultPort)
+		fmt.Fprintf(log, "@G{\u2713 mysql_port}          using default port @C{%s}\n", DefaultPort)
 	} else {
-		fmt.Printf("@G{\u2713 mysql_port}          @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 mysql_port}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("mysql_user")
 	if err != nil {
-		fmt.Printf("@R{\u2717 mysql_user          %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 mysql_user          %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 mysql_user}          @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 mysql_user}          @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValue("mysql_password")
 	if err != nil {
-		fmt.Printf("@R{\u2717 mysql_password      %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 mysql_password      %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 mysql_password}      @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 mysql_password}      @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_read_replica", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 mysql_read_replica  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 mysql_read_replica  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 mysql_read_replica}  no read replica given\n")
+		fmt.Fprintf(log, "@G{\u2713 mysql_read_replica}  no read replica given\n")
 	} else {
-		fmt.Printf("@G{\u2713 mysql_read_replica}  @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 mysql_read_replica}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_database", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 mysql_database      %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 mysql_database      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 mysql_database}      backing up *all* databases\n")
+		fmt.Fprintf(log, "@G{\u2713 mysql_database}      backing up *all* databases\n")
 	} else {
-		fmt.Printf("@G{\u2713 mysql_database}      @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 mysql_database}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_options", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 mysql_options       %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 mysql_options       %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 mysql_options}       no options given\n")
+		fmt.Fprintf(log, "@G{\u2713 mysql_options}       no options given\n")
 	} else {
-		fmt.Printf("@G{\u2713 mysql_options}       @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 mysql_options}       @C{%s}\n", s)
 	}
 
 	if fail {
@@ -213,7 +214,7 @@ func (p MySQLPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 }
 
 // Backup mysql database
-func (p MySQLPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p MySQLPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	mysql, err := mysqlConnectionInfo(endpoint)
 	if err != nil {
 		return err
@@ -225,12 +226,12 @@ func (p MySQLPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	cmd := fmt.Sprintf("%s/mysqldump %s %s", mysql.Bin, mysql.Options, connectionString(mysql, true))
 	plugin.DEBUG("Executing: `%s`", cmd)
-	fmt.Printf("SET SESSION SQL_LOG_BIN=0;\n")
-	return plugin.Exec(cmd, plugin.STDOUT)
+	fmt.Fprintf(log, "SET SESSION SQL_LOG_BIN=0;\n")
+	return plugin.Exec(cmd, nil, out, log)
 }
 
 // Restore mysql database
-func (p MySQLPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p MySQLPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	mysql, err := mysqlConnectionInfo(endpoint)
 	if err != nil {
 		return err
@@ -240,24 +241,24 @@ func (p MySQLPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	if err != nil {
 		return err
 	} else if dbname == "" {
-		fmt.Fprintf(os.Stderr, "Restore Full Database \n")
-		return mysqlrestorefull(mysql, cmd)
+		fmt.Fprintf(log, "Restore Full Database \n")
+		return mysqlrestorefull(mysql, cmd, in, log)
 	} else {
-		fmt.Fprintf(os.Stderr, "Restore Database %s \n", dbname)
+		fmt.Fprintf(log, "Restore Database %s \n", dbname)
 		plugin.DEBUG("Exec: %s", cmd)
-		return plugin.Exec(cmd, plugin.STDIN)
+		return plugin.Exec(cmd, in, log, log)
 	}
 }
 
-func (p MySQLPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p MySQLPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p MySQLPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p MySQLPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p MySQLPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p MySQLPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
@@ -282,7 +283,7 @@ func connectionclientString(info *MySQLConnectionInfo) string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/", info.User, info.Password, info.Host, info.Port)
 }
 
-func mysqlrestorefull(info *MySQLConnectionInfo, cmd string) error {
+func mysqlrestorefull(info *MySQLConnectionInfo, cmd string, in io.Reader, log io.Writer) error {
 	var gblvar = []struct {
 		name     string
 		oldvalue string
@@ -296,29 +297,29 @@ func mysqlrestorefull(info *MySQLConnectionInfo, cmd string) error {
 	var i int
 	db, err := sql.Open("mysql", connectionclientString(info))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, " @R{\u2717 MySQL Instance Connection}\n")
+		fmt.Fprintf(log, " @R{\u2717 MySQL Instance Connection}\n")
 		return err
 	}
 	defer db.Close()
 	err = db.Ping()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, " @R{\u2717 MySQL Instance Connection}\n")
+		fmt.Fprintf(log, " @R{\u2717 MySQL Instance Connection}\n")
 		return err
 	}
-	fmt.Fprintf(os.Stderr, " @G{\u2713 MySQL Instance Connection}\n")
+	fmt.Fprintf(log, " @G{\u2713 MySQL Instance Connection}\n")
 
 	for i = 0; i < 3; i++ {
 		gblvar[i].oldvalue, err = mysqlshowvariable(db, gblvar[i].name)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, " @R{\u2717 MySQL Backing up original parameters}\n")
+			fmt.Fprintf(log, " @R{\u2717 MySQL Backing up original parameters}\n")
 			return err
 		}
 	}
-	fmt.Fprintf(os.Stderr, " @G{\u2713 MySQL Backing up original parameters}\n")
+	fmt.Fprintf(log, " @G{\u2713 MySQL Backing up original parameters}\n")
 	for i = 0; i < 3; i++ {
 		_, err = db.Exec(fmt.Sprintf("SET GLOBAL %s=%s", gblvar[i].name, gblvar[i].newvalue))
 		if err != nil {
-			fmt.Fprintf(os.Stderr, " @R{\u2717 MySQL Updating restore parameters}\n")
+			fmt.Fprintf(log, " @R{\u2717 MySQL Updating restore parameters}\n")
 			return err
 		}
 		{
@@ -326,20 +327,20 @@ func mysqlrestorefull(info *MySQLConnectionInfo, cmd string) error {
 			defer func() {
 				_, err := db.Exec(fmt.Sprintf("SET GLOBAL %s=%s", gblvar[idx].name, gblvar[idx].oldvalue))
 				if err != nil {
-					fmt.Fprintf(os.Stderr, " @R{\u2717 MySQL Restoring original parameter %s}\n", gblvar[idx].name)
+					fmt.Fprintf(log, " @R{\u2717 MySQL Restoring original parameter %s}\n", gblvar[idx].name)
 				}
-				fmt.Fprintf(os.Stderr, " @G{\u2713 MySQL Restoring original parameter %s}\n", gblvar[idx].name)
+				fmt.Fprintf(log, " @G{\u2713 MySQL Restoring original parameter %s}\n", gblvar[idx].name)
 			}()
 		}
 	}
-	fmt.Fprintf(os.Stderr, " @G{\u2713 MySQL Updating restore parameters}\n")
+	fmt.Fprintf(log, " @G{\u2713 MySQL Updating restore parameters}\n")
 	plugin.DEBUG("Exec: %s --init-command='set sql_log_bin=0'", cmd)
-	err = plugin.Exec(fmt.Sprintf("%s --init-command='set sql_log_bin=0'", cmd), plugin.STDIN)
+	err = plugin.Exec(fmt.Sprintf("%s --init-command='set sql_log_bin=0'", cmd), in, log, log)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, " @R{\u2717 Restoring instance} \n")
+		fmt.Fprintf(log, " @R{\u2717 Restoring instance} \n")
 		return err
 	}
-	fmt.Fprintf(os.Stderr, " @G{\u2713 Restoring instance} \n")
+	fmt.Fprintf(log, " @G{\u2713 Restoring instance} \n")
 
 	return nil
 }

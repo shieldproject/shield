@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	fmt "github.com/jhunt/go-ansi"
 
@@ -87,7 +86,7 @@ func (p RabbitMQBrokerPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p RabbitMQBrokerPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p RabbitMQBrokerPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -96,37 +95,37 @@ func (p RabbitMQBrokerPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("rmq_url")
 	if err != nil {
-		fmt.Printf("@R{\u2717 rmq_url              %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 rmq_url              %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 rmq_url}              @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 rmq_url}              @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("rmq_username")
 	if err != nil {
-		fmt.Printf("@R{\u2717 rmq_username         %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 rmq_username         %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 rmq_username}         @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 rmq_username}         @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValue("rmq_password")
 	if err != nil {
-		fmt.Printf("@R{\u2717 rmq_password         %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 rmq_password         %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 rmq_password}         @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 rmq_password}         @C{%s}\n", plugin.Redact(s))
 	}
 
 	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
-		fmt.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 skip_ssl_validation  %s}\n", err)
 		fail = true
 	} else {
 		if tf {
-			fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
+			fmt.Fprintf(log, "@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
 		} else {
-			fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
+			fmt.Fprintf(log, "@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
 		}
 	}
 
@@ -136,7 +135,7 @@ func (p RabbitMQBrokerPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p RabbitMQBrokerPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p RabbitMQBrokerPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	rmq, err := getRabbitMQEndpoint(endpoint)
 	if err != nil {
 		return err
@@ -153,17 +152,17 @@ func (p RabbitMQBrokerPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	fmt.Fprintf(os.Stdout, "%s\n", body)
+	fmt.Fprintf(out, "%s\n", body)
 
 	return nil
 }
 
-func (p RabbitMQBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p RabbitMQBrokerPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	rmq, err := getRabbitMQEndpoint(endpoint)
 	if err != nil {
 		return err
 	}
-	_, err = makeRequest("POST", fmt.Sprintf("%s/api/definitions", rmq.URL), os.Stdin, rmq.Username, rmq.Password, rmq.SkipSSLValidation)
+	_, err = makeRequest("POST", fmt.Sprintf("%s/api/definitions", rmq.URL), in, rmq.Username, rmq.Password, rmq.SkipSSLValidation)
 	if err != nil {
 		return err
 	}
@@ -171,15 +170,15 @@ func (p RabbitMQBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p RabbitMQBrokerPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p RabbitMQBrokerPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p RabbitMQBrokerPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p RabbitMQBrokerPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p RabbitMQBrokerPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p RabbitMQBrokerPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 

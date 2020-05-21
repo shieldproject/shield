@@ -105,7 +105,7 @@ var _ = Describe("Plugin Commands", func() {
 		Expect(stderr).Should(Equal("This goes to stderr\n"))
 	})
 	It("Returns an error for commands that cannot be parsed", func() {
-		err := plugin.Exec("this '\"cannot be parsed", plugin.NOPIPE)
+		err := plugin.Exec("this '\"cannot be parsed", nil, nil, nil)
 		Expect(err).Should(HaveOccurred())
 	})
 })

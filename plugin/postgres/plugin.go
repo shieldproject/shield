@@ -135,7 +135,7 @@ func (p PostgresPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p PostgresPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -144,79 +144,79 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("pg_host", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 pg_host      %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 pg_host      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 pg_host}      using @C{localhost}\n")
+		fmt.Fprintf(log, "@G{\u2713 pg_host}      using @C{localhost}\n")
 	} else {
-		fmt.Printf("@G{\u2713 pg_host}      @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 pg_host}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("pg_port", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 pg_port      %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 pg_port      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 pg_port}      using default port @C{%s}\n", DefaultPort)
+		fmt.Fprintf(log, "@G{\u2713 pg_port}      using default port @C{%s}\n", DefaultPort)
 	} else {
-		fmt.Printf("@G{\u2713 pg_port}      @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 pg_port}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("pg_user")
 	if err != nil {
-		fmt.Printf("@R{\u2717 pg_user      %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 pg_user      %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 pg_user}      @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 pg_user}      @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("pg_password", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 pg_password  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 pg_password  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 pg_password}  none (no credentials will be sent)\n")
+		fmt.Fprintf(log, "@G{\u2713 pg_password}  none (no credentials will be sent)\n")
 	} else {
-		fmt.Printf("@G{\u2713 pg_password}  @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 pg_password}  @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("pg_database", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 pg_database  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 pg_database  %s}\n", err)
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 pg_database}  none (all databases will be backed up)\n")
+		fmt.Fprintf(log, "@G{\u2713 pg_database}  none (all databases will be backed up)\n")
 	} else {
-		fmt.Printf("@G{\u2713 pg_database}  @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 pg_database}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("pg_read_replica_host", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 pg_read_replica_host  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 pg_read_replica_host  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 pg_read_replica_host}  no read replica given\n")
+		fmt.Fprintf(log, "@G{\u2713 pg_read_replica_host}  no read replica given\n")
 	} else {
-		fmt.Printf("@G{\u2713 pg_read_replica_host}  @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 pg_read_replica_host}  @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("pg_read_replica_port", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 pg_read_replica_port  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 pg_read_replica_port  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 pg_read_replica_port}  no read replica given\n")
+		fmt.Fprintf(log, "@G{\u2713 pg_read_replica_port}  no read replica given\n")
 	} else {
-		fmt.Printf("@G{\u2713 pg_read_replica_port}  @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 pg_read_replica_port}  @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("pg_options", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 pg_options  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 pg_options  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 pg_options}  no options given\n")
+		fmt.Fprintf(log, "@G{\u2713 pg_options}  no options given\n")
 	} else {
-		fmt.Printf("@G{\u2713 pg_options}  @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 pg_options}  @C{%s}\n", s)
 	}
 
 	if fail {
@@ -225,7 +225,7 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p PostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p PostgresPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	pg, err := pgConnectionInfo(endpoint)
 	if err != nil {
 		return err
@@ -248,10 +248,10 @@ func (p PostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		cmd = fmt.Sprintf("%s/pg_dumpall -c --no-password %s", pg.Bin, pg.Options)
 	}
 	plugin.DEBUG("Executing: `%s`", cmd)
-	return plugin.Exec(cmd, plugin.STDOUT)
+	return plugin.Exec(cmd, nil, out, log)
 }
 
-func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p PostgresPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	pg, err := pgConnectionInfo(endpoint)
 	if err != nil {
 		return err
@@ -262,8 +262,8 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres")
 	plugin.DEBUG("Exec: %s/psql -d postgres", pg.Bin)
 	plugin.DEBUG("Redirecting stdout and stderr to stderr")
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = log
+	cmd.Stderr = log
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return err
@@ -308,7 +308,7 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		plugin.DEBUG("Completed restore with %d lines of SQL", i)
 		out.Close()
 		errChan <- nil
-	}(stdin, os.Stdin, scanErr)
+	}(stdin, in, scanErr)
 	err = cmd.Run()
 	if err != nil {
 		return err
@@ -316,15 +316,15 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return <-scanErr
 }
 
-func (p PostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p PostgresPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p PostgresPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p PostgresPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p PostgresPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p PostgresPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 

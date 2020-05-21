@@ -2,7 +2,6 @@ package azure
 
 import (
 	"io"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -94,7 +93,7 @@ func (p AzurePlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p AzurePlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -103,23 +102,23 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("storage_account")
 	if err != nil {
-		fmt.Printf("@R{\u2717 storage_account     %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 storage_account     %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 storage_account}     @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 storage_account}     @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("storage_account_key", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 storage_account_key %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 storage_account_key %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 storage_account_key} @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 storage_account_key} @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValue("storage_container")
 	if err != nil {
-		fmt.Printf("@R{\u2717 storage_container   %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 storage_container   %s}\n", err)
 		fail = true
 	} else {
 		containerFail := false
@@ -127,28 +126,28 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		if !containerValidator.MatchString(s) {
 			fail = true
 			containerFail = true
-			fmt.Printf("@R{\u2717 storage_container   invalid characters (must be lower-case alpha-numeric plus dash)}\n")
+			fmt.Fprintf(log, "@R{\u2717 storage_container   invalid characters (must be lower-case alpha-numeric plus dash)}\n")
 		}
 		if len(s) < 3 || len(s) > 63 {
 			fail = true
 			containerFail = true
-			fmt.Printf("@R{\u2717 storage_container   is too long/short (must be 3-63 characters)}\n")
+			fmt.Fprintf(log, "@R{\u2717 storage_container   is too long/short (must be 3-63 characters)}\n")
 		}
 
 		if !containerFail {
-			fmt.Printf("@G{\u2713 storage_container}   @C{%s}\n", plugin.Redact(s))
+			fmt.Fprintf(log, "@G{\u2713 storage_container}   @C{%s}\n", plugin.Redact(s))
 		}
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
-		fmt.Printf("@R{\u2717 prefix              %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 prefix              %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 prefix}              (none)\n")
+		fmt.Fprintf(log, "@G{\u2713 prefix}              (none)\n")
 	} else {
 		s = strings.TrimLeft(s, "/")
-		fmt.Printf("@G{\u2713 prefix}              @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 prefix}              @C{%s}\n", s)
 	}
 
 	if fail {
@@ -157,15 +156,15 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p AzurePlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p AzurePlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p AzurePlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p AzurePlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p AzurePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p AzurePlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	az, err := getAzureConnInfo(endpoint)
 	if err != nil {
 		return "", 0, err
@@ -195,7 +194,7 @@ func (p AzurePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 	var uploaded int64
 	for {
 		buf := make([]byte, 4*1024*1024)
-		n, err := io.ReadFull(os.Stdin, buf)
+		n, err := io.ReadFull(in, buf)
 		plugin.DEBUG("Uploading %d bytes for a total of %d", n, uploaded)
 		if n > 0 {
 			uploaded += int64(n)
@@ -216,7 +215,7 @@ func (p AzurePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 	return path, uploaded, nil
 }
 
-func (p AzurePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p AzurePlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	az, err := getAzureConnInfo(endpoint)
 	if err != nil {
 		return err
@@ -230,7 +229,7 @@ func (p AzurePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error
 	if err != nil {
 		return err
 	}
-	if _, err = io.Copy(os.Stdout, reader); err != nil {
+	if _, err = io.Copy(out, reader); err != nil {
 		return err
 	}
 
@@ -242,7 +241,7 @@ func (p AzurePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error
 	return nil
 }
 
-func (p AzurePlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p AzurePlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	az, err := getAzureConnInfo(endpoint)
 	if err != nil {
 		return err

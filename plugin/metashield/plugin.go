@@ -73,7 +73,7 @@ func getClient(endpoint plugin.ShieldEndpoint) (*shield.Client, error) {
 }
 
 // Validate user input
-func (p ShieldPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p ShieldPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -82,21 +82,21 @@ func (p ShieldPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("url")
 	if err != nil {
-		fmt.Printf("@R{\u2717 url}                   @C{%s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 url}                   @C{%s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 url}                   data in @C{%s} core will be backed up\n", s)
+		fmt.Fprintf(log, "@G{\u2713 url}                   data in @C{%s} core will be backed up\n", s)
 	}
 
 	s, err = endpoint.StringValue("token")
 	if err != nil {
-		fmt.Printf("@R{\u2717 token}                 @C{%s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 token}                 @C{%s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@R{\u2717 token}                 token was not provided\n")
+		fmt.Fprintf(log, "@R{\u2717 token}                 token was not provided\n")
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 token}                 @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 token}                 @C{%s}\n", plugin.Redact(s))
 	}
 
 	if fail {
@@ -106,7 +106,7 @@ func (p ShieldPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 }
 
 // Backup SHIELD data
-func (p ShieldPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p ShieldPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	c, err := getClient(endpoint)
 	if err != nil {
 		return err
@@ -122,13 +122,13 @@ func (p ShieldPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	io.Copy(os.Stdout, src)
-	fmt.Printf("\n")
+	io.Copy(out, src)
+	fmt.Fprintf(log, "\n")
 	return nil
 }
 
 // Restore SHIELD data
-func (p ShieldPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p ShieldPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	c, err := getClient(endpoint)
 	if err != nil {
 		return err
@@ -138,17 +138,17 @@ func (p ShieldPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	if taskUUID == "" {
 		return fmt.Errorf("SHIELD agent needs to be updated to have SHIELD_TASK_UUID environment variable")
 	}
-	return c.Import(taskUUID, os.Getenv("SHIELD_RESTORE_KEY"), os.Stdin)
+	return c.Import(taskUUID, os.Getenv("SHIELD_RESTORE_KEY"), in)
 }
 
-func (p ShieldPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p ShieldPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p ShieldPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p ShieldPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p ShieldPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) error {
+func (p ShieldPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, key string) error {
 	return plugin.UNIMPLEMENTED
 }

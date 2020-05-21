@@ -2,21 +2,17 @@ package plugin
 
 import (
 	"fmt"
-	"os"
+	"io"
 	"os/exec"
 	"syscall"
 
 	"github.com/mattn/go-shellwords"
 )
 
-const NOPIPE = 0
-const STDIN = 1
-const STDOUT = 2
-
 type ExecOptions struct {
-	Stdout   *os.File
-	Stdin    *os.File
-	Stderr   *os.File
+	Stdout   io.Writer
+	Stdin    io.Reader
+	Stderr   io.Writer
 	Cmd      string
 	ExpectRC []int
 }
@@ -67,19 +63,11 @@ func ExecWithOptions(opts ExecOptions) error {
 	return nil
 }
 
-func Exec(cmdString string, flags int) error {
-	opts := ExecOptions{
+func Exec(cmdString string, in io.Reader, out io.Writer, err io.Writer) error {
+	return ExecWithOptions(ExecOptions{
 		Cmd:    cmdString,
-		Stderr: os.Stderr,
-	}
-
-	if flags&STDOUT == STDOUT {
-		opts.Stdout = os.Stdout
-	}
-
-	if flags&STDIN == STDIN {
-		opts.Stdin = os.Stdin
-	}
-
-	return ExecWithOptions(opts)
+		Stdin:  in,
+		Stdout: out,
+		Stderr: err,
+	})
 }

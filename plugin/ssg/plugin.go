@@ -2,7 +2,6 @@ package ssg
 
 import (
 	"io"
-	"os"
 
 	ssgclient "github.com/jhunt/shield-storage-gateway/client"
 	"github.com/shieldproject/shield/plugin"
@@ -36,15 +35,15 @@ type SsgConfig struct {
 	Path          string
 }
 
-func (p SsgPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p SsgPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p SsgPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p SsgPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p SsgPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p SsgPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
@@ -90,20 +89,20 @@ func getSsgConfig(e plugin.ShieldEndpoint) (*SsgConfig, error) {
 	}, nil
 }
 
-func (p SsgPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p SsgPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	ssgConfig, err := getSsgConfig(endpoint)
 	if err != nil {
 		return "", 0, err
 	}
 
-	size, err := ssgConfig.Client.Upload(ssgConfig.UploadID, ssgConfig.UploadToken, os.Stdin, true)
+	size, err := ssgConfig.Client.Upload(ssgConfig.UploadID, ssgConfig.UploadToken, in, true)
 	if err != nil {
 		return "", 0, err
 	}
 	return ssgConfig.Path, size, nil
 }
 
-func (p SsgPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p SsgPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	ssgConfig, err := getSsgConfig(endpoint)
 	if err != nil {
 		return err
@@ -117,7 +116,7 @@ func (p SsgPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 		return err
 	}
 
-	n, err := io.Copy(os.Stdout, in)
+	n, err := io.Copy(out, in)
 	if err != nil {
 		return err
 	}
@@ -126,6 +125,6 @@ func (p SsgPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	return nil
 }
 
-func (p SsgPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p SsgPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return nil
 }

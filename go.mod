@@ -28,7 +28,7 @@ require (
 	github.com/jhunt/go-querytron v0.0.0-20190121150331-d03b28210bbc
 	github.com/jhunt/go-s3 v0.0.0-20190122180757-14f44ecac95f
 	github.com/jhunt/go-table v0.0.0-20181127194439-fcc252a20f4c
-	github.com/jhunt/shield-storage-gateway v0.0.0-20200518195451-60c65d70daad
+	github.com/jhunt/shield-storage-gateway v0.0.0-20200521135823-ceb24ff0859d
 	github.com/jmoiron/sqlx v0.0.0-20160615151803-bdae0c3219c3
 	github.com/kurin/blazer v0.5.1
 	github.com/mattn/go-isatty v0.0.12

@@ -43,6 +43,7 @@
 package consulsnapshot
 
 import (
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -137,7 +138,7 @@ func getConsulConfig(endpoint plugin.ShieldEndpoint) (*ConsulConfig, error) {
 	}, nil
 }
 
-func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p ConsulPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -146,50 +147,50 @@ func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("consul", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 consul        %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 consul        %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 consul}       using default consul @C{%s}\n", DefaultConsul)
+		fmt.Fprintf(log, "@G{\u2713 consul}       using default consul @C{%s}\n", DefaultConsul)
 	} else {
-		fmt.Printf("@G{\u2713 consul}       @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 consul}       @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("address", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 address       %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 address       %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 address}      using default address @C{%s}\n", DefaultAddress)
+		fmt.Fprintf(log, "@G{\u2713 address}      using default address @C{%s}\n", DefaultAddress)
 	} else {
-		fmt.Printf("@G{\u2713 address}      @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 address}      @C{%s}\n", s)
 	}
 
 	addr := s
 	s, err = endpoint.StringValueDefault("ca-path", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 ca-path       %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 ca-path       %s}\n", err)
 		fail = true
 	} else if s == "" && strings.HasPrefix(addr, "https") {
-		fmt.Printf("@G{\u2717 ca-path       ca-path must be specified when using https}\n")
+		fmt.Fprintf(log, "@G{\u2717 ca-path       ca-path must be specified when using https}\n")
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 ca-path}      @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 ca-path}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("client-cert", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 client-cert   %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 client-cert   %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 client-cert}  @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 client-cert}  @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("client-key", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 client-key    %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 client-key    %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 client-key}   @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 client-key}   @C{%s}\n", plugin.Redact(s))
 	}
 
 	if fail {
@@ -198,7 +199,7 @@ func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p ConsulPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p ConsulPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 
 	cfg, err := getConsulConfig(endpoint)
 	if err != nil {
@@ -225,14 +226,14 @@ func (p ConsulPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	cmd := fmt.Sprintf("%s snapshot save -http-addr='%s' %s %s", cfg.Consul, cfg.Address, flags, backup_file)
 	plugin.DEBUG("Executing `%s`", cmd)
-	err = plugin.Exec(cmd, plugin.NOPIPE)
+	err = plugin.Exec(cmd, nil, nil, nil)
 	if err != nil {
 		return err
 	}
 
 	cmd = fmt.Sprintf("cat %s", backup_file)
 	plugin.DEBUG("Executing `%s`", cmd)
-	err = plugin.Exec(cmd, plugin.STDOUT)
+	err = plugin.Exec(cmd, nil, out, log)
 	if err != nil {
 		return err
 	}
@@ -240,7 +241,7 @@ func (p ConsulPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p ConsulPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p ConsulPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 
 	cfg, err := getConsulConfig(endpoint)
 	if err != nil {
@@ -267,14 +268,14 @@ func (p ConsulPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 	cmd := fmt.Sprintf("tee %s", backup_file)
 	plugin.DEBUG("Executing `%s`", cmd)
-	err = plugin.Exec(cmd, plugin.STDIN)
+	err = plugin.Exec(cmd, in, log, log)
 	if err != nil {
 		return err
 	}
 
 	cmd = fmt.Sprintf("%s snapshot restore -http-addr='%s' %s %s", cfg.Consul, cfg.Address, flags, backup_file)
 	plugin.DEBUG("Executing `%s`", cmd)
-	err = plugin.Exec(cmd, plugin.NOPIPE)
+	err = plugin.Exec(cmd, nil, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -282,14 +283,14 @@ func (p ConsulPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p ConsulPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p ConsulPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p ConsulPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p ConsulPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p ConsulPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p ConsulPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }

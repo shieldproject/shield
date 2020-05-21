@@ -8,6 +8,7 @@ of what is needed in a backup plugin, and how they execute.
 */
 
 import (
+	"io"
 	"os"
 
 	fmt "github.com/jhunt/go-ansi"
@@ -30,7 +31,6 @@ func Run() {
 		},
 	}
 
-	fmt.Fprintf(os.Stderr, "dummy plugin starting up...\n")
 	// Run the plugin - the plugin framework handles all arg parsing, exit handling, error/debug formatting for you
 	plugin.Run(dummy)
 }
@@ -46,7 +46,7 @@ func (p DummyPlugin) Meta() plugin.PluginInfo {
 }
 
 // Called to validate endpoints from the command line
-func (p DummyPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p DummyPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -55,10 +55,10 @@ func (p DummyPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("data")
 	if err != nil {
-		fmt.Printf("@R{\u2717 data   %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 data   %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 data}  @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 data}  @C{%s}\n", s)
 	}
 
 	if fail {
@@ -68,27 +68,27 @@ func (p DummyPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 }
 
 // Called when you want to back data up. Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p DummyPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	data, err := endpoint.StringValue("data")
 	if err != nil {
 		return err
 	}
 
-	return plugin.Exec(fmt.Sprintf("/bin/echo %s", data), plugin.STDOUT)
+	return plugin.Exec(fmt.Sprintf("/bin/echo %s", data), nil, out, log)
 }
 
 // Called when you want to restore data Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p DummyPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	file, err := endpoint.StringValue("file")
 	if err != nil {
 		return err
 	}
 
-	return plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file), plugin.STDIN)
+	return plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file), in, log, log)
 }
 
 // Called when you want to store backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p DummyPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	directory, err := endpoint.StringValue("directory")
 	if err != nil {
 		return "", 0, err
@@ -96,7 +96,7 @@ func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 
 	file := plugin.GenUUID()
 
-	err = plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s/%s\"", directory, file), plugin.STDIN)
+	err = plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s/%s\"", directory, file), in, log, log)
 	info, e := os.Stat(fmt.Sprintf("%s/%s", directory, file))
 	if e != nil {
 		return file, 0, e
@@ -106,16 +106,16 @@ func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 }
 
 // Called when you want to retreive backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p DummyPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	directory, err := endpoint.StringValue("directory")
 	if err != nil {
 		return err
 	}
 
-	return plugin.Exec(fmt.Sprintf("/bin/cat %s/%s", directory, file), plugin.STDOUT)
+	return plugin.Exec(fmt.Sprintf("/bin/cat %s/%s", directory, file), nil, out, log)
 }
 
-func (p DummyPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) error {
+func (p DummyPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, key string) error {
 	return plugin.UNIMPLEMENTED
 }
 

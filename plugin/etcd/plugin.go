@@ -255,7 +255,7 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 }
 
 //Validate user input
-func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p EtcdPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		b    bool
@@ -265,131 +265,131 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("url")
 	if err != nil {
-		fmt.Printf("@R{\u2717 url}                   @C{%s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 url}                   @C{%s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 url}                   data in @C{%s} clients will be backed up\n", s)
+		fmt.Fprintf(log, "@G{\u2713 url}                   data in @C{%s} clients will be backed up\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("timeout", "2")
 	if err != nil {
-		fmt.Printf("@R{\u2717 timeout}               @C{%s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 timeout}               @C{%s}\n", err)
 		fail = true
 	} else {
 		_, err := strconv.Atoi(s)
 		if err != nil {
-			fmt.Printf("@R{\u2717 timeout}               @C{%s}\n", err)
+			fmt.Fprintf(log, "@R{\u2717 timeout}               @C{%s}\n", err)
 			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 timeout}               client timeout is set to @C{%s seconds}\n", s)
+			fmt.Fprintf(log, "@G{\u2713 timeout}               client timeout is set to @C{%s seconds}\n", s)
 		}
 	}
 
 	s, err = endpoint.StringValueDefault("auth", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 authentication}        @C{%s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 authentication}        @C{%s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 authentication}        not using any authentication methods\n")
+		fmt.Fprintf(log, "@G{\u2713 authentication}        not using any authentication methods\n")
 	} else if s == RoleBasedAuthentication {
-		fmt.Printf("@G{\u2713 authentication}        Role-Based authentication chosen\n")
+		fmt.Fprintf(log, "@G{\u2713 authentication}        Role-Based authentication chosen\n")
 	} else if s == CertificateAuthentication {
-		fmt.Printf("@G{\u2713 authentication}        Certificate-Based authentication chosen\n")
+		fmt.Fprintf(log, "@G{\u2713 authentication}        Certificate-Based authentication chosen\n")
 	} else if s == BothAuthentication {
-		fmt.Printf("@G{\u2713 authentication}        Both ways of authentication are chosed\n")
+		fmt.Fprintf(log, "@G{\u2713 authentication}        Both ways of authentication are chosed\n")
 		b = true
 	}
 
 	if s == RoleBasedAuthentication || b {
 		s, err = endpoint.StringValue("username")
 		if err != nil {
-			fmt.Printf("@R{\u2717 username}              @C{%s}\n", err)
+			fmt.Fprintf(log, "@R{\u2717 username}              @C{%s}\n", err)
 			fail = true
 		} else if s == "" {
-			fmt.Printf("@R{\u2717 username}              Role based authentication chosen but username was not provided\n")
+			fmt.Fprintf(log, "@R{\u2717 username}              Role based authentication chosen but username was not provided\n")
 			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 username}              @C{%s}\n", plugin.Redact(s))
+			fmt.Fprintf(log, "@G{\u2713 username}              @C{%s}\n", plugin.Redact(s))
 		}
 
 		s, err = endpoint.StringValue("password")
 		if err != nil {
-			fmt.Printf("@R{\u2717 password}              @C{%s}\n", err)
+			fmt.Fprintf(log, "@R{\u2717 password}              @C{%s}\n", err)
 			fail = true
 		} else if s == "" {
-			fmt.Printf("@R{\u2717 password}              Role based authentication chosen but password was not provided\n")
+			fmt.Fprintf(log, "@R{\u2717 password}              Role based authentication chosen but password was not provided\n")
 			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 password}              @C{%s}\n", plugin.Redact(s))
+			fmt.Fprintf(log, "@G{\u2713 password}              @C{%s}\n", plugin.Redact(s))
 		}
 	}
 
 	if s == CertificateAuthentication || b {
 		s, err = endpoint.StringValue("client_cert")
 		if err != nil {
-			fmt.Printf("@R{\u2717 client_cert}           @C{%s}\n", err)
+			fmt.Fprintf(log, "@R{\u2717 client_cert}           @C{%s}\n", err)
 		} else if s == "" {
-			fmt.Printf("@R{\u2717 client_cert}           Certificate based authentication chosen but client certificate was not provided\n")
+			fmt.Fprintf(log, "@R{\u2717 client_cert}           Certificate based authentication chosen but client certificate was not provided\n")
 			fail = true
 		} else {
 			/* FIXME: validate that it is an X.509 PEM certificate */
 			lines := strings.Split(s, "\n")
-			fmt.Printf("@G{\u2713 client_cert}           @C{%s}\n", lines[0])
+			fmt.Fprintf(log, "@G{\u2713 client_cert}           @C{%s}\n", lines[0])
 			if len(lines) > 1 {
 				for _, line := range lines[1:] {
-					fmt.Printf("                         @C{%s}\n", line)
+					fmt.Fprintf(log, "                         @C{%s}\n", line)
 				}
 			}
 		}
 
 		s, err = endpoint.StringValue("client_key")
 		if err != nil {
-			fmt.Printf("@R{\u2717 client_key}            @C{%s}\n", err)
+			fmt.Fprintf(log, "@R{\u2717 client_key}            @C{%s}\n", err)
 			fail = true
 		} else if s == "" {
-			fmt.Printf("@R{\u2717 client_key}            Certificate based authentication chosen but client private key was not provided\n")
+			fmt.Fprintf(log, "@R{\u2717 client_key}            Certificate based authentication chosen but client private key was not provided\n")
 			fail = true
 		} else {
 			/* FIXME: validate that it is an X.509 PEM certificate */
-			fmt.Printf("@G{\u2713 client_key}			 Key present\n")
+			fmt.Fprintf(log, "@G{\u2713 client_key}			 Key present\n")
 		}
 	}
 
 	s, err = endpoint.StringValueDefault("ca_cert", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 ca_cert}               @C{%s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 ca_cert}               @C{%s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 ca_cert}               CA cert was not provided.\n")
+		fmt.Fprintf(log, "@G{\u2713 ca_cert}               CA cert was not provided.\n")
 	} else {
 		/* FIXME: validate that it is an X.509 PEM certificate */
 		lines := strings.Split(s, "\n")
-		fmt.Printf("@G{\u2713 ca_cert}               @C{%s}\n", lines[0])
+		fmt.Fprintf(log, "@G{\u2713 ca_cert}               @C{%s}\n", lines[0])
 		if len(lines) > 1 {
 			for _, line := range lines[1:] {
-				fmt.Printf("                         @C{%s}\n", line)
+				fmt.Fprintf(log, "                         @C{%s}\n", line)
 			}
 		}
 	}
 
 	b, err = endpoint.BooleanValueDefault("overwrite", false)
 	if err != nil {
-		fmt.Printf("@R{\u2717 overwrite}             %s\n", err)
+		fmt.Fprintf(log, "@R{\u2717 overwrite}             %s\n", err)
 		fail = true
 	} else if b {
-		fmt.Printf("@G{\u2713 overwrite}             @C{%t} - While restoring the existing keys/values in the cluster are removed and then backed up\n", b)
+		fmt.Fprintf(log, "@G{\u2713 overwrite}             @C{%t} - While restoring the existing keys/values in the cluster are removed and then backed up\n", b)
 	} else {
-		fmt.Printf("@G{\u2713 overwrite}             @C{%t} - Keys/values will be appended to the existing etcd cluster when restored\n", b)
+		fmt.Fprintf(log, "@G{\u2713 overwrite}             @C{%t} - Keys/values will be appended to the existing etcd cluster when restored\n", b)
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 prefix}                %s\n", err)
+		fmt.Fprintf(log, "@R{\u2717 prefix}                %s\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 prefix}                Prefix was not provided so everything will be backed-up/restored\n")
+		fmt.Fprintf(log, "@G{\u2713 prefix}                Prefix was not provided so everything will be backed-up/restored\n")
 	} else {
-		fmt.Printf("@G{\u2713 prefix}                @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 prefix}                @C{%s}\n", plugin.Redact(s))
 	}
 
 	if fail {
@@ -400,7 +400,7 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 }
 
 // Backup ETCD data
-func (p EtcdPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p EtcdPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	etcd, err := getEtcdConfig(endpoint)
 	if err != nil {
 		return err
@@ -416,15 +416,15 @@ func (p EtcdPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	for _, ev := range resp.Kvs {
-		fmt.Printf("%s : %s\n", base64.StdEncoding.EncodeToString([]byte(ev.Key)), base64.StdEncoding.EncodeToString([]byte(ev.Value)))
+		fmt.Fprintf(out, "%s : %s\n", base64.StdEncoding.EncodeToString([]byte(ev.Key)), base64.StdEncoding.EncodeToString([]byte(ev.Value)))
 	}
 
 	return nil
 }
 
 // Restore ETCD data
-func (p EtcdPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
-	reader := bufio.NewReader(os.Stdin)
+func (p EtcdPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
+	reader := bufio.NewReader(in)
 
 	etcd, err := getEtcdConfig(endpoint)
 	if err != nil {
@@ -461,13 +461,13 @@ func (p EtcdPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 		datakey, err := base64.StdEncoding.DecodeString(strings.Split(string(lineBuffer), " : ")[0])
 		if err != nil {
-			fmt.Printf("error decoding key: %s", err)
+			fmt.Fprintf(log, "error decoding key: %s", err)
 			return err
 		}
 
 		dataval, err := base64.StdEncoding.DecodeString(strings.Split(string(lineBuffer), " : ")[1])
 		if err != nil {
-			fmt.Printf("error decoding value: %s", err)
+			fmt.Fprintf(log, "error decoding value: %s", err)
 			return err
 		}
 
@@ -481,14 +481,14 @@ func (p EtcdPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p EtcdPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p EtcdPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p EtcdPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p EtcdPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p EtcdPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) error {
+func (p EtcdPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, key string) error {
 	return plugin.UNIMPLEMENTED
 }

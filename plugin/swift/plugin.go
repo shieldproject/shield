@@ -3,9 +3,8 @@ package swift
 // https://github.com/openstack/golang-client/blob/master/examples/objectstorage/objectstorage.go
 
 import (
-	"bufio"
+	"io"
 	"io/ioutil"
-	"os"
 	"strings"
 	"time"
 
@@ -123,7 +122,7 @@ func (p SwiftPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p SwiftPlugin) Validate(endpoint plugin.ShieldEndpoint) (err error) {
+func (p SwiftPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) (err error) {
 	var s string
 	var fail bool
 
@@ -131,13 +130,13 @@ func (p SwiftPlugin) Validate(endpoint plugin.ShieldEndpoint) (err error) {
 	for _, reqConfig := range requiredConfig {
 		s, err = endpoint.StringValue(reqConfig)
 		if err != nil {
-			fmt.Printf("@R{\u2717 %s   %s}\n", reqConfig, err)
+			fmt.Fprintf(log, "@R{\u2717 %s   %s}\n", reqConfig, err)
 			fail = true
 		} else {
 			if reqConfig == "auth_url" || reqConfig == "project_name" {
-				fmt.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, s)
+				fmt.Fprintf(log, "@G{\u2713 %s}   @C{%s}\n", reqConfig, s)
 			} else {
-				fmt.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, plugin.Redact(s))
+				fmt.Fprintf(log, "@G{\u2713 %s}   @C{%s}\n", reqConfig, plugin.Redact(s))
 			}
 		}
 	}
@@ -147,15 +146,15 @@ func (p SwiftPlugin) Validate(endpoint plugin.ShieldEndpoint) (err error) {
 	return
 }
 
-func (p SwiftPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p SwiftPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p SwiftPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p SwiftPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p SwiftPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	swift, err := getConnInfo(endpoint)
 	if err != nil {
 		return "", 0, err
@@ -169,8 +168,7 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 	path := swift.genBackupPath()
 	plugin.DEBUG("Storing data in %s", path)
 
-	r := bufio.NewReader(os.Stdin)
-	contents, err := ioutil.ReadAll(r)
+	contents, err := ioutil.ReadAll(in)
 	if err != nil {
 		return "", 0, err
 	}
@@ -182,7 +180,7 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 	return path, int64(len(contents)), nil
 }
 
-func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p SwiftPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	swift, err := getConnInfo(endpoint)
 	if err != nil {
 		return err
@@ -198,14 +196,14 @@ func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error
 		return err
 	}
 
-	if _, err = os.Stdout.Write(contents); err != nil {
+	if _, err = out.Write(contents); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (p SwiftPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p SwiftPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	swift, err := getConnInfo(endpoint)
 	if err != nil {
 		return err

@@ -3,7 +3,6 @@ package google
 import (
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -84,7 +83,7 @@ func (p GooglePlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p GooglePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p GooglePlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -93,31 +92,31 @@ func (p GooglePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("json_key", DefaultJsonKey)
 	if err != nil {
-		fmt.Printf("@R{\u2717 json_key     %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 json_key     %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 json_key}     (using Google Application Default Credentials)\n")
+		fmt.Fprintf(log, "@G{\u2713 json_key}     (using Google Application Default Credentials)\n")
 	} else {
-		fmt.Printf("@G{\u2713 json_key}     @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 json_key}     @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValue("bucket")
 	if err != nil {
-		fmt.Printf("@R{\u2717 bucket       %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 bucket       %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bucket}       @C{%s}\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 bucket}       @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
-		fmt.Printf("@R{\u2717 prefix       %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 prefix       %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 prefix}       (none)\n")
+		fmt.Fprintf(log, "@G{\u2713 prefix}       (none)\n")
 	} else {
 		s = strings.TrimLeft(s, "/")
-		fmt.Printf("@G{\u2713 prefix}       @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 prefix}       @C{%s}\n", s)
 	}
 
 	if fail {
@@ -126,15 +125,15 @@ func (p GooglePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p GooglePlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p GooglePlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p GooglePlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p GooglePlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p GooglePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p GooglePlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	gcs, err := getGoogleConnInfo(endpoint)
 	if err != nil {
 		return "", 0, err
@@ -148,7 +147,7 @@ func (p GooglePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, erro
 	path := gcs.genBackupPath()
 	plugin.DEBUG("Storing data in %s", path)
 
-	object, err := client.Objects.Insert(gcs.Bucket, &storage.Object{Name: path}).Media(os.Stdin).Do()
+	object, err := client.Objects.Insert(gcs.Bucket, &storage.Object{Name: path}).Media(in).Do()
 	if err != nil {
 		return "", 0, err
 	}
@@ -156,7 +155,7 @@ func (p GooglePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, erro
 	return path, int64(object.Size), nil
 }
 
-func (p GooglePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p GooglePlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	gcs, err := getGoogleConnInfo(endpoint)
 	if err != nil {
 		return err
@@ -173,14 +172,14 @@ func (p GooglePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) erro
 	}
 	defer res.Body.Close()
 
-	if _, err = io.Copy(os.Stdout, res.Body); err != nil {
+	if _, err = io.Copy(out, res.Body); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (p GooglePlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p GooglePlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	gcs, err := getGoogleConnInfo(endpoint)
 	if err != nil {
 		return err

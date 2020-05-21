@@ -86,45 +86,45 @@ func (p WebDAVPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p WebDAVPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p WebDAVPlugin) Validate(log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	fail := false
 
 	s, err := endpoint.StringValue("url")
 	if err != nil {
-		fmt.Printf("@R{\u2717 url                  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 url                  %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 url}                  @C{%s}\n", s)
+		fmt.Fprintf(log, "@G{\u2713 url}                  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("username", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 username             %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 username             %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 username}             @C{%s}\n", plugin.Redact("none (no authentication)"))
+		fmt.Fprintf(log, "@G{\u2713 username}             @C{%s}\n", plugin.Redact("none (no authentication)"))
 	} else {
-		fmt.Printf("@G{\u2713 username}             @C{%s} (basic auth)\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 username}             @C{%s} (basic auth)\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("password", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 password             %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 password             %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 password}             @C{%s}\n", plugin.Redact("none (no authentication)"))
+		fmt.Fprintf(log, "@G{\u2713 password}             @C{%s}\n", plugin.Redact("none (no authentication)"))
 	} else {
-		fmt.Printf("@G{\u2713 password}             @C{%s} (basic auth)\n", plugin.Redact(s))
+		fmt.Fprintf(log, "@G{\u2713 password}             @C{%s} (basic auth)\n", plugin.Redact(s))
 	}
 
 	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
-		fmt.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
+		fmt.Fprintf(log, "@R{\u2717 skip_ssl_validation  %s}\n", err)
 		fail = true
 	} else if tf {
-		fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
+		fmt.Fprintf(log, "@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
 	} else {
-		fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
+		fmt.Fprintf(log, "@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
 	}
 
 	if fail {
@@ -133,15 +133,15 @@ func (p WebDAVPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p WebDAVPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p WebDAVPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p WebDAVPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p WebDAVPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p WebDAVPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p WebDAVPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	dav, err := configure(endpoint)
 	if err != nil {
 		return "", 0, err
@@ -154,16 +154,16 @@ func (p WebDAVPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, erro
 	return path, size, err
 }
 
-func (p WebDAVPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p WebDAVPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	dav, err := configure(endpoint)
 	if err != nil {
 		return err
 	}
 
-	return dav.Get(file, os.Stdout)
+	return dav.Get(file, out)
 }
 
-func (p WebDAVPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p WebDAVPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
 	dav, err := configure(endpoint)
 	if err != nil {
 		return err
