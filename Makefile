@@ -32,7 +32,7 @@ race:
 shield: shieldd shield-agent shield-schema shield-crypt shield-report
 
 shield-crypt:
-	go $(BUILD_TYPE) ./cmd/shield-crypt
+	go $(BUILD_TYPE) ./cmd/shield-crypt/shield-crypt
 shieldd:
 	go $(BUILD_TYPE) ./cmd/shieldd
 shield-agent:
