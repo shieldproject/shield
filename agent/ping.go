@@ -68,6 +68,7 @@ func (agent *Agent) Ping() {
 			log.Errorf("failed to issue POST /v2/agents: %s", err)
 			return
 		}
+		defer res.Body.Close()
 
 		if res.StatusCode != 200 {
 			log.Errorf("pre-registration with %s failed; SHIELD Core responeded HTTP %s", agent.Registration.URL, res.Status)
