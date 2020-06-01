@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go v8.1.1-beta+incompatible
 	github.com/ErikDubbelboer/gspt v0.0.0-20180711091504-e39e726e09cc
 	github.com/beorn7/perks v1.0.1
-	github.com/cloudfoundry-community/vaultkv v0.0.0-20190418211205-0ed39daafa01
+	github.com/cloudfoundry-community/vaultkv v0.0.0-20200311151509-343c0e6fc506
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
