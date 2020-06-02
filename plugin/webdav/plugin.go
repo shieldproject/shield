@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -14,8 +13,8 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func Run() {
-	p := WebDAVPlugin{
+func New() plugin.Plugin {
+	return WebDAVPlugin{
 		Name:    "WebDAV Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
@@ -67,8 +66,10 @@ func Run() {
 			},
 		},
 	}
+}
 
-	plugin.Run(p)
+func Run() {
+	plugin.Run(New())
 }
 
 type WebDAVPlugin plugin.PluginInfo
@@ -142,7 +143,7 @@ func (p WebDAVPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.Shiel
 }
 
 func (p WebDAVPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	dav, err := configure(endpoint)
+	dav, err := configure(log, endpoint)
 	if err != nil {
 		return "", 0, err
 	}
@@ -150,29 +151,29 @@ func (p WebDAVPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldE
 	path := dav.generate()
 	plugin.DEBUG("Storing data in %s", path)
 
-	size, err := dav.Put(path, os.Stdin)
+	size, err := dav.Put(in, log, path)
 	return path, size, err
 }
 
 func (p WebDAVPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	dav, err := configure(endpoint)
+	dav, err := configure(log, endpoint)
 	if err != nil {
 		return err
 	}
 
-	return dav.Get(file, out)
+	return dav.Get(file, out, log)
 }
 
 func (p WebDAVPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	dav, err := configure(endpoint)
+	dav, err := configure(log, endpoint)
 	if err != nil {
 		return err
 	}
 
-	return dav.Delete(file)
+	return dav.Delete(file, log)
 }
 
-func configure(endpoint plugin.ShieldEndpoint) (WebDAV, error) {
+func configure(log io.Writer, endpoint plugin.ShieldEndpoint) (WebDAV, error) {
 	url, err := endpoint.StringValue("url")
 	if err != nil {
 		return WebDAV{}, err
@@ -201,10 +202,10 @@ func configure(endpoint plugin.ShieldEndpoint) (WebDAV, error) {
 		Username:   username,
 		Password:   password,
 		SkipVerify: skip,
-	}.setup()
+	}.setup(log)
 }
 
-func (dav WebDAV) setup() (WebDAV, error) {
+func (dav WebDAV) setup(log io.Writer) (WebDAV, error) {
 	/* create the prefix, if there is one */
 	u, err := url.Parse(dav.URL)
 	if err != nil {
@@ -216,7 +217,7 @@ func (dav WebDAV) setup() (WebDAV, error) {
 		dir := strings.Join(parts[:i], "/")
 		plugin.Infof("creating prefix directory '%s'", dir)
 		u.Path = dir + "/"
-		fmt.Fprintf(os.Stderr, "requesting MKCOL %s\n", u)
+		fmt.Fprintf(log, "requesting MKCOL %s\n", u)
 		req, err := http.NewRequest("MKCOL", u.String(), nil)
 		if err != nil {
 			return dav, fmt.Errorf("unable to create WebDAV prefix directory %s: %s", dir, err)
@@ -225,6 +226,7 @@ func (dav WebDAV) setup() (WebDAV, error) {
 		if err != nil {
 			return dav, fmt.Errorf("unable to create WebDAV prefix directory %s: %s", dir, err)
 		}
+		res.Body.Close()
 		if res.StatusCode != 201 && res.StatusCode != 405 {
 			return dav, fmt.Errorf("unable to create WebDAV prefix directory %s: got an HTTP %d response from the WebDAV server", dir, res.StatusCode)
 		}
@@ -259,13 +261,13 @@ func (dav WebDAV) request(req *http.Request) (*http.Response, error) {
 	return dav.c.Do(req)
 }
 
-func (dav WebDAV) do(method, path string, in io.Reader) (*http.Response, error) {
+func (dav WebDAV) do(method, path string, in io.Reader, log io.Writer) (*http.Response, error) {
 	u, err := url.Parse(dav.URL)
 	if err != nil {
 		return nil, err
 	}
 	u.Path = fmt.Sprintf("%s/%s", strings.TrimSuffix(u.Path, "/"), path)
-	fmt.Fprintf(os.Stderr, "requesting %s %s\n", method, u)
+	fmt.Fprintf(log, "requesting %s %s\n", method, u)
 
 	req, err := http.NewRequest(method, u.String(), in)
 	if err != nil {
@@ -275,46 +277,50 @@ func (dav WebDAV) do(method, path string, in io.Reader) (*http.Response, error) 
 	return dav.request(req)
 }
 
-func (dav WebDAV) Put(path string, in io.Reader) (int64, error) {
-	fmt.Fprintf(os.Stderr, "storing archive at '%s'\n", path)
+func (dav WebDAV) Put(in io.Reader, log io.Writer, path string) (int64, error) {
+	fmt.Fprintf(log, "storing archive at '%s'\n", path)
 
 	parts := strings.Split(path, "/")
 	for i := 1; i < len(parts); i++ {
 		dir := strings.Join(parts[:i], "/")
-		fmt.Fprintf(os.Stderr, "creating directory '%s'\n", dir)
-		res, err := dav.do("MKCOL", dir+"/", nil)
+		fmt.Fprintf(log, "creating directory '%s'\n", dir)
+		res, err := dav.do("MKCOL", dir+"/", nil, log)
 		if err != nil {
 			return 0, fmt.Errorf("unable to create parent directory %s: %s", dir, err)
 		}
+		res.Body.Close()
 		if !(res.StatusCode == 201 || res.StatusCode == 405) {
 			return 0, fmt.Errorf("unable to create parent directory %s: got an HTTP %d response from the WebDAV server", dir, res.StatusCode)
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "\nuploading file to remote WebDAV store...\n")
-	res, err := dav.do("PUT", path, in)
+	fmt.Fprintf(log, "\nuploading file to remote WebDAV store...\n")
+	res, err := dav.do("PUT", path, in, log)
 	if err != nil {
 		return 0, err
 	}
+	res.Body.Close()
 
 	if res.StatusCode == 201 {
-		res, err = dav.do("HEAD", path, nil)
+		res, err = dav.do("HEAD", path, nil, log)
 		if err != nil {
 			return 0, err
 		}
+		res.Body.Close()
 
-		fmt.Fprintf(os.Stderr, "uploaded %d bytes to %s\n", res.ContentLength, path)
+		fmt.Fprintf(log, "uploaded %d bytes to %s\n", res.ContentLength, path)
 		return res.ContentLength, nil
 	}
 
 	return 0, fmt.Errorf("Received a %s from %s", res.Status, dav.URL)
 }
 
-func (dav WebDAV) Get(path string, out io.Writer) error {
-	res, err := dav.do("GET", path, nil)
+func (dav WebDAV) Get(path string, out io.Writer, log io.Writer) error {
+	res, err := dav.do("GET", path, nil, log)
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode == 200 {
 		_, err := io.Copy(out, res.Body)
@@ -324,11 +330,12 @@ func (dav WebDAV) Get(path string, out io.Writer) error {
 	return fmt.Errorf("Received a %s from %s", res.Status, dav.URL)
 }
 
-func (dav WebDAV) Delete(path string) error {
-	res, err := dav.do("DELETE", path, nil)
+func (dav WebDAV) Delete(path string, log io.Writer) error {
+	res, err := dav.do("DELETE", path, nil, log)
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode <= 200 || res.StatusCode == 204 || res.StatusCode == 404 || res.StatusCode == 410 {
 		return nil

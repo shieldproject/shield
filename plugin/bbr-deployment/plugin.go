@@ -18,8 +18,8 @@ const (
 	DefaultBinDir = "/var/vcap/packages/bbr/bin"
 )
 
-func Run() {
-	bbr := BBRPlugin{
+func New() plugin.Plugin {
+	return BBRPlugin{
 		Name:    "BBR Deployment Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "1.4.0",
@@ -101,8 +101,10 @@ func Run() {
 			},
 		},
 	}
+}
 
-	plugin.Run(bbr)
+func Run() {
+	plugin.Run(New())
 }
 
 type BBRPlugin plugin.PluginInfo

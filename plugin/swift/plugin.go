@@ -18,8 +18,8 @@ const (
 	defaultPrefix = ""
 )
 
-func Run() {
-	p := SwiftPlugin{
+func New() plugin.Plugin {
+	return SwiftPlugin{
 		Name:    "OpenStack Swift Storage Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
@@ -103,7 +103,10 @@ func Run() {
 		},
 	}
 
-	plugin.Run(p)
+}
+
+func Run() {
+	plugin.Run(New())
 }
 
 type SwiftPlugin plugin.PluginInfo

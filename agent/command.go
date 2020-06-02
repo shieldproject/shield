@@ -2,17 +2,30 @@ package agent
 
 import (
 	"bufio"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/syslog"
+	"math/rand"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/jhunt/go-log"
+	"github.com/shieldproject/shield/plugin"
+	"github.com/shieldproject/shield/plugin/cassandra"
+	"github.com/shieldproject/shield/plugin/consul"
+	consulsnapshot "github.com/shieldproject/shield/plugin/consul-snapshot"
+	"github.com/shieldproject/shield/plugin/etcd"
+	"github.com/shieldproject/shield/plugin/fs"
+	"github.com/shieldproject/shield/plugin/mongo"
+	"github.com/shieldproject/shield/plugin/mysql"
+	"github.com/shieldproject/shield/plugin/postgres"
+	"github.com/shieldproject/shield/plugin/ssg"
+	"github.com/shieldproject/shield/plugin/vault"
+	"github.com/shieldproject/shield/plugin/webdav"
+	"github.com/shieldproject/shield/plugin/xtrabackup"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -147,98 +160,395 @@ func appendEndpointVariables(env []string, prefix, raw string) []string {
 }
 
 func (agent *Agent) Execute(c *Command, out chan string) error {
-	cmd := exec.Command("shield-pipe")
+	//   c.OP                      Operation: either 'backup' or 'restore'
+	//   c.TargetPlugin            Target plugin to use
+	//   c.Targetendpoint          The target endpoint config (probably JSON)
+	//   c.StorePlugin             Store plugin to use
+	//   c.StoreEndpoint           The store endpoint config (probably JSON)
+	//   c.RestoreKey              Archive key for 'restore' operations
+	//   c.Compression             What type of compression to perform
+	//   c.EncryptType             Cipher and mode to be used for archive encryption
+	//   c.EncryptKey              Encryption key for archive encryption
+	//   c.EncryptIV               Initialization vector for archive encryption
 
-	log.Infof("Executing %s via shield-pipe", c.Details())
-	cmd.Env = []string{
-		fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
-		fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
-		fmt.Sprintf("USER=%s", os.Getenv("USER")),
-		fmt.Sprintf("LANG=%s", os.Getenv("LANG")),
+	defer close(out)
 
-		fmt.Sprintf("http_proxy=%s", os.Getenv("http_proxy")),
-		fmt.Sprintf("https_proxy=%s", os.Getenv("https_proxy")),
-		fmt.Sprintf("no_proxy=%s", os.Getenv("no_proxy")),
-
-		fmt.Sprintf("SHIELD_OP=%s", c.Op),
-		fmt.Sprintf("SHIELD_STORE_PLUGIN=%s", c.StorePlugin),
-		fmt.Sprintf("SHIELD_STORE_ENDPOINT=%s", c.StoreEndpoint),
-		fmt.Sprintf("SHIELD_TARGET_PLUGIN=%s", c.TargetPlugin),
-		fmt.Sprintf("SHIELD_TARGET_ENDPOINT=%s", c.TargetEndpoint),
-		fmt.Sprintf("SHIELD_TASK_UUID=%s", c.TaskUUID),
-		fmt.Sprintf("SHIELD_RESTORE_KEY=%s", c.RestoreKey),
-		fmt.Sprintf("SHIELD_PLUGINS_PATH=%s", strings.Join(agent.PluginPaths, ":")),
-		fmt.Sprintf("SHIELD_AGENT_NAME=%s", agent.Name),
-		fmt.Sprintf("SHIELD_AGENT_VERSION=%s", agent.Version),
-		fmt.Sprintf("SHIELD_ENCRYPT_TYPE=%s", c.EncryptType),
-		fmt.Sprintf("SHIELD_ENCRYPT_KEY=%s", c.EncryptKey),
-		fmt.Sprintf("SHIELD_ENCRYPT_IV=%s", c.EncryptIV),
-		fmt.Sprintf("SHIELD_COMPRESSION=%s", c.Compression),
+	// Select the target plugin.
+	var pT plugin.Plugin
+	switch c.TargetPlugin {
+	case "cassandra":
+		log.Debugf("cassandra selected")
+		pT = cassandra.CassandraPlugin{}
+	case "consul":
+		log.Debugf("consul selected")
+		pT = consul.ConsulPlugin{}
+	case "consul-snapshot":
+		log.Debugf("consul-snapshot selected")
+		pT = consulsnapshot.ConsulPlugin{}
+	case "etcd":
+		log.Debugf("etcd selected")
+		pT = etcd.EtcdPlugin{}
+	case "fs":
+		log.Debugf("fs selected")
+		pT = fs.FSPlugin{}
+	case "mongo":
+		log.Debugf("mongo selected")
+		pT = mongo.MongoPlugin{}
+	case "mysql":
+		log.Debugf("mysql selected")
+		pT = mysql.MySQLPlugin{}
+	case "postgres":
+		log.Debugf("postgres selected")
+		pT = postgres.PostgresPlugin{}
+	case "vault":
+		pT = vault.VaultPlugin{}
+	case "xtrabackup":
+		pT = xtrabackup.XtraBackupPlugin{}
+	case "":
+		break
+	default:
+		return fmt.Errorf("unrecognized target plugin %s", c.TargetPlugin)
 	}
-	cmd.Env = appendEndpointVariables(cmd.Env, "SHIELD_TARGET_PARAM_", c.TargetEndpoint)
-	cmd.Env = appendEndpointVariables(cmd.Env, "SHIELD_STORE_PARAM_", c.StoreEndpoint)
 
-	if log.LogLevel() == syslog.LOG_DEBUG {
-		cmd.Env = append(cmd.Env, "DEBUG=true")
+	// Select the store plugin.
+	var pS plugin.Plugin
+	switch c.StorePlugin {
+	case "ssg":
+		log.Debugf("ssg plugin selected")
+		pS = ssg.SsgPlugin{}
+	case "webdav":
+		log.Debugf("webdav plugin selected")
+		pS = webdav.WebDAVPlugin{}
+	case "":
+		break
+	default:
+		return fmt.Errorf("unrecognized store plugin %s", c.StorePlugin)
 	}
 
-	log.Debugf("ENV: %s", strings.Join(cmd.Env, ","))
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
+	// If the target plugin exists parse the endpoint json data.
+	var targetEndpoint plugin.ShieldEndpoint
+	if c.TargetPlugin != "" {
+		err := json.Unmarshal([]byte(c.TargetEndpoint), &targetEndpoint)
+		if err != nil {
+			return fmt.Errorf("error parsing target endpoint json data: %s", err)
+		}
 	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return err
+
+	// If the store plugin exists parse the endpoint json data.
+	var storeEndpoint plugin.ShieldEndpoint
+	if c.StorePlugin != "" {
+		err := json.Unmarshal([]byte(c.StoreEndpoint), &storeEndpoint)
+		if err != nil {
+			return fmt.Errorf("error parsing store endpoint json data :%s", err)
+		}
 	}
 
 	var wg sync.WaitGroup
-	drain := func(prefix string, out chan string, in io.Reader) {
-		defer wg.Done()
-		s := bufio.NewScanner(in)
+
+	// The errors channel collects the errors from the operations performs and
+	// passes it to the core if any errors exist.
+	errors := make(chan error, 2)
+
+	// inputStream and outputStream are used by while doing backup, store and
+	// restore, retrieve operations for passing the data between the
+	// the target and the store plugins.
+	inputStream, outputStream := io.Pipe()
+
+	// logReaderStream and logWriterStream are used by all the plugin functions to
+	// collect the task logs on the status of the plugin operations.
+	logReaderStream, logWriterStream := io.Pipe()
+
+	// This is a goroutine for sending task logs to the core.
+	done := make(chan int)
+	go func() {
+		s := bufio.NewScanner(logReaderStream)
 		for s.Scan() {
-			out <- fmt.Sprintf("%s:%s\n", prefix, s.Text())
+			out <- fmt.Sprintf("E:%s\n", s.Text())
 		}
+		close(done)
+	}()
+
+	fmt.Fprintf(logWriterStream, "Validating environment...\n")
+	if c.EncryptType == "" {
+		fmt.Fprintf(logWriterStream, "SHIELD encryption type not set...\n")
+	} else {
+		fmt.Fprintf(logWriterStream, "Encryption type ... %s\n", c.EncryptType)
 	}
 
-	wg.Add(2)
-	go drain("E", out, stderr)
-	go drain("O", out, stdout)
+	if c.EncryptKey == "" {
+		fmt.Fprintf(logWriterStream, "SHIELD encryption key not set...\n")
+	} else {
+		fmt.Fprintf(logWriterStream, "Encryption key ... found\n")
+	}
 
-	err = cmd.Start()
-	if err != nil {
-		close(out)
-		return err
+	if c.EncryptIV == "" {
+		fmt.Fprintf(logWriterStream, "SHIELD encryption iv not set...\n")
+	} else {
+		fmt.Fprintf(logWriterStream, "Encryption IV ... found\n")
+	}
+
+	if agent.Version == "" {
+		agent.Version = "dev"
+	}
+
+	switch c.Op {
+	case "status":
+		fmt.Fprintf(logWriterStream, "Running SHIELD Agent "+agent.Version+" Health Checks\n")
+		v := struct {
+			Name    string                       `json:"name"`
+			Version string                       `json:"version"`
+			Health  string                       `json:"health"`
+			Plugins map[string]plugin.PluginInfo `json:"plugins"`
+		}{
+			Name:    agent.Name,
+			Version: agent.Version,
+			Health:  "ok",
+			Plugins: map[string]plugin.PluginInfo{
+				"cassandra":       cassandra.New().Meta(),
+				"consul":          consul.New().Meta(),
+				"consul-snapshot": consulsnapshot.New().Meta(),
+				"etcd":            etcd.New().Meta(),
+				"fs":              fs.New().Meta(),
+				"mongo":           mongo.New().Meta(),
+				"mysql":           mysql.New().Meta(),
+				"postgres":        postgres.New().Meta(),
+				"ssg":             ssg.New().Meta(),
+				"vault":           vault.New().Meta(),
+				"webdav":          webdav.New().Meta(),
+				"xtrabackup":      xtrabackup.New().Meta(),
+			},
+		}
+		b, err := json.Marshal(&v)
+		if err != nil {
+			errors <- fmt.Errorf("failed to marshall agent data: %s", err)
+			break
+		}
+		out <- fmt.Sprintf("O:%s\n", b)
+
+	case "test-store":
+		fmt.Fprintf(logWriterStream, "Validating "+c.StorePlugin+" plugin\n")
+		err := pS.Validate(logWriterStream, storeEndpoint)
+		if err != nil {
+			out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
+			errors <- fmt.Errorf("store plugin validation failed: %s", err)
+			break
+		}
+
+		fmt.Fprintf(logWriterStream, "Performing store / retrieve / purge test\n")
+		fmt.Fprintf(logWriterStream, "generating an input bit pattern\n")
+		var letters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+		b := make([]byte, 25)
+		for i := range b {
+			b[i] = letters[rand.Intn(len(letters))]
+		}
+		input := "test::" + base64.URLEncoding.EncodeToString(b)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			outputStream.Write([]byte(input))
+			outputStream.Close()
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			key, _, err := pS.Store(inputStream, logWriterStream, storeEndpoint)
+			if err != nil {
+				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
+				errors <- fmt.Errorf("store operation failed: %s", err)
+				return
+			}
+
+			// os.Pipe() works for now because our test input is always 25 bytes.
+			// This is storing less than one pipe's worth of data in the archive.
+			// Should the size increase to more than one pipe's worth in the future
+			// for testing purposes, it will block and we will deadlock.
+			rd, wr, err := os.Pipe()
+			if err != nil {
+				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
+				errors <- fmt.Errorf("failed to initialize pipe: %s", err)
+				return
+			}
+			err = pS.Retrieve(wr, logWriterStream, storeEndpoint, key)
+			if err != nil {
+				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
+				errors <- fmt.Errorf("restore operation failed: %s", err)
+				return
+			}
+			wr.Close()
+
+			err = pS.Purge(logWriterStream, storeEndpoint, key)
+			if err != nil {
+				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
+				errors <- fmt.Errorf("purge operation failed: %s", err)
+				return
+			}
+
+			s := bufio.NewScanner(rd)
+			var output string
+			for s.Scan() {
+				output = output + s.Text()
+			}
+
+			fmt.Fprintf(logWriterStream, "INPUT:  %s\n", input)
+			fmt.Fprintf(logWriterStream, "OUTPUT: %s\n", output)
+			fmt.Fprintf(logWriterStream, "KEY:    %s\n", key)
+
+			if output == "" {
+				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
+				errors <- fmt.Errorf("unable to read from storage")
+				return
+			}
+
+			if input != output {
+				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
+				errors <- fmt.Errorf("input string does not match output string")
+				return
+			}
+			out <- fmt.Sprintf("O:%s\n", "{\"healthy\":true}")
+		}()
+
+	case "backup":
+		fmt.Fprintf(logWriterStream, "Validating "+c.TargetPlugin+" plugin\n")
+		err := pT.Validate(logWriterStream, targetEndpoint)
+		if err != nil {
+			errors <- fmt.Errorf("target plugin validation failed: %s", err)
+			break
+		}
+
+		fmt.Fprintf(logWriterStream, "Validating "+c.StorePlugin+" plugin\n")
+		err = pS.Validate(logWriterStream, storeEndpoint)
+		if err != nil {
+			errors <- fmt.Errorf("store plugin validation failed: %s", err)
+			break
+		}
+
+		switch c.Compression {
+		case "compression":
+			fmt.Fprintf(logWriterStream, "Running backup task using compression\n")
+		default:
+			fmt.Fprintf(logWriterStream, "Running backup task without compression\n")
+		}
+
+		// This goroutine performs the backup for the target plugin. The data
+		// that is being backed-up is written to the outputStream.
+		wg.Add(1)
+		go func() {
+			defer func() {
+				wg.Done()
+				outputStream.Close()
+			}()
+			err = pT.Backup(outputStream, logWriterStream, targetEndpoint)
+			if err != nil {
+				errors <- fmt.Errorf("backup operation failed: %s", err)
+			}
+		}()
+
+		// This goroutine performs the store function on the store plugin. The
+		// store plugin reads from the inputStream which is continuously getting
+		// data from the outputStream. Once all the data is read, it returns the
+		// restore key and the size of the archive.
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			key, size, err := pS.Store(inputStream, logWriterStream, storeEndpoint)
+			if err != nil {
+				errors <- fmt.Errorf("store operation failed: %s", err)
+				return
+			}
+			v := struct {
+				Key         string `json:"key"`
+				Size        int64  `json:"archive_size"`
+				Compression string `json:"compression"`
+			}{
+				Key:         key,
+				Size:        size,
+				Compression: c.Compression,
+			}
+			s, err := json.Marshal(&v)
+			if err != nil {
+				errors <- fmt.Errorf("could not make json encoding of key, size and compression: %s", err)
+				return
+			}
+			out <- fmt.Sprintf("O:%s\n", string(s))
+		}()
+
+	case "restore":
+		fmt.Fprintf(logWriterStream, "Validating "+c.TargetPlugin+" plugin\n")
+		err := pT.Validate(logWriterStream, targetEndpoint)
+		if err != nil {
+			errors <- fmt.Errorf("target plugin validation failed: %s", err)
+			break
+		}
+
+		fmt.Fprintf(logWriterStream, "Validating "+c.StorePlugin+" plugin\n")
+		err = pS.Validate(logWriterStream, storeEndpoint)
+		if err != nil {
+			errors <- fmt.Errorf("store plugin validation failed: %s", err)
+			break
+		}
+
+		switch c.Compression {
+		case "compression":
+			fmt.Fprintf(logWriterStream, "Running restore task using compression\n")
+		default:
+			fmt.Fprintf(logWriterStream, "Running restore task without compression\n")
+		}
+
+		// This goroutine is retrieving the archive data from the respective store
+		// plugin. The data is being written to outputStream.
+		wg.Add(1)
+		errors := make(chan error, 2)
+		go func() {
+			defer func() {
+				wg.Done()
+				outputStream.Close()
+			}()
+			err = pS.Retrieve(outputStream, logWriterStream, storeEndpoint, c.RestoreKey)
+			if err != nil {
+				errors <- fmt.Errorf("could not retrieve from path %s, error: %s", c.RestoreKey, err)
+			}
+		}()
+
+		// This goroutine is reading data from the inputStream which tracks the
+		// data written to outputStream. The data read is then put in the respective
+		// target system.
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err = pT.Restore(inputStream, logWriterStream, targetEndpoint)
+			if err != nil {
+				errors <- fmt.Errorf("restore operation failed: %s", err)
+			}
+		}()
+
+	case "purge":
+		fmt.Fprintf(logWriterStream, "Validating "+c.StorePlugin+" plugin\n")
+		err := pS.Validate(logWriterStream, storeEndpoint)
+		if err != nil {
+			errors <- fmt.Errorf("store plugin validation failed: %s", err)
+			break
+		}
+
+		fmt.Fprintf(logWriterStream, "Running purge task\n")
+		err = pS.Purge(logWriterStream, storeEndpoint, c.RestoreKey)
+		if err != nil {
+			errors <- fmt.Errorf("purge operatoin failed: %s", err)
+			break
+		}
+
+	default:
+		errors <- fmt.Errorf("unrecognized operation %s", c.Op)
 	}
 
 	wg.Wait()
-	close(out)
-
-	err = cmd.Wait()
-	if err != nil {
+	logWriterStream.Close()
+	<-done
+	select {
+	case err := <-errors:
 		return err
+	default:
+		return nil
 	}
-
-	return nil
-}
-
-func (agent *Agent) ResolvePathsIn(c *Command) error {
-	if c.TargetPlugin != "" {
-		bin, err := agent.ResolveBinary(c.TargetPlugin)
-		if err != nil {
-			return err
-		}
-		c.TargetPlugin = bin
-	}
-
-	if c.StorePlugin != "" {
-		bin, err := agent.ResolveBinary(c.StorePlugin)
-		if err != nil {
-			return err
-		}
-		c.StorePlugin = bin
-	}
-
-	return nil
 }

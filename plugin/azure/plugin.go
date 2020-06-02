@@ -16,8 +16,8 @@ const (
 	DefaultPrefix = ""
 )
 
-func Run() {
-	p := AzurePlugin{
+func New() plugin.Plugin {
+	return AzurePlugin{
 		Name:    "Microsoft Azure Storage Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
@@ -76,8 +76,10 @@ func Run() {
 			},
 		},
 	}
+}
 
-	plugin.Run(p)
+func Run() {
+	plugin.Run(New())
 }
 
 type AzurePlugin plugin.PluginInfo

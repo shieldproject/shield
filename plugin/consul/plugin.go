@@ -15,8 +15,8 @@ var (
 	DefaultHostPort = "http://127.0.0.1:8500"
 )
 
-func Run() {
-	p := ConsulPlugin{
+func New() plugin.Plugin {
+	return ConsulPlugin{
 		Name:    "Consul Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
@@ -73,8 +73,10 @@ func Run() {
 			},
 		},
 	}
+}
 
-	plugin.Run(p)
+func Run() {
+	plugin.Run(New())
 }
 
 type ConsulPlugin plugin.PluginInfo

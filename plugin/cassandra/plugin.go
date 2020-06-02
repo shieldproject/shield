@@ -109,8 +109,8 @@ const (
 	SnapshotName  = "shield-backup"
 )
 
-func Run() {
-	p := CassandraPlugin{
+func New() plugin.Plugin {
+	return CassandraPlugin{
 		Name:    "Cassandra Backup Plugin",
 		Author:  "Orange",
 		Version: "0.1.0",
@@ -194,8 +194,10 @@ func Run() {
 			},
 		},
 	}
+}
 
-	plugin.Run(p)
+func Run() {
+	plugin.Run(New())
 }
 
 type CassandraPlugin plugin.PluginInfo

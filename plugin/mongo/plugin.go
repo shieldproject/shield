@@ -15,8 +15,8 @@ var (
 	DefaultMongoBinDir = "/var/vcap/packages/shield-mongo/bin"
 )
 
-func Run() {
-	p := MongoPlugin{
+func New() plugin.Plugin {
+	return MongoPlugin{
 		Name:    "MongoDB Backup Plugin",
 		Author:  "Szlachta, Jacek",
 		Version: "0.0.1",
@@ -129,7 +129,10 @@ func Run() {
 		},
 	}
 
-	plugin.Run(p)
+}
+
+func Run() {
+	plugin.Run(New())
 }
 
 type MongoPlugin plugin.PluginInfo

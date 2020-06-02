@@ -58,8 +58,8 @@ var (
 	DefaultConsul  = "/var/vcap/packages/consul/bin/consul"
 )
 
-func Run() {
-	p := ConsulPlugin{
+func New() plugin.Plugin {
+	return ConsulPlugin{
 		Name:    "Consul Snapshot Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
@@ -85,8 +85,10 @@ func Run() {
 }
 `,
 	}
+}
 
-	plugin.Run(p)
+func Run() {
+	plugin.Run(New())
 }
 
 type ConsulPlugin plugin.PluginInfo

@@ -7,8 +7,8 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func Run() {
-	p := SsgPlugin{
+func New() plugin.Plugin {
+	return SsgPlugin{
 		Name:    "SHIELD Storege Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
@@ -17,7 +17,10 @@ func Run() {
 			Store:  "yes",
 		},
 	}
-	plugin.Run(p)
+}
+
+func Run() {
+	plugin.Run(New())
 }
 
 type SsgPlugin plugin.PluginInfo

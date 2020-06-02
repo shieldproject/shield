@@ -19,43 +19,6 @@ var _ = Describe("Agent", func() {
 		return fmt.Sprintf("%s/%s", cwd, rel)
 	}
 
-	Describe("Plugin Loader", func() {
-		var a *Agent
-
-		BeforeEach(func() {
-			a = &Agent{
-				PluginPaths: []string{"test/plugins/dir", "test/plugins"},
-			}
-		})
-
-		It("throws an error if the plugin is not found", func() {
-			_, err := a.ResolveBinary("enoent")
-			Ω(err).Should(HaveOccurred())
-		})
-
-		It("skips directories implicitly", func() {
-			_, err := a.ResolveBinary("dir")
-			Ω(err).Should(HaveOccurred())
-		})
-
-		It("skips non-executable files implicitly", func() {
-			_, err := a.ResolveBinary("regular")
-			Ω(err).Should(HaveOccurred())
-		})
-
-		It("finds the executable script", func() {
-			path, err := a.ResolveBinary("executable")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(path).Should(Equal("test/plugins/executable"))
-		})
-
-		It("finds the first executable script, if there are multiple", func() {
-			path, err := a.ResolveBinary("common")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(path).Should(Equal("test/plugins/dir/common"))
-		})
-	})
-
 	Describe("Authorized Keys Loader", func() {
 		It("throws an error when loading authorized keys from a non-existent file", func() {
 			_, err := LoadAuthorizedKeysFromFile("test/enoent")

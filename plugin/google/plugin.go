@@ -19,8 +19,8 @@ const (
 	DefaultPrefix  = ""
 )
 
-func Run() {
-	p := GooglePlugin{
+func New() plugin.Plugin {
+	return GooglePlugin{
 		Name:    "Google Cloud Storage Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
@@ -67,8 +67,10 @@ func Run() {
 			},
 		},
 	}
-	plugin.Run(p)
+}
 
+func Run() {
+	plugin.Run(New())
 }
 
 type GooglePlugin plugin.PluginInfo

@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -25,8 +24,8 @@ var (
 	BothAuthentication        = "Both"
 )
 
-func Run() {
-	p := EtcdPlugin{
+func New() plugin.Plugin {
+	return EtcdPlugin{
 		Name:    "Etcd Backup Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
@@ -138,8 +137,10 @@ func Run() {
 			},
 		},
 	}
-	fmt.Fprintf(os.Stderr, "etcd plugin starting up...\n")
-	plugin.Run(p)
+}
+
+func Run() {
+	plugin.Run(New())
 }
 
 type EtcdPlugin plugin.PluginInfo

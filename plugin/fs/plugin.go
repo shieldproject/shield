@@ -12,8 +12,8 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func Run() {
-	p := FSPlugin{
+func New() plugin.Plugin {
+	return FSPlugin{
 		Name:    "Local Filesystem Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "1.0.0",
@@ -75,9 +75,10 @@ func Run() {
 			},
 		},
 	}
+}
 
-	plugin.DEBUG("fs plugin starting up...")
-	plugin.Run(p)
+func Run() {
+	plugin.Run(New())
 }
 
 type FSPlugin plugin.PluginInfo

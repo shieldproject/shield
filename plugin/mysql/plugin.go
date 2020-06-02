@@ -19,8 +19,8 @@ var (
 	DefaultPort = "3306"
 )
 
-func Run() {
-	p := MySQLPlugin{
+func New() plugin.Plugin {
+	return MySQLPlugin{
 		Name:    "MySQL Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
@@ -115,7 +115,10 @@ func Run() {
 		},
 	}
 
-	plugin.Run(p)
+}
+
+func Run() {
+	plugin.Run(New())
 }
 
 type MySQLPlugin plugin.PluginInfo

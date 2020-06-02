@@ -14,8 +14,8 @@ import (
 
 var ()
 
-func Run() {
-	p := VaultPlugin{
+func New() plugin.Plugin {
+	return VaultPlugin{
 		Name:    "Vault Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
@@ -75,7 +75,10 @@ func Run() {
 		},
 	}
 
-	plugin.Run(p)
+}
+
+func Run() {
+	plugin.Run(New())
 }
 
 type VaultPlugin plugin.PluginInfo

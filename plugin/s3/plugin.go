@@ -61,8 +61,8 @@ func validBucketName(v string) bool {
 	return ok && err == nil
 }
 
-func Run() {
-	p := S3Plugin{
+func New() plugin.Plugin {
+	return S3Plugin{
 		Name:    "Amazon S3 Storage Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
@@ -189,7 +189,10 @@ func Run() {
 		},
 	}
 
-	plugin.Run(p)
+}
+
+func Run() {
+	plugin.Run(New())
 }
 
 type S3Plugin plugin.PluginInfo

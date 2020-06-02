@@ -10,8 +10,8 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func Run() {
-	p := ShieldPlugin{
+func New() plugin.Plugin {
+	return ShieldPlugin{
 		Name:    "SHIELD Backup Plugin",
 		Author:  "Stark and Wayne",
 		Version: "1.0.0",
@@ -40,8 +40,10 @@ func Run() {
 			},
 		},
 	}
-	fmt.Fprintf(os.Stderr, "SHIELD plugin starting up...\n")
-	plugin.Run(p)
+}
+
+func Run() {
+	plugin.Run(New())
 }
 
 type ShieldPlugin plugin.PluginInfo

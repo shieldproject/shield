@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
-	"os/exec"
 	"strings"
-	"syscall"
 
 	"github.com/jhunt/go-log"
 	"golang.org/x/crypto/ssh"
@@ -35,27 +32,6 @@ type Agent struct {
 
 func NewAgent() *Agent {
 	return &Agent{}
-}
-
-func (agent *Agent) ResolveBinary(name string) (string, error) {
-	for _, path := range agent.PluginPaths {
-		candidate := fmt.Sprintf("%s/%s", path, name)
-		if stat, err := os.Stat(candidate); err == nil {
-			// skip if not executable by someone
-			if stat.Mode()&0111 == 0 {
-				continue
-			}
-
-			// skip if not a regular file
-			if stat.Mode()&os.ModeType != 0 {
-				continue
-			}
-
-			return candidate, nil
-		}
-	}
-
-	return "", fmt.Errorf("plugin %s not found in path", name)
 }
 
 func (agent *Agent) Run() {
@@ -121,23 +97,11 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 				continue
 			}
 
-			if err = agent.ResolvePathsIn(command); err != nil {
-				log.Errorf("%s\n", err)
-				fmt.Fprintf(channel, "E:failed: %s\n", err)
-				channel.SendRequest("exit-status", false, encodeExitCode(1))
-				channel.Close()
-				continue
-			}
-
 			// drain output to the SSH channel stream
 			output := make(chan string)
 			done := make(chan int)
 			go func(out io.Writer, in chan string, done chan int) {
-				for {
-					s, ok := <-in
-					if !ok {
-						break
-					}
+				for s := range in {
 					fmt.Fprintf(out, "%s", s)
 					log.Debugf("%s", strings.Trim(s, "\n"))
 				}
@@ -145,76 +109,19 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 			}(channel, output, done)
 
 			err = agent.Execute(command, output)
-			<-done
-			var rc int
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				sys := exitErr.ProcessState.Sys()
-				// os.ProcessState.Sys() may not return syscall.WaitStatus on non-UNIX machines,
-				// so currently this feature only works on UNIX, but shouldn't crash on other OSes
-				if ws, ok := sys.(syscall.WaitStatus); ok {
-					if ws.Exited() {
-						rc = ws.ExitStatus()
-					} else {
-						var signal syscall.Signal
-						if ws.Signaled() {
-							signal = ws.Signal()
-						}
-						if ws.Stopped() {
-							signal = ws.StopSignal()
-						}
-						sigStr, ok := SIGSTRING[signal]
-						if !ok {
-							sigStr = "ABRT" // use ABRT as catch-all signal for any that don't translate
-							log.Infof("Task execution terminted due to %s, translating as ABRT for ssh transport", signal)
-						} else {
-							log.Infof("Task execution terminated due to SIG%s", sigStr)
-						}
-						sigMsg := struct {
-							Signal     string
-							CoreDumped bool
-							Error      string
-							Lang       string
-						}{
-							Signal:     sigStr,
-							CoreDumped: false,
-							Error:      fmt.Sprintf("shield-pipe terminated due to SIG%s", sigStr),
-							Lang:       "en-US",
-						}
-						channel.SendRequest("exit-signal", false, ssh.Marshal(&sigMsg))
-						channel.Close()
-						continue
-					}
-				}
-			} else if err != nil {
-				// we got some kind of error that isn't a command execution error,
-				// from a UNIX system, use an magical error code to signal this to
-				// the shield daemon - 16777216
-				log.Infof("Task could not execute: %s", err)
-				rc = 16777216
+			rc := 0
+			if err != nil {
+				log.Debugf("task failed: %s", err)
+				fmt.Fprintf(channel, "E: task failed: %s\n", err)
+				rc = 1
 			}
-
 			log.Infof("Task completed with rc=%d", rc)
+			<-done
+			log.Debugf("sending exit-status(%d) to upstream SSH peer", rc)
 			channel.SendRequest("exit-status", false, encodeExitCode(rc))
 			channel.Close()
 		}
 	}
-}
-
-// Based on what's handled in https://github.com/golang/crypto/blob/master/ssh/session.go#L21
-var SIGSTRING = map[syscall.Signal]string{
-	syscall.SIGABRT: "ABRT",
-	syscall.SIGALRM: "ALRM",
-	syscall.SIGFPE:  "FPE",
-	syscall.SIGHUP:  "HUP",
-	syscall.SIGILL:  "ILL",
-	syscall.SIGINT:  "INT",
-	syscall.SIGKILL: "KILL",
-	syscall.SIGPIPE: "PIPE",
-	syscall.SIGQUIT: "QUIT",
-	syscall.SIGSEGV: "SEGV",
-	syscall.SIGTERM: "TERM",
-	syscall.SIGUSR1: "USR1",
-	syscall.SIGUSR2: "USR2",
 }
 
 func encodeExitCode(rc int) []byte {

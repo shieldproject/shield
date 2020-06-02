@@ -9,8 +9,8 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func Run() {
-	p := RedisBrokerPlugin{
+func New() plugin.Plugin {
+	return RedisBrokerPlugin{
 		Name:    "Pivotal Redis Broker Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
@@ -46,7 +46,10 @@ func Run() {
 		},
 	}
 
-	plugin.Run(p)
+}
+
+func Run() {
+	plugin.Run(New())
 }
 
 type RedisBrokerPlugin plugin.PluginInfo

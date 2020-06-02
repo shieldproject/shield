@@ -18,8 +18,8 @@ var (
 	DefaultXtrabackup    = "/var/vcap/packages/shield-mysql/bin/xtrabackup"
 )
 
-func Run() {
-	p := XtraBackupPlugin{
+func New() plugin.Plugin {
+	return XtraBackupPlugin{
 		Name:    "MySQL XtraBackup Plugin",
 		Author:  "Swisscom",
 		Version: "0.0.1",
@@ -114,8 +114,10 @@ func Run() {
 			},
 		},
 	}
+}
 
-	plugin.Run(p)
+func Run() {
+	plugin.Run(New())
 }
 
 type XtraBackupPlugin plugin.PluginInfo
