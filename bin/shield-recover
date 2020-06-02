@@ -85,12 +85,6 @@ before_exit() {
 		exec $SHIELD_RESTARTER 0
 
 	else
-		echo >&2 "Removing vault and database files and starting over..."
-		rm -rf $SHIELD_DATA_DIR/shield.db \
-		       $SHIELD_DATA_DIR/vault
-		       $SHIELD_DATA_DIR/vault.crypt
-
-		echo >&2
 		echo >&2 "$SHIELD_DATA_DIR:"
 		ls -alh $SHIELD_DATA_DIR
 		echo >&2
@@ -147,12 +141,14 @@ shield-crypt --decrypt 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"e
 
 if file ${archive} | grep -q bzip2; then
 	header "Running restore"
+	echo >&2 "${archive}"
+	echo >&2 "${SHIELD_AUTH_TOKEN}"
 	echo >&2 " - datadir:     ${SHIELD_DATA_DIR}"
 	echo >&2 " - compression: bzip2"
 	echo >&2
 	cat ${archive} | \
 		bunzip2 | \
-		fs restore -e "{\"base_dir\":\"$SHIELD_DATA_DIR\"}"
+		metashield restore -e "{\"url\":\"http://127.0.0.1:8080\",\"token\":\"$SHIELD_AUTH_TOKEN\"}"
 
 else
 	header "Running restore"
@@ -160,7 +156,7 @@ else
 	echo >&2 " - compression: none"
 	echo >&2
 	cat ${archive} | \
-		fs restore -e "{\"base_dir\":\"$SHIELD_DATA_DIR\"}"
+		metashield restore -e "{\"url\":\"http://127.0.0.1:8080\",\"token\":\"$SHIELD_AUTH_TOKEN\"}"
 fi
 
 # trigger the exit handler,

@@ -462,8 +462,10 @@ body { font-family: sans-serif; }
   float: left;
 }
 #initialize .restore { width: 45%; padding-right: 10px; }
-#initialize .setpass  { width: 55%; padding-left:  20px; border-left: 1px solid #aaa; }
+#initialize .setpass  { width: 55%; padding-left:  20px; }
 #initialize > div.setpass-only .setpass { width: 100%; padding: 0; border: none; }
+#initialize .restore-form .restore { width: 100%; padding-right: 10px; }
+#initialize .setpass-form .setpass  { width: 100%; padding-left:  20px; }
 
 #initialize .restore li a {
   display: block;
@@ -493,8 +495,9 @@ body { font-family: sans-serif; }
   color: #fff;
   padding: 8px 10px;
   border: none;
-  margin-bottom: 6px;
-  margin-right: 6px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  margin-right: 65%;
   cursor: pointer;
   float: right;
 }
@@ -611,6 +614,7 @@ body { font-family: sans-serif; }
   display: none;
 }
 #initialize .restore input[type=text],
+#initialize .restore input[type=password],
 #initialize .restore textarea {
   width: 100%;
   font-size: 14pt;

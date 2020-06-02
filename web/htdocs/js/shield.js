@@ -119,88 +119,98 @@ function dispatch(page) {
     })()
     break;
     // }}}
-
     case "#!/init": /* {{{ */
       (function () {
-        $('#viewport').template('init');
-        $('#viewport').html($($.template('init'))
-          .on("submit", ".restore", function (event) {
-            event.preventDefault();
+      $('#viewport').template('decide');
+      $('#viewport').html($($.template('decide'))
+        .on("submit", ".restore", function (event) {
+          $('#viewport').template('restore');
+          $('#viewport').html($($.template('restore'))
+            .on("submit", ".restore", function (event) {
+              event.preventDefault();
 
-            var $form = $(event.target);
-            var data = new FormData();
+              var $form = $(event.target);
+              var data = new FormData();
 
-            data.append("archive", $form[0].archive.files[0]);
-            data.append("key",     $form[0].key.value);
+              data.append("archive", $form[0].archive.files[0]);
+              data.append("key",     $form[0].key.value);
+              data.append("token",   $form[0].token.value);
+              data.append("masterpass",   $form[0].masterpass.value);
+              data.append("masterpassconf",   $form[0].masterpassconf.value);
 
-            $form.reset();
-            $('.dialog').template('bootstrap', { step: 'restoring' });
+              if (data.masterpass == "") {
+                $form.error('masterpass', 'missing');
 
-            $.ajax({
-              type: "POST",
-              url: "/v2/bootstrap/restore",
-              data: data,
-              cache: false,
-              contentType: false,
-              processData: false,
-              success: function () {
-                $('.dialog').template('bootstrap', { step: 'done' });
-              },
-              complete: function () {
-                /* set an interval waiting for the endpoint to come back... */
-                var backoff = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5],
-                    i = 0,
-                    tryagain = function () {
-                      $.ajax({
-                        type: "GET",
-                        url:  "/v2/info",
-                        success: function () {
-                          goto("#!/login");
-                        },
-                        error: function () {
-                          i += i == backoff.length ? 0 : 1;
-                          window.setTimeout(tryagain, backoff[i] * 1000);
-                        }
-                      });
-                    };
+              } else if (data.masterpassconf == "") {
+                $form.error('masterpassconf', 'missing');
 
-                window.setTimeout(tryagain, backoff[i] * 1000);
+              } else if (data.masterpass != data.masterpassconf) {
+                $form.error('masterpassconf', 'mismatch');
               }
-            });
-          })
-          .on("submit", ".setpass", function (event) {
-            event.preventDefault();
-            var $form = $(event.target);
-            var data = $form.serializeObject();
-            if (data.masterpass == "") {
-              $form.error('masterpass', 'missing');
 
-            } else if (data.masterpassconf == "") {
-              $form.error('masterpassconf', 'missing');
-
-            } else if (data.masterpass != data.masterpassconf) {
-              $form.error('masterpassconf', 'mismatch');
-            }
-
-            if (!$form.isOK()) {
-              return;
-            }
-            $form.submitting(true);
-            api({
-              type: 'POST',
-              url: '/v2/init',
-              data: { "master": data.masterpass },
-              success: function (data) {
-                console.log("success");
-                $('#viewport').template('fixedkey', data);
-              },
-              error: function (xhr) {
-                $form.submitting(false);
-                $(event.target).error(xhr.responseJSON);
+              if (!$form.isOK()) {
+                return;
               }
-            });
-          })
-        );
+
+              $form.reset();
+              $('.dialog').template('bootstrap', { step: 'restoring' });
+
+              $.ajax({
+                type: "POST",
+                url: "/v2/bootstrap/restore",
+                data: data,
+                cache: false,
+                contentType: false,
+                processData: false,
+                success: function (data) {
+                  $('#viewport').template('fixedkey', data);
+                },
+                error: function (xhr) {
+                  $form.submitting(false);
+                  $(event.target).error(xhr.responseJSON);
+                }
+              });
+            })
+          );
+        })
+        .on("submit", ".setpass", function (event) {
+          $('#viewport').template('init');
+          $('#viewport').html($($.template('init'))
+            .on("submit", ".setpass", function (event) {
+              event.preventDefault();
+              var $form = $(event.target);
+              var data = $form.serializeObject();
+              if (data.masterpass == "") {
+                $form.error('masterpass', 'missing');
+
+              } else if (data.masterpassconf == "") {
+                $form.error('masterpassconf', 'missing');
+
+              } else if (data.masterpass != data.masterpassconf) {
+                $form.error('masterpassconf', 'mismatch');
+              }
+
+              if (!$form.isOK()) {
+                return;
+              }
+              $form.submitting(true);
+              api({
+                type: 'POST',
+                url: '/v2/init',
+                data: { "master": data.masterpass },
+                success: function (data) {
+                  console.log("success");
+                  $('#viewport').template('fixedkey', data);
+                },
+                error: function (xhr) {
+                  $form.submitting(false);
+                  $(event.target).error(xhr.responseJSON);
+                }
+              });
+            })
+          );
+        })
+      );
         $.ajax({
           type: "GET",
           url: "/v2/bootstrap/log",
@@ -1363,6 +1373,9 @@ $(function () {
           $('#hud').template('hud');
           if (AEGIS.vault == "locked") {
             $('#lock-state').fadeIn();
+          }
+          if (AEGIS.vault != "uninitialized") {
+            $('#side-bar').template('side-bar')
           }
         }
         $(document.body)

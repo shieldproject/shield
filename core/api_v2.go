@@ -3615,6 +3615,25 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
+		log.Infof("BOOTSTRAP: Initializing SHIELD core for restore...")
+		status, err := c.vault.Status()
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
+			return
+		}
+		if status != "uninitialized" {
+			r.Fail(route.Bad(nil, "this SHIELD Core has already been initialized"))
+			return
+		}
+		fixedKey, err := c.vault.Initialize(c.CryptFile(), "master")
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
+			return
+		}
+
+		log.Infof("BOOTSTRAP: generating auth token for SHIELD restore...")
+		token := r.Req.FormValue("token")
+
 		/* execute the shield-recover command */
 		log.Infof("BOOTSTRAP: executing shield-recover process...")
 		cmd := exec.Command("shield-recover")
@@ -3625,8 +3644,9 @@ func (c *Core) v2API() *route.Router {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_ENCRYPT_TYPE=%s", enc.Type))
 		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_ENCRYPT_KEY=%s", enc.Key))
 		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_ENCRYPT_IV=%s", enc.IV))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_AUTH_TOKEN=%s", token))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_TASK_UUID=%s", "BOOTSTRAP-RESTORE"))
 
-		c.bailout = true
 		if err := cmd.Run(); err != nil {
 			log.Errorf("BOOTSTRAP: command exited abnormally (%s)", err)
 			r.Fail(route.Oops(err, "SHIELD Restore Failed: You may be in a broken state."))
@@ -3637,9 +3657,17 @@ func (c *Core) v2API() *route.Router {
 		os.Remove(c.DataFile("bootstrap.old"))
 		os.Rename(c.DataFile("bootstrap.log"), c.DataFile("bootstrap.old"))
 
-		r.Success("SHIELD successfully restored")
+		r.OK(
+			struct {
+				Response string `json:"response"`
+				FixedKey string `json:"fixed_key"`
+			}{
+				"Successfully initialized the SHIELD Core",
+				fixedKey,
+			})
 		return
 	}) // }}}
+
 	r.Dispatch("GET /v2/bootstrap/log", func(r *route.Request) { // {{{
 		if c.IsNotSystemAdmin(r) {
 			return
