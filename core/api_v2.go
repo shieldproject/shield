@@ -3621,7 +3621,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
 			return
 		}
-		if status != "uninitialized" {
+		if status != vault.Blank {
 			r.Fail(route.Bad(nil, "this SHIELD Core has already been initialized"))
 			return
 		}
