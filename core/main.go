@@ -320,7 +320,6 @@ func (c *Core) Bind() {
 	log.Infof("INITIALIZING: binding the SHIELD Core API/UI on %s...", c.Config.API.Bind)
 	log.Infof("INITIALIZING: serving SHIELD Web UI static assets from %s...", c.Config.WebRoot)
 
-	http.Handle("/v1/", c.v1API())
 	http.Handle("/v2/", c.v2API())
 	http.Handle("/auth/", c.authAPI())
 	http.Handle("/metrics/", c.metrics.Handler())
