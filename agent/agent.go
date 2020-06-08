@@ -24,6 +24,7 @@ type Agent struct {
 
 	Registration struct {
 		URL          string
+		Token        string
 		Interval     int
 		ShieldCACert string
 		SkipVerify   bool

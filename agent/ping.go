@@ -44,11 +44,13 @@ func (agent *Agent) Ping() {
 	ping := func() {
 		log.Debugf("pinging shield core")
 		var params = struct {
-			Name string `json:"name"`
-			Port int    `json:"port"`
+			Name  string `json:"name"`
+			Port  int    `json:"port"`
+			Token string `json:"token"`
 		}{
-			Name: agent.Name,
-			Port: agent.Port,
+			Name:  agent.Name,
+			Port:  agent.Port,
+			Token: agent.Registration.Token,
 		}
 		b, err := json.Marshal(params)
 		if err != nil {
@@ -56,7 +58,7 @@ func (agent *Agent) Ping() {
 			return
 		}
 
-		log.Debugf("pre-registering with %s/v2/agents as %s", agent.Registration.URL, string(b))
+		log.Debugf("pre-registering with %s/v2/agents as [name=%s, port=%d]", agent.Registration.URL, params.Name, params.Port)
 		req, err := http.NewRequest("POST", agent.Registration.URL+"/v2/agents", bytes.NewBuffer(b))
 		if err != nil {
 			log.Errorf("failed to issue POST %s/v2/agents: %s", agent.Registration.URL, err)

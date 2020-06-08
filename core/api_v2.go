@@ -1756,8 +1756,9 @@ func (c *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("POST /v2/agents", func(r *route.Request) { // {{{
 		var in struct {
-			Name string `json:"name"`
-			Port int    `json:"port"`
+			Name  string `json:"name"`
+			Port  int    `json:"port"`
+			Token string `json:"token"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -1778,6 +1779,11 @@ func (c *Core) v2API() *route.Router {
 		}
 		if in.Port == 0 {
 			r.Fail(route.Bad(nil, "No `port' provided with pre-registration request"))
+			return
+		}
+
+		if in.Token == "" || in.Token != c.Config.LegacyAgents.RegistrationToken {
+			r.Fail(route.Forbidden(nil, "Invalid agent registration token supplied"))
 			return
 		}
 

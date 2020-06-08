@@ -27,6 +27,7 @@ type Config struct {
 	PluginPaths        []string `yaml:"plugin_paths"`
 	PluginPathsEnv     string   `yaml:"-"                    env:"SHIELD_AGENT_PLUGIN_PATHS"`
 	Registration       struct {
+		Token        string `yaml:"token"           env:"SHIELD_AGENT_REGISTRATION_TOKEN"`
 		URL          string `yaml:"url"             env:"SHIELD_AGENT_REGISTRATION_URL"`
 		Interval     int    `yaml:"interval"        env:"SHIELD_AGENT_REGISTRATION_INTERVAL"`
 		ShieldCACert string `yaml:"shield_ca_cert"  env:"SHIELD_AGENT_REGISTRATION_SHIELD_CA_CERT"`
@@ -130,6 +131,7 @@ func (agent *Agent) ReadConfig(path string) error {
 	agent.PluginPaths = config.PluginPaths
 
 	agent.Registration.URL = config.Registration.URL
+	agent.Registration.Token = config.Registration.Token
 	agent.Registration.Interval = config.Registration.Interval
 	agent.Registration.SkipVerify = config.Registration.SkipVerify
 

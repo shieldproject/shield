@@ -114,10 +114,11 @@ type Config struct {
 	} `yaml:"auth"`
 
 	LegacyAgents struct {
-		Enabled     bool     `yaml:"enabled"      env:"SHIELD_LEGACY_AGENTS_ENABLED"`
-		PrivateKey  string   `yaml:"private-key"  env:"SHIELD_LEGACY_AGENTS_PRIVATE_KEY"`
-		DialTimeout duration `yaml:"dial-timeout" env:"SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT"`
-		MACs        []string `yaml:"macs"`
+		Enabled           bool     `yaml:"enabled"      env:"SHIELD_LEGACY_AGENTS_ENABLED"`
+		PrivateKey        string   `yaml:"private-key"  env:"SHIELD_LEGACY_AGENTS_PRIVATE_KEY"`
+		DialTimeout       duration `yaml:"dial-timeout" env:"SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT"`
+		MACs              []string `yaml:"macs"`
+		RegistrationToken string   `yaml:"auth-token"   env:"SHIELD_LEGACY_AGENTS_REGISTRATION_TOKEN"`
 
 		cc  *ssh.ClientConfig
 		pub string
