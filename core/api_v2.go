@@ -1763,7 +1763,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		peer := regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.Header.Get("X-Forwarded-For"), "")
+		peer := regexp.MustCompile(`[,:].*`).ReplaceAllString(r.Req.Header.Get("X-Forwarded-For"), "")
 		if peer == "" {
 			peer = regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.RemoteAddr, "")
 			if peer == "" {
