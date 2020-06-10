@@ -35,7 +35,3 @@ func (f ErrorFabric) Restore(task *db.Task) scheduler.Chore {
 func (f ErrorFabric) Status(task *db.Task) scheduler.Chore {
 	return f.chore(task.UUID)
 }
-
-func (f ErrorFabric) Purge(task *db.Task) scheduler.Chore {
-	return f.chore(task.UUID)
-}

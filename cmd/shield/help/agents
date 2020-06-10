@@ -2,7 +2,7 @@ USAGE: @G{shield} agents [OPTIONS]
 
   List SHIELD Agents.
 
-  Agents perform all backup / restore / purge / test operations on
+  Agents perform all backup / restore operations on
   behalf of the SHIELD Core.
 
 @B{Options:}

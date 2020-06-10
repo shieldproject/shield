@@ -2,6 +2,6 @@ USAGE: @G{shield} agent @Y{NAME-OR-UUID}
 
   Show a single SHIELD Agent.
 
-  Agents perform all backup / restore / purge / test operations on
+  Agents perform all backup / restore operations on
   behalf of the SHIELD Core.
 

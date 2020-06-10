@@ -15,7 +15,4 @@ type Fabric interface {
 
 	/* check the status of the agent. */
 	Status(*db.Task) scheduler.Chore
-
-	/* purge an from cloud storage archive. */
-	Purge(*db.Task) scheduler.Chore
 }

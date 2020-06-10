@@ -110,29 +110,6 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
 	})
 
-	It("Can create a new purge task", func() {
-		archive, err := db.GetArchive(SomeArchive.UUID)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		task, err := db.CreatePurgeTask("owner-name", archive)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(task).ShouldNot(BeNil())
-
-		shouldExist(`SELECT * from tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE uuid = ?`, task.UUID)
-		shouldExist(`SELECT * FROM tasks WHERE owner = ?`, "owner-name")
-		shouldExist(`SELECT * FROM tasks WHERE op = ?`, PurgeOperation)
-		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = ?`, SomeArchive.UUID)
-		shouldExist(`SELECT * FROM tasks WHERE target_uuid IS NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE store_uuid = ?`, SomeStore.UUID)
-		shouldExist(`SELECT * FROM tasks WHERE job_uuid IS NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE status = ?`, PendingStatus)
-		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE agent = ?`, "127.0.0.1:9938")
-	})
-
 	It("Can create a new restore task", func() {
 		task, err := db.CreateRestoreTask("owner-name", SomeArchive, SomeTarget)
 		Ω(err).ShouldNot(HaveOccurred())

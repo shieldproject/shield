@@ -14,7 +14,6 @@ const (
 	BackupOperation         = "backup"
 	RestoreOperation        = "restore"
 	ShieldRestoreOperation  = "shield-restore"
-	PurgeOperation          = "purge"
 	AgentStatusOperation    = "agent-status"
 	AnalyzeStorageOperation = "analyze-storage"
 
@@ -496,56 +495,6 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 			archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
 			target.UUID, target.Plugin, endpoint,
 			archive.StoreKey, archive.Compression, target.Agent, 0, archive.TenantUUID)
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	task, err := db.GetTask(id)
-	if err != nil {
-		return nil, err
-	}
-	if task == nil {
-		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
-	}
-
-	db.sendCreateObjectEvent(task, "tenant:"+archive.TenantUUID)
-	return task, nil
-}
-
-func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
-	id := RandomID()
-	err := db.exclusively(func() error {
-		/* validate the archive */
-		if err := db.archiveShouldExist(archive.UUID); err != nil {
-			return fmt.Errorf("unable to create purge task: %s", err)
-		}
-
-		/* validate the tenant */
-		if err := db.tenantShouldExist(archive.TenantUUID); err != nil {
-			return fmt.Errorf("unable to create purge task: %s", err)
-		}
-
-		/* validate the store */
-		if err := db.storeShouldExist(archive.StoreUUID); err != nil {
-			return fmt.Errorf("unable to create purge task: %s", err)
-		}
-
-		return db.exec(
-			`INSERT INTO tasks
-                (uuid, owner, op, archive_uuid, status, log, requested_at,
-                 store_uuid, store_plugin, store_endpoint,
-                 target_plugin, target_endpoint,
-                 restore_key, agent, attempts, tenant_uuid)
-              VALUES
-                (?, ?, ?, ?, ?, ?, ?,
-                 ?, ?, ?,
-                 ?, ?,
-                 ?, ?, ?, ?)`,
-			id, owner, PurgeOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
-			archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
-			"", "",
-			archive.StoreKey, archive.StoreAgent, 0, archive.TenantUUID)
 	})
 	if err != nil {
 		return nil, err

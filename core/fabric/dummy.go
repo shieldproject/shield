@@ -84,22 +84,3 @@ func (f DummyFabric) Status(task *db.Task) scheduler.Chore {
 			return
 		})
 }
-
-func (f DummyFabric) Purge(task *db.Task) scheduler.Chore {
-	return scheduler.NewChore(
-		task.UUID,
-		func(chore scheduler.Chore) {
-			chore.Errorf("DUMMY> starting an archive purge operation; delay is %ds", f.delay)
-			chore.Errorf("DUMMY>")
-			chore.Errorf("DUMMY>   archive key:     '%s'", task.RestoreKey)
-			chore.Errorf("DUMMY>")
-			chore.Errorf("DUMMY>   store plugin:    '%s'", task.StorePlugin)
-			chore.Errorf("DUMMY>   store endpoint:  '%s'", task.StoreEndpoint)
-			f.Sleep()
-			chore.Errorf("DUMMY>")
-			chore.Errorf("DUMMY> archive purge operation complete.")
-			chore.UnixExit(0)
-			return
-		})
-}
-

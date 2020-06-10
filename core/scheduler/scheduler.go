@@ -13,12 +13,10 @@ const MaxPriority = 100
 
    0 - ad hoc backup
        ad hoc restore
-       ad hoc purge
 
    10 - ad hoc agent-status
    20 - scheduled backup
    40 - scheduled agent status
-   50 - scheduled archive purge
 */
 
 type Scheduler struct {

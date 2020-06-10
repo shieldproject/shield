@@ -63,7 +63,6 @@ func (c Core) Main() {
 
 		case <-slow.C:
 			c.CheckArchiveExpiries()
-			c.SchedulePurgeTasks()
 			c.MarkIrrelevantTasks()
 			c.ScheduleAgentStatusCheckTasks(nil)
 			c.AnalyzeStorage()
@@ -266,10 +265,11 @@ func (c *Core) CleanupLeftoverTasks() {
 				continue
 			}
 			log.Infof("task %s was a backup task, associated with archive %s; purging the archive", task.UUID, archive.UUID)
-			task, err := c.db.CreatePurgeTask("", archive)
+			err = c.db.PurgeArchive(task.ArchiveUUID)
 			if err != nil {
-				log.Errorf("failed to purge archive %s (for task %s, which was running at boot): %s", archive.UUID, task.UUID, err)
+				panic(fmt.Errorf("failed to purge archive %s from the database: %s", archive.UUID, err))
 			}
+
 		}
 	}
 
@@ -527,24 +527,6 @@ func (c *Core) TasksToChores() {
 			c.scheduler.Schedule(20, fabric.Restore(task))
 			inflight[task.TargetUUID] = task
 
-		case db.PurgeOperation:
-			if task.StorePlugin == StorageGatewayPlugin {
-				c.db.StartTask(task.UUID, time.Now())
-				err := c.GatedPurge(task.RestoreKey, 3)
-				if err != nil {
-					c.TaskErrored(task, "unable to set up storage gateway delete:\n%s\n", err)
-					continue
-				}
-				err = c.db.PurgeArchive(task.ArchiveUUID)
-				if err != nil {
-					panic(fmt.Errorf("%s: failed to purge the archive record from the database: %s", task.UUID, err))
-				}
-				c.db.UpdateTaskLog(task.UUID, fmt.Sprintf("successfully purged archive: %s\n", task.RestoreKey))
-				c.db.CompleteTask(task.UUID, time.Now())
-				continue
-			}
-			c.scheduler.Schedule(50, fabric.Purge(task))
-
 		case db.AgentStatusOperation:
 			c.scheduler.Schedule(30, fabric.Status(task))
 		}
@@ -569,25 +551,6 @@ func (c *Core) CheckArchiveExpiries() {
 		log.Infof("archive %s has expiration %s, marking as expired", archive.UUID, archive.ExpiresAt)
 		if err := c.db.ExpireArchive(archive.UUID); err != nil {
 			log.Errorf("error marking archive %s as expired: %s", archive.UUID, err)
-			continue
-		}
-	}
-}
-
-func (c *Core) SchedulePurgeTasks() {
-	log.Infof("UPKEEP: schedule purge tasks for all expired archives...")
-
-	l, err := c.db.GetArchivesNeedingPurge()
-	if err != nil {
-		log.Errorf("error retrieving archives to purge: %s", err)
-		return
-	}
-
-	for _, archive := range l {
-		log.Infof("scheduling purge of archive %s due to status '%s'", archive.UUID, archive.Status)
-		_, err := c.db.CreatePurgeTask("system", archive)
-		if err != nil {
-			log.Errorf("error scheduling purge of archive %s: %s", archive.UUID, err)
 			continue
 		}
 	}

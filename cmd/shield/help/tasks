@@ -42,9 +42,6 @@ USAGE: @G{shield} tasks --tenant @Y{TENANT}
 
                    @M{restore}           Restore a backup to a system.
 
-                   @M{purge}             Purge a single backup archive
-                                     from cloud storage.
-
                    @M{agent-status}      Retrieve health and metadata
                                      from a single SHIELD agent.
 

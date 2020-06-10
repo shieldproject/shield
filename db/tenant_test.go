@@ -29,7 +29,6 @@ var _ = Describe("tenant Management", func() {
 		SomeArchive  *Archive
 		SomeArchive2 *Archive
 		SomeTask     *Task
-		PurgeTask    *Task
 		Ten3Task     *Task
 		Tenant2      *Tenant
 		Tenant3      *Tenant
@@ -48,7 +47,6 @@ var _ = Describe("tenant Management", func() {
 		SomeArchive = &Archive{UUID: "ecc69879-ad06-4396-a523-da1086716b68"}
 		SomeArchive2 = &Archive{UUID: "863d1c48-e7f4-45fc-9047-4c28be4caaad"}
 		SomeTask = &Task{UUID: "9fde7a6d-8fa7-47f5-b858-b40987496372"}
-		PurgeTask = &Task{UUID: "bbae5dc2-7839-4dc1-9d9d-69bb057254e1"}
 		Ten3Task = &Task{UUID: "3874908e-e4c6-48b9-8700-ed814688abaa"}
 		Tenant2 = &Tenant{UUID: "3f950780-120f-4e00-b46b-28f35e5882df"}
 		Tenant3 = &Tenant{UUID: "b1d6eeeb-1235-4c93-8800-f5c44ee50f1b"}
@@ -82,9 +80,6 @@ var _ = Describe("tenant Management", func() {
 			////need an archive2
 			`INSERT INTO archives (tenant_uuid, uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason)
 			    VALUES ("`+Tenant3.UUID+`", "`+SomeArchive2.UUID+`", "`+SomeTarget2.UUID+`", "`+SomeStore2.UUID+`", "key", 0, 0, "(no notes)", "valid", "")`,
-			// need a purge task for tenant1
-			`INSERT INTO tasks (tenant_uuid, uuid, owner, op, requested_at, status, stopped_at)
-			    VALUES ("`+Tenant2.UUID+`", "`+PurgeTask.UUID+`", "some owner", "valid", 0, "done", 0)`,
 			//need a archive tasks for tenant1
 			`INSERT INTO tasks (uuid, owner, op, requested_at, status, tenant_uuid)
 			VALUES ("`+SomeTask.UUID+`", "some owner", "backup", 0, "done", "`+Tenant2.UUID+`")`,
@@ -142,13 +137,9 @@ var _ = Describe("tenant Management", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(SomeTask).ShouldNot(BeNil())
 
-		PurgeTask, err = db.GetTask(PurgeTask.UUID)
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(PurgeTask).ShouldNot(BeNil())
-
 		tasks, err := db.GetAllTasks(&TaskFilter{ForTenant: Tenant2.UUID})
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(len(tasks)).Should(Equal(2))
+		Ω(len(tasks)).Should(Equal(1))
 
 		Ten3Task, err = db.GetTask(Ten3Task.UUID)
 		Ω(err).ShouldNot(HaveOccurred())

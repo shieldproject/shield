@@ -2,6 +2,6 @@ USAGE: @G{shield} delete-agent @Y{NAME-OR-UUID}
 
   Delete a SHIELD Agent.
 
-  Agents perform all backup / restore / purge / test operations on
+  Agents perform all backup / restore / operations on
   behalf of the SHIELD Core.
 

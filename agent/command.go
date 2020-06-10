@@ -2,12 +2,9 @@ package agent
 
 import (
 	"bufio"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
-	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -83,17 +80,6 @@ func ParseCommand(b []byte) (*Command, error) {
 			return nil, fmt.Errorf("missing required 'restore_key' value in payload (for restore operation)")
 		}
 
-	case "purge":
-		if cmd.StorePlugin == "" {
-			return nil, fmt.Errorf("missing required 'store_plugin' value in payload")
-		}
-		if cmd.StoreEndpoint == "" {
-			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
-		}
-		if cmd.RestoreKey == "" {
-			return nil, fmt.Errorf("missing required 'restore_key' value in payload (for purge operation)")
-		}
-
 	case "status":
 		/* nothing to validate */
 
@@ -123,10 +109,6 @@ func (c *Command) Details() string {
 	case "restore":
 		return fmt.Sprintf("restore of [%s] from store '%s' to target '%s'",
 			c.RestoreKey, c.StorePlugin, c.TargetPlugin)
-
-	case "purge":
-		return fmt.Sprintf("purge of [%s] from store '%s'",
-			c.RestoreKey, c.StorePlugin)
 
 	default:
 		return fmt.Sprintf("%s op", c.Op)
@@ -405,21 +387,6 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 				errors <- fmt.Errorf("restore operation failed: %s", err)
 			}
 		}()
-
-	case "purge":
-		fmt.Fprintf(logWriterStream, "Validating "+c.StorePlugin+" plugin\n")
-		err := pS.Validate(logWriterStream, storeEndpoint)
-		if err != nil {
-			errors <- fmt.Errorf("store plugin validation failed: %s", err)
-			break
-		}
-
-		fmt.Fprintf(logWriterStream, "Running purge task\n")
-		err = pS.Purge(logWriterStream, storeEndpoint, c.RestoreKey)
-		if err != nil {
-			errors <- fmt.Errorf("purge operatoin failed: %s", err)
-			break
-		}
 
 	default:
 		errors <- fmt.Errorf("unrecognized operation %s", c.Op)
