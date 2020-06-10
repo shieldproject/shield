@@ -296,10 +296,6 @@
       return this;
     },
 
-    locked: function () {
-      return !!(this.vault && this.vault == "locked");
-    },
-
     authenticated: function () {
       return typeof(this.user) !== 'undefined';
     },
@@ -435,10 +431,6 @@
 
         //console.log('event (%s): ', update.event, JSON.stringify(update.data));
         switch (update.event) {
-        case 'lock-core':     self.vault = "locked";   $('#hud').template('hud');
-                                                       $('#lock-state').fadeIn(); break
-        case 'unlock-core':   self.vault = "unlocked"; $('#hud').template('hud');
-                                                       $('#lock-state').fadeOut(); break
         case 'create-object': self.insert(update.type, update.data); break;
         case 'update-object': self.update(update.type, update.data); break;
         case 'delete-object': self.delete(update.type, update.data); break;
@@ -483,7 +475,6 @@
           url:  opts.bearings,
           success: function (bearings) {
             self.shield = bearings.shield;
-            self.vault  = bearings.vault;
             self.user   = bearings.user;
 
             for (var i = 0; i < bearings.stores.length; i++) {

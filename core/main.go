@@ -13,7 +13,6 @@ import (
 	"github.com/shieldproject/shield/core/bus"
 	"github.com/shieldproject/shield/core/metrics"
 	"github.com/shieldproject/shield/core/scheduler"
-	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/db"
 	"github.com/shieldproject/shield/timespec"
 )
@@ -38,7 +37,6 @@ func (c Core) Main() {
 	c.CleanupLeftoverTasks()
 
 	/* prepare for operation */
-	c.ConnectToVault()
 	c.Bind()
 	c.StartScheduler()
 	go c.metrics.Watch("*")
@@ -58,9 +56,7 @@ func (c Core) Main() {
 			c.scheduler.Run()
 
 		case <-fast.C:
-			if c.Unlocked() {
-				c.ScheduleBackupTasks()
-			}
+			c.ScheduleBackupTasks()
 			c.ScheduleAgentStatusCheckTasks(&db.AgentFilter{Status: "pending"})
 			c.scheduler.Elevate()
 			c.TasksToChores()
@@ -74,11 +70,8 @@ func (c Core) Main() {
 			c.TruncateOldTaskLogs()
 			c.DeleteOldPurgedArchives()
 			c.CleanupOrphanedObjects()
-
-			if c.Unlocked() {
-				c.PurgeExpiredAPISessions()
-				c.ScheduleStorageTestTasks()
-			}
+			c.PurgeExpiredAPISessions()
+			c.ScheduleStorageTestTasks()
 		}
 	}
 }
@@ -287,22 +280,6 @@ func (c *Core) CleanupLeftoverTasks() {
 	}
 }
 
-func (c *Core) ConnectToVault() {
-	log.Infof("INITIALIZING: connecting to the local SHIELD vault...")
-
-	v, err := vault.Connect(c.Config.Vault.Address, c.Config.Vault.CACert)
-	c.MaybeTerminate(err)
-
-	status, err := v.Status()
-	c.MaybeTerminate(err)
-
-	if status != vault.Ready {
-		log.Errorf("SHIELD's vault is %s; please initialize or unlock this SHIELD core via the web UI or the CLI", status)
-	}
-
-	c.vault = v
-}
-
 func (c *Core) Bind() {
 	pprofMux := http.DefaultServeMux
 	http.DefaultServeMux = http.NewServeMux()
@@ -486,12 +463,6 @@ func (c *Core) TasksToChores() {
 				log.Infof("SCHEDULER: SKIPPING [%s] task %s, another %s task [%s] is already in-flight for target [%s]", task.Op, task.UUID, other.Op, other.UUID, task.TargetUUID)
 				continue
 			}
-			encryption, err := c.vault.NewParameters(task.ArchiveUUID, c.Config.Cipher, task.FixedKey)
-			if err != nil {
-				c.TaskErrored(task, "unable to generate encryption parameters:\n%s\n", err)
-				continue
-			}
-
 			if task.StorePlugin == StorageGatewayPlugin {
 				uploadInfo, err := c.GatedUpload(task.ArchiveUUID, 3)
 				if err != nil {
@@ -519,21 +490,12 @@ func (c *Core) TasksToChores() {
 				task.StoreEndpoint = string(b)
 			}
 
-			c.scheduler.Schedule(20, fabric.Backup(task, encryption))
+			c.scheduler.Schedule(20, fabric.Backup(task))
 			inflight[task.TargetUUID] = task
 
 		case db.RestoreOperation:
 			if op, ok := inflight[task.TargetUUID]; ok {
 				log.Infof("SCHEDULER: SKIPPING [%s] task %s, another %s operation is already in-flight for target [%s]", task.Op, task.UUID, op, task.TargetUUID)
-				continue
-			}
-			encryption, err := c.vault.Retrieve(task.ArchiveUUID)
-			if err != nil {
-				c.TaskErrored(task, "unable to retrieve encryption parameters:\n%s\n", err)
-				continue
-			}
-			if encryption.Type == "" {
-				c.TaskErrored(task, "unable to retrieve encryption parameters:\nencryption parameters for archive '%s' not found in vault\n", task.ArchiveUUID)
 				continue
 			}
 
@@ -563,7 +525,7 @@ func (c *Core) TasksToChores() {
 				task.StoreEndpoint = string(b)
 			}
 
-			c.scheduler.Schedule(20, fabric.Restore(task, encryption))
+			c.scheduler.Schedule(20, fabric.Restore(task))
 			inflight[task.TargetUUID] = task
 
 		case db.PurgeOperation:
@@ -630,11 +592,6 @@ func (c *Core) CheckArchiveExpiries() {
 		if err := c.db.ExpireArchive(archive.UUID); err != nil {
 			log.Errorf("error marking archive %s as expired: %s", archive.UUID, err)
 			continue
-		}
-
-		log.Infof("deleting encryption parameters for archive %s", archive.UUID)
-		if err := c.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID)); err != nil {
-			log.Errorf("failed to delete encryption parameters for archive %s: %s", archive.UUID, err)
 		}
 	}
 }

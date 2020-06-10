@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/jhunt/go-log"
-
-	"github.com/shieldproject/shield/core/vault"
 )
 
 const MetaPluginName = "metashield"
@@ -15,7 +13,6 @@ const MetaPluginName = "metashield"
 type preimport struct {
 	RestoreTask *Task
 	Archive     *Archive
-	Finalizer   *finalizer
 }
 
 func (db *DB) importAgents(n uint, in *json.Decoder) error {
@@ -63,7 +60,7 @@ func (db *DB) importAgents(n uint, in *json.Decoder) error {
 	return nil
 }
 
-func (db *DB) importArchives(n uint, in *json.Decoder, vlt *vault.Client) error {
+func (db *DB) importArchives(n uint, in *json.Decoder) error {
 	type archive struct {
 		UUID           string `json:"uuid"`
 		TenantUUID     string `json:"tenant_uuid"`
@@ -107,15 +104,6 @@ func (db *DB) importArchives(n uint, in *json.Decoder, vlt *vault.Client) error 
 			v.UUID, v.TenantUUID, v.TargetUUID, v.StoreUUID,
 			v.StoreKey, v.TakenAt, v.ExpiresAt, v.Notes, v.PurgeReason,
 			v.Status, v.Size, v.Job, v.EncryptionType, v.Compression)
-		if err != nil {
-			return err
-		}
-
-		err = vlt.Store(v.UUID, vault.Parameters{
-			Key:  v.EncryptionKey,
-			IV:   v.EncryptionIV,
-			Type: v.EncryptionType,
-		})
 		if err != nil {
 			return err
 		}
@@ -532,78 +520,6 @@ func (db *DB) importSessions(n uint, in *json.Decoder) error {
 	return nil
 }
 
-func (db *DB) importFinalizer(n uint, in *json.Decoder, restoreKey string, ctx *preimport) error {
-	var fin finalizer
-
-	if err := in.Decode(&fin); err != nil {
-		return err
-	}
-
-	if fin.Error != "" {
-		return fmt.Errorf(fin.Error)
-	}
-
-	log.Infof("IMPORT: finalizing progenitor backup task [%s], which was in-flight when the export was taken", fin.Task)
-
-	log.Infof("IMPORT: retrieving progenitor backup task [%s] from the database (post-restore)", fin.Task)
-	task, err := db.GetTask(fin.Task)
-	if err != nil {
-		return err
-	}
-
-	log.Infof("IMPORT: creating progenitor backup task [%s] archive record for archive [%s]", task.UUID, task.ArchiveUUID)
-
-	log.Infof("IMPORT:   using restore key provided during restore operation: '%s'", restoreKey)
-	var size int64 = 0
-	if ctx != nil && ctx.Archive != nil {
-		size = ctx.Archive.Size
-		log.Infof("IMPORT:   using detected archive size of '%d'", size)
-	} else {
-		log.Infof("IMPORT:   unable to detect archive size; using %d", size)
-	}
-	_, err = db.createTaskArchive(task.UUID, task.ArchiveUUID, restoreKey, time.Unix(fin.TakenAt, 0), fin.EncryptionType, task.Compression, size, task.TenantUUID)
-	if err != nil {
-		return err
-	}
-
-	if ctx != nil && ctx.RestoreTask != nil {
-		t := ctx.RestoreTask
-		log.Infof("IMPORT: re-inserting stored restore task [%s] for continuity's sake", t.UUID)
-		t.StoppedAt = time.Now().Unix()
-		t.Status = "done"
-		t.OK = true
-		err = db.exec(`
-        INSERT INTO tasks
-            (uuid, owner, op,
-            tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
-            status, requested_at, started_at, stopped_at, timeout_at,
-            log, attempts, agent, fixed_key, compression,
-            target_plugin, target_endpoint,
-            store_plugin, store_endpoint, restore_key,
-            ok, notes, clear)
-        VALUES
-            (?, ?, ?,
-            ?, ?, ?, ?, ?,
-            ?, ?, ?, ?, ?,
-            ?, ?, ?, ?, ?,
-            ?, ?,
-            ?, ?, ?,
-            ?, ?, ?)`,
-			t.UUID, t.Owner, t.Op,
-			t.TenantUUID, t.JobUUID, t.ArchiveUUID, t.TargetUUID, t.StoreUUID,
-			t.Status, t.RequestedAt, t.StartedAt, t.StoppedAt, t.TimeoutAt,
-			t.Log, t.Attempts, t.Agent, t.FixedKey, t.Compression,
-			t.TargetPlugin, t.TargetEndpoint,
-			t.StorePlugin, t.StoreEndpoint, t.RestoreKey,
-			t.OK, t.Notes, t.Clear)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (db *DB) preimportState(restoreKey, uuid string) (*preimport, error) {
 	ctx := preimport{}
 
@@ -636,7 +552,7 @@ func (db *DB) clear(tables ...string) error {
 	return nil
 }
 
-func (db *DB) Import(in *json.Decoder, vault *vault.Client, restoreKey, uuid string) error {
+func (db *DB) Import(in *json.Decoder, restoreKey, uuid string) error {
 	var h header
 
 	ctx, err := db.preimportState(restoreKey, uuid)
@@ -673,7 +589,7 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client, restoreKey, uuid str
 				}
 
 			case "archives":
-				if err := db.importArchives(h.N, in, vault); err != nil {
+				if err := db.importArchives(h.N, in); err != nil {
 					return err
 				}
 
@@ -722,18 +638,6 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client, restoreKey, uuid str
 					return err
 				}
 
-			case "finalizer":
-				if h.N != 1 {
-					return fmt.Errorf("bad FINALIZER section: %d constituent elements found (expected exactly one)", h.N)
-				}
-				if err := in.Decode(&ctx.Finalizer); err != nil {
-					return err
-				}
-
-				if ctx.Finalizer.Error != "" {
-					return fmt.Errorf(ctx.Finalizer.Error)
-				}
-
 			case "":
 			default:
 				return fmt.Errorf("unrecognized import header type '%s'", h.Type)
@@ -744,39 +648,6 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client, restoreKey, uuid str
 	})
 	if err != nil {
 		return err
-	}
-
-	if ctx.Finalizer != nil && ctx.Finalizer.Task != "" {
-		log.Infof("IMPORT: finalizing progenitor backup task [%s], which was in-flight when the export was taken", ctx.Finalizer.Task)
-
-		log.Infof("IMPORT: retrieving progenitor backup task [%s] from the database (post-restore)", ctx.Finalizer.Task)
-		task, err := db.GetTask(ctx.Finalizer.Task)
-		if err != nil {
-			return err
-		}
-
-		if task == nil {
-			log.Errorf("IMPORT: unable to find task [%s] in the database; skipping finalization...")
-		} else {
-			log.Infof("IMPORT: marking progenitor backup task [%s] as complete", task.UUID)
-			err = db.CompleteTask(task.UUID, time.Unix(ctx.Finalizer.TakenAt, 0))
-			if err != nil {
-				return err
-			}
-
-			if ctx.Archive == nil {
-				log.Errorf("IMPORT: unable to locate the archive re just restored; skipping finalization...")
-			} else {
-				log.Infof("IMPORT: creating archive [%s] record (for progenitor backup task)", task.ArchiveUUID)
-				log.Infof("IMPORT:   using restore key provided during restore operation: '%s'", ctx.Archive.StoreKey)
-				log.Infof("IMPORT:   using detected archive size of '%d'", ctx.Archive.Size)
-				_, err = db.CreateTaskArchive(task.UUID, task.ArchiveUUID, restoreKey, time.Unix(ctx.Finalizer.TakenAt, 0), ctx.Finalizer.EncryptionType, task.Compression, ctx.Archive.Size, task.TenantUUID)
-
-				if err != nil {
-					return err
-				}
-			}
-		}
 	}
 
 	if ctx.RestoreTask == nil {

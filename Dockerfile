@@ -13,10 +13,7 @@ RUN cd /go/src/github.com/shieldproject/shield \
 RUN mkdir -p /dist/bin /dist/plugins \
  && mv /go/src/github.com/shieldproject/shield/shieldd \
        /go/src/github.com/shieldproject/shield/shield-agent \
-       /go/src/github.com/shieldproject/shield/shield-crypt \
-       /go/src/github.com/shieldproject/shield/shield-report \
        /go/src/github.com/shieldproject/shield/shield-schema \
-       /go/src/github.com/shieldproject/shield/bin/shield-pipe \
        /dist/bin \
  && for plugin in $(cat /go/src/github.com/shieldproject/shield/plugins); do \
       cp /go/src/github.com/shieldproject/shield/$plugin /dist/plugins; \

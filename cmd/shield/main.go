@@ -17,7 +17,6 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/shieldproject/shield/client/v2/shield"
-	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/tui"
 )
 
@@ -630,39 +629,6 @@ func main() {
 	bail(err)
 
 	switch command {
-	case "op pry":
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s /path/to/vault.crypt\n", command)
-		}
-		master := secureprompt("@Y{SHIELD Master Password:} ")
-		creds, err := vault.ReadCrypt(args[0], master)
-		bail(err)
-		fmt.Printf("@C{Seal Key:}   %s\n", creds.SealKey)
-		fmt.Printf("@C{Root Token:} %s\n", creds.RootToken)
-		return
-
-	case "op ifk":
-		if len(args) != 0 {
-			fail(2, "Usage: shield %s\n", command)
-		}
-
-		b, err := ioutil.ReadAll(os.Stdin)
-		bail(err)
-
-		key := regexp.MustCompile(`\s`).ReplaceAll(b, nil)
-		enc, err := vault.DeriveFixedParameters(key)
-		bail(err)
-
-		fmt.Printf("@C{Cipher:} %s\n", enc.Type)
-		fmt.Printf("@C{Key:}    %s\n", enc.Key)
-		fmt.Printf("@C{IV:}     %s\n", enc.IV)
-
-		if enc.Type == "aes256-ctr" {
-			fmt.Printf("\n@G{OpenSSL} decryption command:\n")
-			fmt.Printf("  openssl enc -d -md sha256 -aes-256-ctr -K %s -iv %s < file\n\n", enc.Key, enc.IV)
-		}
-		return
-
 	case "cores": /* {{{ */
 		tbl := table.NewTable("Name", "URL", "Verify TLS?")
 		for alias, core := range config.SHIELDs {

@@ -1,6 +1,5 @@
 #!/bin/bash
 
-export VAULT_SKIP_VERIFY=1
 workdir=$PWD/tmp/work
 storedir=$PWD/tmp/store
 export PORT=${PORT:-8181}
@@ -68,35 +67,6 @@ preflight() {
     esac
     exit 1
   fi
-
-  echo "checking for vault..."
-  if ! type vault &>/dev/null; then
-    echo
-    echo "SHIELD's testdev environment requires vault (https://vaultproject.io)"
-    echo "You will need to install vault to continue."
-    case $OSTYPE in
-    *darwin*) echo
-              echo "On macOS ($OSTYPE), you can \`brew install vault\` and be on your way."
-    esac
-    exit 1
-  fi
-  v=$(vault -v | awk '{print $2}')
-  case $v in
-  v0.8.*) ;;
-  v0.9.*) ;;
-  v0.10.*) ;;
-  v0.11.*) ;;
-  v1.0.*) ;;
-  *) echo
-     echo "The installed version of vault ($v) has not been verified"
-     echo "to work with this version of SHIELD testdev.  Please try v0.9.6"
-      case $OSTYPE in
-      *darwin*) echo
-                echo "On macOS ($OSTYPE), you can \`brew upgrade vault\` and be on your way."
-      esac
-     exit 1;
-     ;;
-  esac
 
   echo
   echo "PRE-FLIGHT CHECKS OK"
@@ -211,34 +181,6 @@ EOF
     esac
   done
   ;;
-(vault)
-  mkdir -p ${workdir}/var/vault
-  cat >${workdir}/etc/vault.conf <<EOF
-storage "file" {
-  path = "${workdir}/var/vault"
-}
-disable_mlock = true
-listener "tcp" {
-  address = "127.0.0.1:8200"
-  tls_disable = true
-}
-EOF
-  while true; do
-    echo ">> Spinning up a local (loopback) Vault"
-    vault server -config ${workdir}/etc/vault.conf
-    echo
-
-    echo "vault exited."
-    echo "Do you want to [r]estart it (sealed)"
-    echo "or re-[i]nitialize it?"
-    read -p "[r/i/N] " CONTINUE
-    case "${CONTINUE}" in
-    i*|I*) rm -rf ${workdir}/var/vault ;;
-    r*|r*) ;;
-    *) exit 0 ;;
-    esac
-  done
-  ;;
 (shieldd)
   ssh-keygen -m PEM -t rsa -f ${workdir}/config/shieldd_key -N '' >/dev/null
   rm ${workdir}/config/shieldd_key.pub
@@ -325,7 +267,6 @@ EOF
   preflight >&2
   tmux new-session \; set-option update-environment ' PORT SHIELD_API' \; \
        new-window -n nginx ./bin/testdev nginx ${PORT} \; \
-       new-window -n vault ./bin/testdev vault \; \
        new-window -n daemon ./bin/testdev shieldd \; \
        new-window -n agent ./bin/testdev shieldagent ${PORT} \; \
        new-window -n dev-setup "sleep 5 && SHIELD_DATA_SET=${SHIELD_DATA_SET:-} ./bin/dev-setup ${PORT} ${NO_INIT:-}; read JUNK" \; \

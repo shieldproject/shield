@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/shieldproject/shield/core/scheduler"
-	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/db"
 )
 
@@ -24,7 +23,7 @@ func (f DummyFabric) Sleep() {
 	}
 }
 
-func (f DummyFabric) Backup(task *db.Task, encryption vault.Parameters) scheduler.Chore {
+func (f DummyFabric) Backup(task *db.Task) scheduler.Chore {
 	return scheduler.NewChore(
 		task.UUID,
 		func(chore scheduler.Chore) {
@@ -36,11 +35,7 @@ func (f DummyFabric) Backup(task *db.Task, encryption vault.Parameters) schedule
 			chore.Errorf("DUMMY>   store plugin:    '%s'", task.StorePlugin)
 			chore.Errorf("DUMMY>   store endpoint:  '%s'", task.StoreEndpoint)
 			chore.Errorf("DUMMY>")
-			chore.Errorf("DUMMY>   compression:     '%s'", task.Compression)
-			chore.Errorf("DUMMY>")
-			chore.Errorf("DUMMY>   encryption type: '%s'", encryption.Type)
-			chore.Errorf("DUMMY>   encryption key:  '%s'", encryption.Key)
-			chore.Errorf("DUMMY>   encryption iv:   '%s'", encryption.IV)
+			chore.Errorf("DUMMY>   compression:     '%s'", task.Compression) // FIXME
 			f.Sleep()
 			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY> backup operation complete.")
@@ -52,7 +47,7 @@ func (f DummyFabric) Backup(task *db.Task, encryption vault.Parameters) schedule
 		})
 }
 
-func (f DummyFabric) Restore(task *db.Task, encryption vault.Parameters) scheduler.Chore {
+func (f DummyFabric) Restore(task *db.Task) scheduler.Chore {
 	return scheduler.NewChore(
 		task.UUID,
 		func(chore scheduler.Chore) {
@@ -66,11 +61,7 @@ func (f DummyFabric) Restore(task *db.Task, encryption vault.Parameters) schedul
 			chore.Errorf("DUMMY>   store plugin:    '%s'", task.StorePlugin)
 			chore.Errorf("DUMMY>   store endpoint:  '%s'", task.StoreEndpoint)
 			chore.Errorf("DUMMY>")
-			chore.Errorf("DUMMY>   compression:     '%s'", task.Compression)
-			chore.Errorf("DUMMY>")
-			chore.Errorf("DUMMY>   encryption type: '%s'", encryption.Type)
-			chore.Errorf("DUMMY>   encryption key:  '%s'", encryption.Key)
-			chore.Errorf("DUMMY>   encryption iv:   '%s'", encryption.IV)
+			chore.Errorf("DUMMY>   compression:     '%s'", task.Compression) // FIXME
 			f.Sleep()
 			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY> restore operation complete.")

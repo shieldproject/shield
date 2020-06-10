@@ -21,7 +21,6 @@ type JobHealth struct {
 }
 type Health struct {
 	Health struct {
-		Core    string `json:"core"`
 		Storage bool   `json:"storage_ok"`
 		Jobs    bool   `json:"jobs_ok"`
 	} `json:"health"`
@@ -82,10 +81,6 @@ func (c *Core) checkHealth() (Health, error) {
 		}
 	}
 	health.Stats.Jobs = len(jobs)
-
-	if health.Health.Core, err = c.vault.StatusString(); err != nil {
-		return health, fmt.Errorf("failed to retrieve vault status: %s", err)
-	}
 
 	if health.Stats.Systems, err = c.db.CountTargets(nil); err != nil {
 		return health, fmt.Errorf("failed to count systems/targets: %s", err)
@@ -149,10 +144,6 @@ func (c *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 	if health.Stats.Systems, err = c.db.CountTargets(&db.TargetFilter{
 		ForTenant: tenantUUID,
 	}); err != nil {
-		return health, err
-	}
-
-	if health.Health.Core, err = c.vault.StatusString(); err != nil {
 		return health, err
 	}
 

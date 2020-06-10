@@ -36,10 +36,7 @@ type Command struct {
 	StorePlugin    string `json:"store_plugin,omitempty"`
 	StoreEndpoint  string `json:"store_endpoint,omitempty"`
 	RestoreKey     string `json:"restore_key,omitempty"`
-	EncryptType    string `json:"encrypt_type,omitempty"`
-	EncryptKey     string `json:"encrypt_key,omitempty"`
-	EncryptIV      string `json:"encrypt_iv,omitempty"`
-	Compression    string `json:"compression,omitempty"`
+	Compression    string `json:"compression,omitempty"` // FIXME
 	TaskUUID       string `json:"task_uuid,omitempty"`
 }
 
@@ -167,9 +164,6 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 	//   c.StoreEndpoint           The store endpoint config (probably JSON)
 	//   c.RestoreKey              Archive key for 'restore' operations
 	//   c.Compression             What type of compression to perform
-	//   c.EncryptType             Cipher and mode to be used for archive encryption
-	//   c.EncryptKey              Encryption key for archive encryption
-	//   c.EncryptIV               Initialization vector for archive encryption
 
 	defer close(out)
 
@@ -267,25 +261,6 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		}
 		close(done)
 	}()
-
-	fmt.Fprintf(logWriterStream, "Validating environment...\n")
-	if c.EncryptType == "" {
-		fmt.Fprintf(logWriterStream, "SHIELD encryption type not set...\n")
-	} else {
-		fmt.Fprintf(logWriterStream, "Encryption type ... %s\n", c.EncryptType)
-	}
-
-	if c.EncryptKey == "" {
-		fmt.Fprintf(logWriterStream, "SHIELD encryption key not set...\n")
-	} else {
-		fmt.Fprintf(logWriterStream, "Encryption key ... found\n")
-	}
-
-	if c.EncryptIV == "" {
-		fmt.Fprintf(logWriterStream, "SHIELD encryption iv not set...\n")
-	} else {
-		fmt.Fprintf(logWriterStream, "Encryption IV ... found\n")
-	}
 
 	if agent.Version == "" {
 		agent.Version = "dev"

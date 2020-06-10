@@ -4,9 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"time"
-
-	"github.com/shieldproject/shield/core/vault"
 )
 
 const exportVersion = "v1"
@@ -19,16 +16,6 @@ type header struct {
 
 type fail struct {
 	E string `json:"error"`
-}
-
-type finalizer struct {
-	Task string `json:"task"`
-	EncryptionType string `json:"encryption_type"`
-	EncryptionKey  string `json:"encryption_key"`
-	EncryptionIV   string `json:"encryption_iv"`
-	TakenAt        int64  `json:"taken_at"`
-
-	Error string `json:"error,omitempty"`
 }
 
 func (db *DB) exportHeader(out *json.Encoder, table string) error {
@@ -108,7 +95,7 @@ func (db *DB) exportAgents(out *json.Encoder) error {
 	return nil
 }
 
-func (db *DB) exportArchives(out *json.Encoder, vault *vault.Client) error {
+func (db *DB) exportArchives(out *json.Encoder) error {
 	db.exportHeader(out, "archives")
 
 	type archive struct {
@@ -148,14 +135,6 @@ func (db *DB) exportArchives(out *json.Encoder, vault *vault.Client) error {
 			&v.StoreKey, &v.TakenAt, &v.ExpiresAt, &v.Notes, &v.PurgeReason,
 			&v.Status, &v.Size, &v.Job, &v.Compression); err != nil {
 
-			return err
-		}
-
-		if e, err := vault.Retrieve(v.UUID); err == nil {
-			v.EncryptionKey = e.Key
-			v.EncryptionIV = e.IV
-			v.EncryptionType = e.Type
-		} else {
 			return err
 		}
 
@@ -358,9 +337,7 @@ func (db *DB) exportTargets(out *json.Encoder) error {
 	return nil
 }
 
-func (db *DB) exportTasks(out *json.Encoder, task_uuid string, vault *vault.Client) (*finalizer, error) {
-	var final *finalizer = nil
-
+func (db *DB) exportTasks(out *json.Encoder) error {
 	db.exportHeader(out, "tasks")
 
 	type task struct {
@@ -400,7 +377,7 @@ func (db *DB) exportTasks(out *json.Encoder, task_uuid string, vault *vault.Clie
 	         restore_key, ok, notes, clear
 	    FROM tasks`)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer r.Close()
 
@@ -414,28 +391,13 @@ func (db *DB) exportTasks(out *json.Encoder, task_uuid string, vault *vault.Clie
 			&v.TargetPlugin, &v.TargetEndpoint, &v.StorePlugin, &v.StoreEndpoint,
 			&v.RestoreKey, &v.OK, &v.Notes, &v.Clear); err != nil {
 
-			return nil, err
-		}
-
-		if v.UUID == task_uuid && v.Status == "running" {
-			enc, err := vault.Retrieve(*v.ArchiveUUID)
-			if err != nil {
-				return nil, err
-			}
-
-			final = &finalizer{
-				Task: v.UUID,
-				EncryptionKey: enc.Key,
-				EncryptionIV: enc.IV,
-				EncryptionType: enc.Type,
-				TakenAt: 0, // to be updated later
-			}
+			return err
 		}
 
 		out.Encode(&v)
 	}
 
-	return final, nil
+	return nil
 }
 
 func (db *DB) exportTenants(out *json.Encoder) error {
@@ -554,25 +516,7 @@ func (db *DB) exportSessions(out *json.Encoder) error {
 	return nil
 }
 
-func (db *DB) exportFinalizer(out *json.Encoder, vault *vault.Client, fin *finalizer) error {
-	if fin == nil {
-		return nil
-	}
-
-	out.Encode(header{
-		V:    exportVersion,
-		Type: "finalizer",
-		N:    1,
-	})
-
-	at := time.Now()
-	fin.TakenAt = effectively(at)
-	out.Encode(&fin)
-
-	return nil
-}
-
-func (db *DB) Export(out *json.Encoder, vault *vault.Client, task_uuid string) {
+func (db *DB) Export(out *json.Encoder) {
 	db.exclusively(func() error {
 		err := db.exportAgents(out)
 		if err != nil {
@@ -604,18 +548,12 @@ func (db *DB) Export(out *json.Encoder, vault *vault.Client, task_uuid string) {
 			db.exportErrors(out, err)
 		}
 
-		err = db.exportArchives(out, vault)
+		err = db.exportArchives(out)
 		if err != nil {
 			db.exportErrors(out, err)
 		}
 
-		// we might get some additional information out
-		// of exportTasks, based on our current task_uuid
-		// and the running tasks.
-		//
-		// we call that a "finalizer", and we tack it onto
-		// the end of the export stream.
-		finalizer, err := db.exportTasks(out, task_uuid, vault)
+		err = db.exportTasks(out)
 		if err != nil {
 			db.exportErrors(out, err)
 		}
@@ -631,15 +569,6 @@ func (db *DB) Export(out *json.Encoder, vault *vault.Client, task_uuid string) {
 		}
 
 		err = db.exportSessions(out)
-		if err != nil {
-			db.exportErrors(out, err)
-		}
-
-		// if we got a finalizer out of our exportTasks()
-		// call, above, let's tack it onto the end, so
-		// that the import half of this equation can make
-		// use of it.
-		err = db.exportFinalizer(out, vault, finalizer)
 		if err != nil {
 			db.exportErrors(out, err)
 		}

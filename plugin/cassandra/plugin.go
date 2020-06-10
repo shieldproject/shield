@@ -24,7 +24,7 @@
 //        "datadir"      : "/path/to/datadir"
 //    }
 //
-// The plugin provides devault values for those configuration properties, as
+// The plugin provides default values for those configuration properties, as
 // detailed below. When a default value suits your needs, you can just ommit
 // it.
 //

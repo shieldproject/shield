@@ -7,7 +7,7 @@ EDGE         ?= edge
 
 # Everything; this is the default behavior
 all: build test
-build: format shieldd shield shield-agent shield-schema shield-crypt shield-report plugins
+build: format shieldd shield shield-agent shield-schema plugins
 
 # go fmt ftw
 format:
@@ -21,7 +21,7 @@ plugin-tests: plugins
 	@rm -f mock
 go-tests: shield
 	go list ./... | grep -v vendor/ | PATH=$$PWD:$$PWD/bin:$$PWD/test/bin:$$PATH xargs go test -race
-api-tests: shieldd shield-schema shield-crypt shield-agent shield-report
+api-tests: shieldd shield-schema shield-agent
 	./t/api
 
 # Running Tests for race conditions
@@ -29,18 +29,14 @@ race:
 	ginkgo -race *
 
 # Building Shield
-shield: shieldd shield-agent shield-schema shield-crypt shield-report
+shield: shieldd shield-agent shield-schema
 
-shield-crypt:
-	go $(BUILD_TYPE) ./cmd/shield-crypt/shield-crypt
 shieldd:
 	go $(BUILD_TYPE) ./cmd/shieldd
 shield-agent:
 	go $(BUILD_TYPE) ./cmd/shield-agent
 shield-schema:
 	go $(BUILD_TYPE) ./cmd/shield-schema
-shield-report:
-	go $(BUILD_TYPE) ./cmd/shield-report
 
 shield: cmd/shield/help.go
 	go $(BUILD_TYPE) ./cmd/shield
@@ -70,7 +66,7 @@ docs/dev/API.md: docs/dev/API.yml
 	mv $@~ $@
 
 clean:
-	rm -f shield shieldd shield-agent shield-schema shield-crypt shield-report
+	rm -f shield shieldd shield-agent shield-schema
 	rm -f $$(cat plugins) dummy
 
 
@@ -108,9 +104,7 @@ release:
 	for plugin in $$(cat plugins); do \
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"      ./plugin/$$plugin; \
 	done; \
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/crypter/shield-crypt"  ./cmd/shield-crypt; \
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"    ./cmd/shield-agent; \
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-report"   ./cmd/shield-report; \
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema"  ./cmd/shield-schema; \
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"        ./cmd/shieldd; \
 
@@ -126,9 +120,6 @@ release:
 	  cp -a ../web/htdocs $$x/webui; \
 	  mkdir -p $$x/webui/cli/linux; cp ../artifacts/shield-linux-amd64   $$x/webui/cli/linux/shield; \
 	  mkdir -p $$x/webui/cli/mac;   cp ../artifacts/shield-darwin-amd64  $$x/webui/cli/mac/shield; \
-	  cp ../bin/shield-pipe      $$x/daemon; \
-	  cp ../bin/shield-recover   $$x/daemon; \
-	  cp ../bin/shield-restarter $$x/daemon; \
 	  tar -czvf $$x.tar.gz $$x; \
 	  rm -r $$x; \
 	done
@@ -169,4 +160,4 @@ docker-release:
 	done
 
 
-.PHONY: plugins dev shield shieldd shield-schema shield-agent shield-crypt shield-report demo docs
+.PHONY: plugins dev shield shieldd shield-schema shield-agent demo docs

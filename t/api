@@ -33,40 +33,6 @@ cleanup () {
 }
 trap "cleanup >&2" EXIT QUIT INT TERM
 
-spin_vault() {
-  if [[ ! -f $(pwd)/bin/vault ]]; then
-    VAULT_VERSION=0.9.0
-    echo "... retrieving vault $VAULT_VERSION form the web..."
-    case $OSTYPE in
-    *darwin*) curl -C - -sLo ${WORKDIR}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_darwin_amd64.zip ;;
-    *linux*)  curl -C - -sLo ${WORKDIR}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip  ;;
-    *) echo >&2 "unable to determine OSTYPE, and the vault command was not found.  bailing..."; exit 1 ;;
-    esac
-
-    pushd $WORKDIR
-      rm -f vault
-      unzip vault.zip
-    popd
-    mv $WORKDIR/vault $(pwd)/bin/vault
-  fi
-
-  cat >${WORKDIR}/etc/vault.conf <<EOF
-storage "inmem" {}
-disable_mlock = true
-listener "tcp" {
-  address = "127.0.0.1:8219"
-  tls_disable = true
-}
-EOF
-
-  set -e
-  echo ">> Setting up a local (loopback) Vault"
-  export PATH=$PATH:$WORKDIR
-  $(pwd)/bin/vault version
-  $(pwd)/bin/vault server -config ${WORKDIR}/etc/vault.conf 2>&1 &
-  set +e
-}
-
 spin_shieldd() {
   ssh-keygen -m PEM -t rsa -f ${WORKDIR}/config/shieldd_key -N '' >/dev/null
   rm ${WORKDIR}/config/shieldd_key.pub
@@ -79,9 +45,6 @@ data-dir: ${DATA_DIRECTORY}
 web-root: ./web/htdocs
 plugin_paths:
   - $(pwd)
-
-vault:
-  address: http://127.0.0.1:8219
 
 scheduler:
   fast-loop: 60
@@ -131,9 +94,6 @@ EOF
   while ! curl -Ls --fail http://${SHIELD_DAEMON_ADDR}/v2/info; do
       if [[ $n -eq 0 ]]; then
         echo >&2 "SHIELD core did not spin up within 60s; aborting"
-        echo >&2 "---[ vault log ]-------------------------------------------"
-        cat  >&2 ${WORKDIR}/vault.log || true
-        echo >&2
         echo >&2 "---[ agent log ]-------------------------------------------"
         cat  >&2 ${WORKDIR}/agent.log || true
         echo >&2
@@ -234,7 +194,6 @@ done
 echo "running: ${TESTS:-(all tests)}" | sed -e 's/  */ /'
 # }}}
 
-spin_vault   2>&1 > ${WORKDIR}/vault.log
 spin_shieldd 2>&1 > ${WORKDIR}/core.log
 spin_agent   2>&1 > ${WORKDIR}/agent.log
 

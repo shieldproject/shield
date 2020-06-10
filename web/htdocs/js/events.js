@@ -434,35 +434,6 @@
         });
       }) /* }}} */
 
-      /* SHIELD Unlock Form */
-      .on('submit', 'form#unlock-shield', function (event) { /* {{{ */
-        event.preventDefault();
-
-        var $form = $(event.target);
-        $form.reset()
-        var data = $form.serializeObject();
-        $form.find('[name=master]').val('');
-        if (data.master == "") {
-          $form.error('master', 'missing');
-          return;
-        }
-
-        $form.submitting(true);
-        api({
-          type: 'POST',
-          url:  '/v2/unlock',
-          data: data,
-          success: function (data) {
-            $('#lock-state .locked').fadeOut();
-            goto(AEGIS.is('engineer') ? '#!/admin' : '#!/systems');
-          },
-          error: function (xhr) {
-            $form.submitting(false);
-            $form.error(xhr.responseJSON);
-          }
-        });
-      }) /* }}} */
-
       /* Wizard: Configure New Backup Job */
       .on('wizard:step', '.do-configure.wizard2', function (event, moving) { /* {{{ */
         var $w = $(event.target);

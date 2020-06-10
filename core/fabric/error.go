@@ -2,7 +2,6 @@ package fabric
 
 import (
 	"github.com/shieldproject/shield/core/scheduler"
-	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/db"
 )
 
@@ -25,11 +24,11 @@ func (f ErrorFabric) chore(id string) scheduler.Chore {
 	})
 }
 
-func (f ErrorFabric) Backup(task *db.Task, _ vault.Parameters) scheduler.Chore {
+func (f ErrorFabric) Backup(task *db.Task) scheduler.Chore {
 	return f.chore(task.UUID)
 }
 
-func (f ErrorFabric) Restore(task *db.Task, _ vault.Parameters) scheduler.Chore {
+func (f ErrorFabric) Restore(task *db.Task) scheduler.Chore {
 	return f.chore(task.UUID)
 }
 

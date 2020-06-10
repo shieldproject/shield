@@ -12,14 +12,6 @@ function divert(page) { // {{{
     return "#!/login";
   }
 
-  if (AEGIS.is('engineer') && AEGIS.shield) {
-    /* process 'system' team diverts */
-    if (AEGIS.vault == "uninitialized") {
-      console.log('system user detected, and this SHIELD core is uninitialized; diverting to #!/init page...');
-      return "#!/init";
-    }
-  }
-
   if (!page || page == "") {
     return AEGIS.is('engineer') ? '#!/admin' : '#!/systems';
   }
@@ -118,102 +110,6 @@ function dispatch(page) {
       });
     })()
     break;
-    // }}}
-
-    case "#!/init": /* {{{ */
-      (function () {
-        $('#viewport').template('init');
-        $('#viewport').html($($.template('init'))
-          .on("submit", ".restore", function (event) {
-            event.preventDefault();
-
-            var $form = $(event.target);
-            var data = new FormData();
-
-            data.append("archive", $form[0].archive.files[0]);
-            data.append("key",     $form[0].key.value);
-
-            $form.reset();
-            $('.dialog').template('bootstrap', { step: 'restoring' });
-
-            $.ajax({
-              type: "POST",
-              url: "/v2/bootstrap/restore",
-              data: data,
-              cache: false,
-              contentType: false,
-              processData: false,
-              success: function () {
-                $('.dialog').template('bootstrap', { step: 'done' });
-              },
-              complete: function () {
-                /* set an interval waiting for the endpoint to come back... */
-                var backoff = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5],
-                    i = 0,
-                    tryagain = function () {
-                      $.ajax({
-                        type: "GET",
-                        url:  "/v2/info",
-                        success: function () {
-                          goto("#!/login");
-                        },
-                        error: function () {
-                          i += i == backoff.length ? 0 : 1;
-                          window.setTimeout(tryagain, backoff[i] * 1000);
-                        }
-                      });
-                    };
-
-                window.setTimeout(tryagain, backoff[i] * 1000);
-              }
-            });
-          })
-          .on("submit", ".setpass", function (event) {
-            event.preventDefault();
-            var $form = $(event.target);
-            var data = $form.serializeObject();
-            if (data.masterpass == "") {
-              $form.error('masterpass', 'missing');
-
-            } else if (data.masterpassconf == "") {
-              $form.error('masterpassconf', 'missing');
-
-            } else if (data.masterpass != data.masterpassconf) {
-              $form.error('masterpassconf', 'mismatch');
-            }
-
-            if (!$form.isOK()) {
-              return;
-            }
-            $form.submitting(true);
-            api({
-              type: 'POST',
-              url: '/v2/init',
-              data: { "master": data.masterpass },
-              success: function (data) {
-                console.log("success");
-                $('#viewport').template('fixedkey', data);
-              },
-              error: function (xhr) {
-                $form.submitting(false);
-                $(event.target).error(xhr.responseJSON);
-              }
-            });
-          })
-        );
-        $.ajax({
-          type: "GET",
-          url: "/v2/bootstrap/log",
-          success: function (data) {
-            if (data.log) {
-              $('.restore_divert').html("It looks like there was a previous attempt to self-restore SHIELD that failed. Below is the task log to help debug the problem. ")
-              $('#initialize').append("<div class=\"dialog\" id=\"log\"></div>")
-              $('#log').append('<pre><code>'+h(data.log)+'</code></pre>');
-            }
-          }
-        });
-      })();
-      break; /* #!/init */
     // }}}
 
   case "#!/do/backup": /* {{{ */
@@ -701,64 +597,6 @@ function dispatch(page) {
       }
     });
     break; /* #!/admin/auth */
-    // }}}
-  case '#!/admin/rekey': /* {{{ */
-    Scratch.track('redrawable', false);
-    if (!AEGIS.is('engineer')) {
-      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
-      break;
-    }
-    $('#main').html($($.template('rekey')))
-      .autofocus()
-      .on('submit', 'form', function (event) {
-        event.preventDefault();
-
-        var $form = $(event.target);
-        var data = $form.serializeObject();
-
-        $form.reset();
-        if (data.current == "") {
-          $form.error('current', 'missing');
-        }
-
-        if (data.new == "") {
-          $form.error('new', 'missing');
-
-        } else if (data.confirm == "") {
-          $form.error('confirm', 'missing');
-
-        } else if (data.new != data.confirm) {
-          $form.error('confirm', 'mismatch');
-        }
-
-        data.rotate_fixed_key = !!data.rotate_fixed_key;
-
-        if (!$form.isOK()) {
-          return;
-        }
-
-        delete data.confirm;
-        $form.submitting(true);
-        api({
-          type: 'POST',
-          url:  '/v2/rekey',
-          data: data,
-          success: function (data) {
-            if (data.fixed_key != "") {
-              $('#viewport').template('fixedkey', data);
-            } else {
-              goto("#!/admin");
-            }
-            banner('Succcessfully rekeyed the SHIELD Core.');
-          },
-          error: function (xhr) {
-            $form.submitting(false);
-            $form.error(xhr.responseJSON);
-          }
-        });
-      });
-
-    break; /* #!/admin/rekey */
     // }}}
 
   case '#!/admin/tenants': /* {{{ */
@@ -1357,13 +1195,8 @@ $(function () {
         $('.top-bar').template('top-bar');
         if (AEGIS.authenticated()) {
           $('#viewport').template('layout');
-          if (AEGIS.vault != "uninitialized") {
-            $('#side-bar').template('side-bar');
-          }
+          $('#side-bar').template('side-bar');
           $('#hud').template('hud');
-          if (AEGIS.vault == "locked") {
-            $('#lock-state').fadeIn();
-          }
         }
         $(document.body)
           .on('shield:navigate', function (event, to) {

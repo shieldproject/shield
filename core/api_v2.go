@@ -3,9 +3,6 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,7 +10,6 @@ import (
 
 	"github.com/jhunt/go-log"
 
-	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/db"
 	"github.com/shieldproject/shield/route"
 	"github.com/shieldproject/shield/timespec"
@@ -105,9 +101,6 @@ func (c *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("GET /v2/bearings", func(r *route.Request) { // {{{
 		var out struct {
-			/* Status of the internal SHIELD Vault. */
-			Vault string `json:"vault"`
-
 			/* Information about this SHIELD installation itself,
 			   including its name, the MOTD, the UI theme color,
 			   API and software versions, etc. */
@@ -133,13 +126,6 @@ func (c *Core) v2API() *route.Router {
 
 		} else if user != nil {
 			out.User = user
-
-			/* retrieve vault status */
-			out.Vault, err = c.vault.StatusString()
-			if err != nil {
-				r.Fail(route.Oops(err, "Unable to retrieve vault status"))
-				return
-			}
 
 			/* retrieve global stores */
 			out.Stores, err = c.db.GetAllStores(&db.StoreFilter{ForTenant: db.GlobalTenantUUID})
@@ -658,136 +644,6 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 		r.OK(health)
-	})
-	// }}}
-
-	r.Dispatch("POST /v2/init", func(r *route.Request) { // {{{
-		var in struct {
-			Master string `json:"master"`
-		}
-		if !r.Payload(&in) {
-			return
-		}
-
-		if r.Missing("master", in.Master) {
-			return
-		}
-
-		log.Infof("%s: initializing the SHIELD Core...", r)
-		status, err := c.vault.Status()
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
-			return
-		}
-		if status != vault.Blank {
-			r.Fail(route.Bad(nil, "this SHIELD Core has already been initialized"))
-			return
-		}
-		fixedKey, err := c.vault.Initialize(c.CryptFile(), in.Master)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
-			return
-		}
-
-		r.OK(
-			struct {
-				Response string `json:"response"`
-				FixedKey string `json:"fixed_key"`
-			}{
-				"Successfully initialized the SHIELD Core",
-				fixedKey,
-			})
-	})
-	// }}}
-	r.Dispatch("POST /v2/lock", func(r *route.Request) { // {{{
-		if c.IsNotSystemEngineer(r) {
-			return
-		}
-
-		status, err := c.vault.Status()
-		if err != nil {
-			r.Fail(route.Forbidden(err, "Unable to lock the SHIELD Core"))
-			return
-		}
-		if status == vault.Blank {
-			r.Fail(route.Bad(nil, "this SHIELD Core has not yet been initialized"))
-			return
-		}
-		if err := c.vault.Seal(); err != nil {
-			r.Fail(route.Oops(err, "Unable to lock the SHIELD Core"))
-			return
-		}
-
-		c.bus.Send("lock-core", "", nil, "*")
-		r.Success("Successfully locked the SHIELD Core")
-	})
-	// }}}
-	r.Dispatch("POST /v2/unlock", func(r *route.Request) { // {{{
-		var in struct {
-			Master string `json:"master"`
-		}
-		if !r.Payload(&in) {
-			return
-		}
-
-		if r.Missing("master", in.Master) {
-			return
-		}
-
-		status, err := c.vault.Status()
-		if err != nil {
-			r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core: an internal error has occurred"))
-			return
-		}
-		if status == vault.Blank {
-			r.Fail(route.Bad(nil, "Unable to unlock the SHIELD Core: this SHIELD Core has not yet been initialized"))
-			return
-		}
-		if err := c.vault.Unseal(c.CryptFile(), in.Master); err != nil {
-			if strings.Contains(err.Error(), "incorrect master password") {
-				r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core: incorrect master password"))
-				return
-			}
-			r.Fail(route.Oops(err, "Unable to unlock the SHIELD Core: an internal error has occurred"))
-			return
-		}
-
-		c.bus.Send("unlock-core", "", nil, "*")
-		r.Success("Successfully unlocked the SHIELD Core")
-	})
-	// }}}
-	r.Dispatch("POST /v2/rekey", func(r *route.Request) { // {{{
-		var in struct {
-			Current     string `json:"current"`
-			New         string `json:"new"`
-			RotateFixed bool   `json:"rotate_fixed_key"`
-		}
-		if !r.Payload(&in) {
-			return
-		}
-
-		if r.Missing("current", in.Current, "new", in.New) {
-			return
-		}
-
-		fixedKey, err := c.vault.Rekey(c.CryptFile(), in.Current, in.New, in.RotateFixed)
-		if err != nil {
-			if strings.Contains(err.Error(), "incorrect master password") {
-				r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core: incorrect (current) master password"))
-				return
-			}
-			r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core: an internal error has occurred"))
-			return
-		}
-
-		r.OK(
-			struct {
-				Response string `json:"response"`
-				FixedKey string `json:"fixed_key"`
-			}{
-				"Successfully rekeyed the SHIELD Core",
-				fixedKey,
-			})
 	})
 	// }}}
 
@@ -3164,10 +3020,6 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to delete backup archive"))
 			return
 		}
-		err = c.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID))
-		if err != nil {
-			log.Errorf("failed to delete encryption parameters for archive %s: %s", archive.UUID, err)
-		}
 
 		r.Success("Archive deleted successfully")
 	})
@@ -3596,87 +3448,13 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("POST /v2/bootstrap/restore", func(r *route.Request) { // {{{
-		if c.IsNotSystemAdmin(r) {
-			return
-		}
-
-		log.Infof("BOOTSTRAP: streaming uploaded archive file...")
-		in, _, err := r.Req.FormFile("archive")
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to stream uploaded backup archive"))
-			return
-		}
-
-		log.Infof("BOOTSTRAP: deriving encryption parameters from provided fixed key...")
-		/* derive encryption parameters from fixed key */
-		key := regexp.MustCompile(`\s`).ReplaceAll([]byte(r.Req.FormValue("key")), nil)
-		if !regexp.MustCompile(`^[A-Fa-f0-9]*$`).Match(key) || len(key) != 1024 {
-			r.Fail(route.Oops(nil, "Invalid SHIELD Fixed Key (must be 1024 hex digits)"))
-			return
-		}
-		enc, err := vault.DeriveFixedParameters(key)
-		if err != nil {
-			r.Fail(route.Oops(err, "Invalid SHIELD Fixed Key (unable to use it to derive encryption parameters)"))
-			return
-		}
-
-		/* execute the shield-recover command */
-		log.Infof("BOOTSTRAP: executing shield-recover process...")
-		cmd := exec.Command("shield-recover")
-		cmd.Stdin = in
-		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s:%s", strings.Join(c.Config.PluginPaths, ":"), os.Getenv("PATH")))
-		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_DATA_DIR=%s", c.Config.DataDir))
-		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_RESTARTER=%s", c.Config.Bootstrapper))
-		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_ENCRYPT_TYPE=%s", enc.Type))
-		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_ENCRYPT_KEY=%s", enc.Key))
-		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_ENCRYPT_IV=%s", enc.IV))
-
-		c.bailout = true
-		if err := cmd.Run(); err != nil {
-			log.Errorf("BOOTSTRAP: command exited abnormally (%s)", err)
-			r.Fail(route.Oops(err, "SHIELD Restore Failed: You may be in a broken state."))
-			return
-		}
-
-		log.Errorf("BOOTSTRAP: RESTORED SUCCESSFULLY; removing bootstrap.log")
-		os.Remove(c.DataFile("bootstrap.old"))
-		os.Rename(c.DataFile("bootstrap.log"), c.DataFile("bootstrap.old"))
-
-		r.Success("SHIELD successfully restored")
-		return
-	}) // }}}
-	r.Dispatch("GET /v2/bootstrap/log", func(r *route.Request) { // {{{
-		if c.IsNotSystemAdmin(r) {
-			return
-		}
-		b, err := ioutil.ReadFile(c.DataFile("bootstrap.log"))
-		if err != nil {
-			log.Errorf("unable to read bootstrap.log: %s", err)
-		}
-
-		r.OK(struct {
-			Log string `json:"log"`
-		}{Log: string(b)})
-	}) // }}}
-
 	r.Dispatch("GET /v2/export", func(r *route.Request) { // {{{
 		if c.IsNotSystemAdmin(r) {
 			return
 		}
 
-		st, err := c.vault.StatusString()
-		if err != nil {
-			r.Fail(route.Oops(err, "Failed to export SHIELD data"))
-			return
-		}
-		if st != "unlocked" {
-			r.Fail(route.Oops(fmt.Errorf("vault is locked"), "Failed to export SHIELD data"))
-			return
-		}
-
 		if out := r.JSONEncoder(); out != nil {
-			c.db.Export(out, c.vault, r.Param("task", ""))
+			c.db.Export(out)
 		} else {
 			r.Fail(route.Oops(nil, "Failed to export SHIELD data"))
 		}
@@ -3686,19 +3464,9 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		st, err := c.vault.StatusString()
-		if err != nil {
-			r.Fail(route.Oops(err, "Failed to import SHIELD data"))
-			return
-		}
-		if st != "unlocked" {
-			r.Fail(route.Oops(fmt.Errorf("vault is locked"), "Failed to import SHIELD data"))
-			return
-		}
-
 		if in := r.JSONDecoder(); in != nil {
 
-			err = c.db.Import(in, c.vault, r.Param("key", ""), r.Param("task", ""))
+			err := c.db.Import(in, r.Param("key", ""), r.Param("task", ""))
 			if err != nil {
 				r.Fail(route.Oops(err, "Failed to import SHIELD data"))
 				return

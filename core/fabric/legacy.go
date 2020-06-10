@@ -8,7 +8,6 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/shieldproject/shield/core/scheduler"
-	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/db"
 )
 
@@ -39,17 +38,13 @@ type Command struct {
 
 	RestoreKey string `json:"restore_key,omitempty"`
 
-	EncryptType string `json:"encrypt_type,omitempty"`
-	EncryptKey  string `json:"encrypt_key,omitempty"`
-	EncryptIV   string `json:"encrypt_iv,omitempty"`
-
-	Compression string `json:"compression,omitempty"`
+	Compression string `json:"compression,omitempty"` // FIXME
 }
 
-func (f LegacyFabric) Backup(task *db.Task, encryption vault.Parameters) scheduler.Chore {
+func (f LegacyFabric) Backup(task *db.Task) scheduler.Chore {
 	op := "backup"
 
-	chore := f.Execute(op, task.UUID, Command{
+	return f.Execute(op, task.UUID, Command{
 		Op: op,
 
 		TargetPlugin:   task.TargetPlugin,
@@ -60,18 +55,11 @@ func (f LegacyFabric) Backup(task *db.Task, encryption vault.Parameters) schedul
 
 		TaskUUID: task.UUID,
 
-		Compression: task.Compression,
-
-		EncryptType: encryption.Type,
-		EncryptKey:  encryption.Key,
-		EncryptIV:   encryption.IV,
+		Compression: task.Compression, // FIXME
 	})
-
-	chore.Encryption = encryption.Type
-	return chore
 }
 
-func (f LegacyFabric) Restore(task *db.Task, encryption vault.Parameters) scheduler.Chore {
+func (f LegacyFabric) Restore(task *db.Task) scheduler.Chore {
 	op := "restore"
 
 	return f.Execute(op, task.UUID, Command{
@@ -86,11 +74,7 @@ func (f LegacyFabric) Restore(task *db.Task, encryption vault.Parameters) schedu
 
 		TaskUUID: task.UUID,
 
-		Compression: task.Compression,
-
-		EncryptType: encryption.Type,
-		EncryptKey:  encryption.Key,
-		EncryptIV:   encryption.IV,
+		Compression: task.Compression, // FIXME
 	})
 }
 

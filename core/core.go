@@ -19,7 +19,6 @@ import (
 	"github.com/shieldproject/shield/core/fabric"
 	"github.com/shieldproject/shield/core/metrics"
 	"github.com/shieldproject/shield/core/scheduler"
-	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/db"
 
 	ssg "github.com/jhunt/shield-storage-gateway/client"
@@ -29,7 +28,6 @@ type Core struct {
 	Config Config
 
 	db        *db.DB
-	vault     *vault.Client
 	providers map[string]AuthProvider
 	bus       *bus.Bus
 	scheduler *scheduler.Scheduler
@@ -124,11 +122,6 @@ type Config struct {
 		pub string
 	} `yaml:"legacy-agents"`
 
-	Vault struct {
-		Address string `yaml:"address" env:"SHIELD_VAULT_ADDRESS"`
-		CACert  string `yaml:"ca"      env:"SHIELD_VAULT_CA"`
-	} `yaml:"vault"`
-
 	Mbus struct {
 		MaxSlots int `yaml:"max-slots" env:"SHIELD_MBUS_MAX_SLOTS"`
 		Backlog  int `yaml:"backlog"   env:"SHIELD_MBUS_BACKLOG"`
@@ -148,10 +141,6 @@ type Config struct {
 		Username string `yaml:"username"`
 		Password string `yaml:"password"`
 	} `yaml:"storage-gateway"`
-
-	Cipher string `yaml:"cipher" env:"SHIELD_CIPHER"`
-
-	Bootstrapper string `yaml:"bootstrapper" env:"SHIELD_BOOTSTRAPPER"`
 }
 
 var (
@@ -188,12 +177,6 @@ func init() {
 
 	DefaultConfig.LegacyAgents.Enabled = true
 	DefaultConfig.LegacyAgents.DialTimeout = 30
-
-	DefaultConfig.Vault.Address = "http://127.0.0.1:8200"
-
-	DefaultConfig.Cipher = "aes256-ctr"
-
-	DefaultConfig.Bootstrapper = "shield-restarter"
 
 	DefaultConfig.Mbus.MaxSlots = 2048
 	DefaultConfig.Mbus.Backlog = 100
@@ -259,10 +242,6 @@ func Configure(file string, config Config) (*Core, error) {
 		return nil, fmt.Errorf("mbus.backlog of '%d' is invalid (must be a positive integer)", c.Config.Mbus.Backlog)
 	}
 
-	if c.Config.Cipher == "" {
-		return nil, fmt.Errorf("cipher '%s' is invalid (see documentation for supported ciphers)", c.Config.Cipher)
-	}
-
 	if c.Config.DataDir == "" {
 		return nil, fmt.Errorf("SHIELD data directory '%s' is invalid (must be a valid path)", c.Config.DataDir)
 	}
@@ -296,16 +275,6 @@ func Configure(file string, config Config) (*Core, error) {
 			return nil, fmt.Errorf("SHIELD plugin directory '%s' is invalid (%s)", path, err)
 		} else if !st.Mode().IsDir() {
 			return nil, fmt.Errorf("SHIELD plugin directory '%s' is invalid (not a directory)", path)
-		}
-	}
-
-	if c.Config.Vault.CACert != "" {
-		if !strings.HasPrefix(c.Config.Vault.CACert, "---") {
-			b, err := ioutil.ReadFile(c.Config.Vault.CACert)
-			if err != nil {
-				return nil, fmt.Errorf("Unable to read Vault CA Certificate '%s': %s", c.Config.Vault.CACert, err)
-			}
-			c.Config.Vault.CACert = string(b)
 		}
 	}
 
@@ -406,21 +375,8 @@ func (c *Core) MaybeTerminate(err error) {
 	}
 }
 
-func (c *Core) Unlocked() bool {
-	status, err := c.vault.Status()
-	if err != nil {
-		log.Errorf("unable to check Vault status: %s", err)
-		return false
-	}
-	return status == vault.Ready
-}
-
 func (c *Core) DataFile(rel string) string {
 	return fmt.Sprintf("%s/%s", c.Config.DataDir, rel)
-}
-
-func (c *Core) CryptFile() string {
-	return c.DataFile("vault.crypt")
 }
 
 func (c *Core) FabricFor(task *db.Task) (fabric.Fabric, error) {
