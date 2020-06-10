@@ -45,9 +45,6 @@ USAGE: @G{shield} tasks --tenant @Y{TENANT}
                    @M{purge}             Purge a single backup archive
                                      from cloud storage.
 
-                   @M{test-store}        Test a cloud storage system for
-                                     viability (a small store+retrieve).
-
                    @M{agent-status}      Retrieve health and metadata
                                      from a single SHIELD agent.
 

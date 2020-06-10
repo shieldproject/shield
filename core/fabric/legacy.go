@@ -94,17 +94,6 @@ func (f LegacyFabric) Purge(task *db.Task) scheduler.Chore {
 	})
 }
 
-func (f LegacyFabric) TestStore(task *db.Task) scheduler.Chore {
-	op := "storage test"
-
-	return f.Execute(op, task.UUID, Command{
-		Op: "test-store",
-
-		StorePlugin:   task.StorePlugin,
-		StoreEndpoint: task.StoreEndpoint,
-	})
-}
-
 func (f LegacyFabric) Execute(op, id string, command Command) scheduler.Chore {
 	return scheduler.NewChore(
 		id,

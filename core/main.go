@@ -71,7 +71,6 @@ func (c Core) Main() {
 			c.DeleteOldPurgedArchives()
 			c.CleanupOrphanedObjects()
 			c.PurgeExpiredAPISessions()
-			c.ScheduleStorageTestTasks()
 		}
 	}
 }
@@ -548,27 +547,6 @@ func (c *Core) TasksToChores() {
 
 		case db.AgentStatusOperation:
 			c.scheduler.Schedule(30, fabric.Status(task))
-
-		case db.TestStoreOperation:
-			if task.StorePlugin == StorageGatewayPlugin {
-				c.db.StartTask(task.UUID, time.Now())
-				store, err := c.db.GetStore(task.StoreUUID)
-				if err != nil {
-					panic(fmt.Errorf("failed to retrieve store '%s' from database: %s", task.StoreUUID, err))
-				}
-				if store == nil {
-					panic(fmt.Errorf("store '%s' not found in database", task.StoreUUID))
-				}
-				store.Healthy = true
-				err = c.db.UpdateStoreHealth(store)
-				if err != nil {
-					panic(fmt.Errorf("failed to update store '%s' record in database: %s", task.StoreUUID, err))
-				}
-				c.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: storage is still HEALTHY.\n")
-				c.db.CompleteTask(task.UUID, time.Now())
-				continue
-			}
-			c.scheduler.Schedule(40, fabric.TestStore(task))
 		}
 
 		if err := c.db.ScheduledTask(task.UUID); err != nil {
@@ -817,39 +795,5 @@ func (c *Core) PurgeExpiredAPISessions() {
 
 	if err := c.db.ClearExpiredSessions(time.Now().Add(0 - (time.Duration(c.Config.API.Session.Timeout) * time.Second))); err != nil {
 		log.Errorf("Failed to purge expired API sessions: %s", err)
-	}
-}
-
-func (c *Core) ScheduleStorageTestTasks() {
-	log.Infof("UPKEEP: scheduling cloud storage test tasks...")
-
-	stores, err := c.db.GetAllStores(nil)
-	if err != nil {
-		log.Errorf("failed to get stores for health tests: %s", err)
-		return
-	}
-
-	inflight, err := c.db.GetAllTasks(&db.TaskFilter{
-		ForOp:        db.TestStoreOperation,
-		SkipInactive: true,
-	})
-	if err != nil {
-		log.Errorf("failed to get in-flight health test tasks: %s", err)
-		return
-	}
-
-	lookup := make(map[string]bool)
-	for _, task := range inflight {
-		lookup[task.StoreUUID] = true
-	}
-
-	for _, store := range stores {
-		if _, inqueue := lookup[store.UUID]; inqueue {
-			continue
-		}
-
-		if _, err := c.db.CreateTestStoreTask("system", store); err != nil {
-			log.Errorf("failed to create test store task: %s", err)
-		}
 	}
 }

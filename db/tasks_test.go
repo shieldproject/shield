@@ -152,27 +152,6 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
 	})
 
-	It("Can create a new TestStore task", func() {
-		//`json:"config,omitempty"`
-		SomeStore.Config = map[string]interface{}{"argkey": "fake"}
-		task, err := db.CreateTestStoreTask("owner-name", SomeStore)
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(task).ShouldNot(BeNil())
-		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE uuid = ?`, task.UUID)
-		shouldExist(`SELECT * FROM tasks WHERE owner = ?`, "owner-name")
-		shouldExist(`SELECT * FROM tasks WHERE op = ?`, TestStoreOperation)
-		shouldExist(`SELECT * FROM tasks WHERE store_plugin = ?`, SomeStore.Plugin)
-		shouldExist(`SELECT * from tasks WHERE store_uuid = ?`, SomeStore.UUID)
-		shouldExist(`SELECT * FROM tasks WHERE store_endpoint IS NOT NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE status = ?`, PendingStatus)
-		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE agent = ?`, SomeStore.Agent)
-		shouldExist(`SELECT * FROM tasks WHERE attempts >= 0`)
-		shouldExist(`SELECT * FROM tasks WHERE tenant_uuid = ?`, SomeStore.TenantUUID)
-
-	})
-
 	It("Can start an existing task", func() {
 		task, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())

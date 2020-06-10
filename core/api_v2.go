@@ -1402,11 +1402,6 @@ func (c *Core) v2API() *route.Router {
 				r.Fail(route.Oops(err, "Unable to create new storage system"))
 				return
 			}
-
-			if _, err := c.db.CreateTestStoreTask("system", store); err != nil {
-				log.Errorf("failed to schedule storage test task (non-critical) for %s (%s): %s",
-					store.Name, store.UUID, err)
-			}
 		}
 
 		job, err := c.db.CreateJob(&db.Job{
@@ -2395,11 +2390,6 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		if _, err := c.db.CreateTestStoreTask("system", store); err != nil {
-			log.Errorf("failed to schedule storage test task (non-critical) for %s (%s): %s",
-				store.Name, store.UUID, err)
-		}
-
 		r.OK(store)
 	})
 	// }}}
@@ -2461,11 +2451,6 @@ func (c *Core) v2API() *route.Router {
 		if store == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
-		}
-
-		if _, err := c.db.CreateTestStoreTask("system", store); err != nil {
-			log.Errorf("failed to schedule storage test task (non-critical) for %s (%s): %s",
-				store.Name, store.UUID, err)
 		}
 
 		r.OK(store)

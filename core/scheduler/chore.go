@@ -274,50 +274,6 @@ func (w *Worker) Execute(chore Chore) {
 		}
 		w.db.UpdateTaskLog(task.UUID, "\n\n")
 
-	case db.TestStoreOperation:
-		var v struct {
-			Healthy bool `json:"healthy"`
-		}
-
-		store, err := w.db.GetStore(task.StoreUUID)
-		if err != nil {
-			panic(fmt.Errorf("failed to retrieve store '%s' from database: %s", task.StoreUUID, err))
-		}
-		if store == nil {
-			panic(fmt.Errorf("store '%s' not found in database", task.StoreUUID))
-		}
-
-		if rc == 0 {
-			err = json.Unmarshal([]byte(output), &v)
-			if err != nil {
-				panic(fmt.Errorf("failed to unmarshal output [%s] from %s operation: %s", output, task.Op, err))
-			}
-			if v.Healthy {
-				if store.Healthy != v.Healthy {
-					w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: marking storage system as HEALTHY (recovery).\n")
-				} else {
-					w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: storage is still HEALTHY.\n")
-				}
-			} else {
-				w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: marking storage system as UNHEALTHY.\n")
-			}
-			store.Healthy = v.Healthy
-
-		} else {
-			store.Healthy = false
-			w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: marking storage system as UNHEALTHY.\n")
-		}
-
-		err = w.db.UpdateStoreHealth(store)
-		if err != nil {
-			panic(fmt.Errorf("failed to update store '%s' record in database: %s", task.StoreUUID, err))
-		}
-		if rc != 0 {
-			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
-			w.db.FailTask(chore.TaskUUID, time.Now())
-			return
-		}
-
 	case db.AgentStatusOperation:
 		agent, err := w.db.GetAgentByAddress(task.Agent)
 		if err != nil {

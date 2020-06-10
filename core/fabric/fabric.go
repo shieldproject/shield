@@ -18,7 +18,4 @@ type Fabric interface {
 
 	/* purge an from cloud storage archive. */
 	Purge(*db.Task) scheduler.Chore
-
-	/* test the viability of a storage system. */
-	TestStore(*db.Task) scheduler.Chore
 }

@@ -94,14 +94,6 @@ func ParseCommand(b []byte) (*Command, error) {
 			return nil, fmt.Errorf("missing required 'restore_key' value in payload (for purge operation)")
 		}
 
-	case "test-store":
-		if cmd.StorePlugin == "" {
-			return nil, fmt.Errorf("missing required 'store_plugin' value in payload")
-		}
-		if cmd.StoreEndpoint == "" {
-			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
-		}
-
 	case "status":
 		/* nothing to validate */
 
@@ -299,90 +291,6 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 			break
 		}
 		out <- fmt.Sprintf("O:%s\n", b)
-
-	case "test-store":
-		fmt.Fprintf(logWriterStream, "Validating "+c.StorePlugin+" plugin\n")
-		err := pS.Validate(logWriterStream, storeEndpoint)
-		if err != nil {
-			out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
-			errors <- fmt.Errorf("store plugin validation failed: %s", err)
-			break
-		}
-
-		fmt.Fprintf(logWriterStream, "Performing store / retrieve / purge test\n")
-		fmt.Fprintf(logWriterStream, "generating an input bit pattern\n")
-		var letters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-		b := make([]byte, 25)
-		for i := range b {
-			b[i] = letters[rand.Intn(len(letters))]
-		}
-		input := "test::" + base64.URLEncoding.EncodeToString(b)
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			outputStream.Write([]byte(input))
-			outputStream.Close()
-		}()
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			key, _, err := pS.Store(inputStream, logWriterStream, storeEndpoint)
-			if err != nil {
-				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
-				errors <- fmt.Errorf("store operation failed: %s", err)
-				return
-			}
-
-			// os.Pipe() works for now because our test input is always 25 bytes.
-			// This is storing less than one pipe's worth of data in the archive.
-			// Should the size increase to more than one pipe's worth in the future
-			// for testing purposes, it will block and we will deadlock.
-			rd, wr, err := os.Pipe()
-			if err != nil {
-				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
-				errors <- fmt.Errorf("failed to initialize pipe: %s", err)
-				return
-			}
-			err = pS.Retrieve(wr, logWriterStream, storeEndpoint, key)
-			if err != nil {
-				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
-				errors <- fmt.Errorf("restore operation failed: %s", err)
-				return
-			}
-			wr.Close()
-
-			err = pS.Purge(logWriterStream, storeEndpoint, key)
-			if err != nil {
-				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
-				errors <- fmt.Errorf("purge operation failed: %s", err)
-				return
-			}
-
-			s := bufio.NewScanner(rd)
-			var output string
-			for s.Scan() {
-				output = output + s.Text()
-			}
-
-			fmt.Fprintf(logWriterStream, "INPUT:  %s\n", input)
-			fmt.Fprintf(logWriterStream, "OUTPUT: %s\n", output)
-			fmt.Fprintf(logWriterStream, "KEY:    %s\n", key)
-
-			if output == "" {
-				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
-				errors <- fmt.Errorf("unable to read from storage")
-				return
-			}
-
-			if input != output {
-				out <- fmt.Sprintf("O:%s\n", "{\"healthy\":false}")
-				errors <- fmt.Errorf("input string does not match output string")
-				return
-			}
-			out <- fmt.Sprintf("O:%s\n", "{\"healthy\":true}")
-		}()
 
 	case "backup":
 		fmt.Fprintf(logWriterStream, "Validating "+c.TargetPlugin+" plugin\n")

@@ -15,7 +15,6 @@ const (
 	RestoreOperation        = "restore"
 	ShieldRestoreOperation  = "shield-restore"
 	PurgeOperation          = "purge"
-	TestStoreOperation      = "test-store"
 	AgentStatusOperation    = "agent-status"
 	AnalyzeStorageOperation = "analyze-storage"
 
@@ -561,66 +560,6 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
 	}
 
 	db.sendCreateObjectEvent(task, "tenant:"+archive.TenantUUID)
-	return task, nil
-}
-
-func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
-	endpoint, err := store.ConfigJSON()
-	if err != nil {
-		return nil, err
-	}
-
-	id := RandomID()
-	err = db.exclusively(func() error {
-		/* validate the tenant */
-		if err := db.tenantShouldExist(store.TenantUUID); err != nil {
-			return fmt.Errorf("unable to create test-store task: %s", err)
-		}
-
-		/* validate the store */
-		if err := db.storeShouldExist(store.UUID); err != nil {
-			return fmt.Errorf("unable to create test-store task: %s", err)
-		}
-
-		err := db.exec(
-			`INSERT INTO tasks
-                (uuid, owner, op, status, log, requested_at,
-                 store_uuid, store_plugin, store_endpoint,
-                 agent, attempts, tenant_uuid)
-              VALUES
-                (?, ?, ?, ?, ?, ?,
-                 ?, ?, ?,
-                 ?, ?, ?)`,
-			id, owner, TestStoreOperation, PendingStatus, "", time.Now().Unix(),
-			store.UUID, store.Plugin, endpoint,
-			store.Agent, 0, store.TenantUUID)
-		if err != nil {
-			return err
-		}
-
-		return db.exec(
-			`UPDATE stores
-                SET last_test_task_uuid = ?
-              WHERE uuid=?`,
-			id, store.UUID)
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	task, err := db.GetTask(id)
-	if err != nil {
-		return nil, err
-	}
-	if task == nil {
-		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
-	}
-
-	if store.TenantUUID != "" {
-		db.sendCreateObjectEvent(task, "tenant:"+store.TenantUUID)
-	} else {
-		db.sendCreateObjectEvent(task, "*")
-	}
 	return task, nil
 }
 
