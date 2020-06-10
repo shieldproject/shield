@@ -1,10 +1,6 @@
 package agent_test
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -12,13 +8,6 @@ import (
 )
 
 var _ = Describe("Agent", func() {
-	pathify := func(rel string) string {
-		cwd, err := os.Getwd()
-		Ω(err).ShouldNot(HaveOccurred())
-
-		return fmt.Sprintf("%s/%s", cwd, rel)
-	}
-
 	Describe("Authorized Keys Loader", func() {
 		It("throws an error when loading authorized keys from a non-existent file", func() {
 			_, err := LoadAuthorizedKeysFromFile("test/enoent")
@@ -164,19 +153,6 @@ var _ = Describe("Agent", func() {
 			Ω(err.Error()).Should(MatchRegexp(`missing required 'restore_key'`))
 		})
 
-		It("errors for a purge payload missing required 'restore_key' field", func() {
-			_, err := ParseCommand([]byte(`
-				{
-					"task_uuid"      : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
-					"operation"      : "purge",
-					"store_plugin"   : "plugin",
-					"store_endpoint" : "endpoint"
-				}
-			`))
-			Ω(err).Should(HaveOccurred())
-			Ω(err.Error()).Should(MatchRegexp(`missing required 'restore_key'`))
-		})
-
 		It("errors for a payload with unsupported 'operation' field", func() {
 			_, err := ParseCommand([]byte(`
 				{
@@ -235,227 +211,6 @@ var _ = Describe("Agent", func() {
 		})
 	})
 
-	Describe("Command Runner", func() {
-		var cmd *Command
-		var a *Agent
-
-		BeforeEach(func() {
-			var err error
-			Ω(err).ShouldNot(HaveOccurred())
-
-			cmd, err = ParseCommand([]byte(`{
-				"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
-				"operation"       : "backup",
-				"compression"     : "bzip2",
-				"target_plugin"   : "` + pathify("test/bin/dummy") + `",
-				"target_endpoint" : "{mode:target,endpoint:config}",
-				"store_plugin"    : "` + pathify("test/bin/dummy") + `",
-				"store_endpoint"  : "{mode:store,endpoint:config}"
-			}`))
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(cmd).ShouldNot(BeNil())
-
-			a = &Agent{
-				PluginPaths: []string{"test/plugins/dir", "test/plugins"},
-			}
-		})
-
-		collect := func(out chan string, in chan string) {
-			var stdout []string
-			var stderr []string
-			var other []string
-
-			for {
-				s, ok := <-in
-				if !ok {
-					break
-				}
-				switch s[:2] {
-				case "O:":
-					stdout = append(stdout, s[2:])
-				case "E:":
-					stderr = append(stderr, s[2:])
-				default:
-					other = append(other, s)
-				}
-			}
-			out <- strings.Join(stdout, "")
-			out <- strings.Join(stderr, "")
-			out <- strings.Join(other, "")
-			close(out)
-		}
-
-		It("works", func() {
-			out := make(chan string)
-			c := make(chan string)
-
-			go collect(out, c)
-			err := a.Execute(cmd, c)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			var s string
-			Eventually(out).Should(Receive(&s)) // stdout
-			Eventually(out).Should(Receive(&s)) // stderr
-			Eventually(out).Should(Receive(&s)) // misc
-		})
-
-		It("works with purge commands", func() {
-			cmd.Op = "purge"
-			cmd.RestoreKey = "fakeKey"
-
-			out := make(chan string)
-			c := make(chan string)
-
-			go collect(out, c)
-
-			err := a.Execute(cmd, c)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			var s string
-			Eventually(out).Should(Receive(&s)) // stdout
-			Expect(s).Should(Equal(""))
-
-			Eventually(out).Should(Receive(&s)) // stderr
-			Expect(s).Should(MatchRegexp(`\Q(dummy) purge:  starting up...\E`))
-			Expect(s).Should(MatchRegexp(`\Q(dummy) purge:  purging data at key [fakeKey]\E`))
-			Expect(s).Should(MatchRegexp(`\Q(dummy) purge:  shutting down...\E`))
-
-			Eventually(out).Should(Receive(&s)) //misc
-			Expect(s).Should(Equal(""))
-		})
-
-		It("collects output from the command pipeline", func() {
-			out := make(chan string)
-			c := make(chan string)
-
-			go collect(out, c)
-			err := a.Execute(cmd, c)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			var s string
-			Eventually(out).Should(Receive(&s)) // stdout
-			// sha1sum value depends on bzip2 compression
-			Ω(s).Should(MatchJSON(`{"compression":"bzip2","key":"9ea61fef3024caadf35dd65d466a41fb51a3c152"}`))
-
-			Eventually(out).Should(Receive(&s)) // stderr
-			Ω(s).Should(MatchRegexp(`\Q(dummy) store:  starting up...\E`))
-			Ω(s).Should(MatchRegexp(`\Q(dummy) backup:  starting up...\E`))
-			Ω(s).Should(MatchRegexp(`\Q(dummy) backup:  shutting down...\E`))
-			Ω(s).Should(MatchRegexp(`\Q(dummy) store:  shutting down...\E`))
-
-			Eventually(out).Should(Receive(&s)) // misc
-			Ω(s).Should(Equal(""))
-		})
-
-		It("handles backup operations with large output", func() {
-			out := make(chan string)
-			c := make(chan string)
-
-			go collect(out, c)
-
-			// big_dummy outputs > 16384 bytes of data
-			cmd.TargetPlugin = "test/bin/big_dummy"
-
-			err := a.Execute(cmd, c)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			var s string
-			Eventually(out).Should(Receive(&s)) // stdout
-			// sha1sum value depends on bzip2 compression
-			Ω(s).Should(MatchJSON(`{"compression":"bzip2","key":"acfd124b56584c471d7e03572fe62222ee4862e9"}`))
-
-			Eventually(out).Should(Receive(&s)) // stderr
-			Eventually(out).Should(Receive(&s)) // misc
-			Ω(s).Should(Equal(""))
-		})
-
-		It("handles restore operations with large output", func() {
-			out := make(chan string)
-			c := make(chan string)
-
-			go collect(out, c)
-
-			// big_dummy outputs > 16384 bytes of data
-			cmd.TargetPlugin = "test/bin/big_dummy"
-			cmd.Op = "restore"
-			cmd.RestoreKey = "some.key"
-
-			err := a.Execute(cmd, c)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			var s string
-			Eventually(out).Should(Receive(&s)) // stdout
-			// sha1sum value depends on bzip2 compression
-			Ω(s).Should(Equal("SHA1SUM of restored data: 5736538c1c1fcae2a7aac709e195c709735b90a7\n"))
-
-			Eventually(out).Should(Receive(&s)) // stderr
-			Eventually(out).Should(Receive(&s)) // misc
-			Ω(s).Should(Equal(""))
-		})
-
-		It("handles non-existent plugin commands for both target and store", func() {
-			out := make(chan string)
-			c := make(chan string)
-
-			go collect(out, c)
-
-			cmd.TargetPlugin = pathify("test/bin/enoent")
-			cmd.StorePlugin = pathify("test/bin/enoent")
-
-			err := a.Execute(cmd, c)
-			Ω(err).Should(HaveOccurred())
-
-			var s string
-			Eventually(out).Should(Receive(&s)) // stdout
-			Ω(s).Should(Equal(""))
-			Eventually(out).Should(Receive(&s)) // stderr
-			Ω(s).ShouldNot(Equal(""))
-			Eventually(out).Should(Receive(&s)) // misc
-			Ω(s).Should(Equal(""))
-		})
-
-		It("handles non-existent plugin commands for just store", func() {
-			out := make(chan string)
-			c := make(chan string)
-
-			go collect(out, c)
-
-			cmd.StorePlugin = pathify("test/bin/enoent")
-
-			err := a.Execute(cmd, c)
-			Ω(err).Should(HaveOccurred())
-
-			var s string
-			Eventually(out).Should(Receive(&s)) // stdout
-			Ω(s).Should(Equal(""))
-			Eventually(out).Should(Receive(&s)) // stderr
-			Ω(s).ShouldNot(Equal(""))
-			Eventually(out).Should(Receive(&s)) // misc
-			Ω(s).Should(Equal(""))
-		})
-
-		It("handles non-existent plugin commands for just target", func() {
-			out := make(chan string)
-			c := make(chan string)
-
-			go collect(out, c)
-
-			cmd.TargetPlugin = pathify("test/bin/enoent")
-
-			err := a.Execute(cmd, c)
-			Ω(err).Should(HaveOccurred())
-
-			var s string
-			Eventually(out).Should(Receive(&s)) // stdout
-			Skip("bin/shield-pipe/Run() needs some more work to suppress output in case of failure?")
-			Ω(s).Should(Equal(""))
-			Eventually(out).Should(Receive(&s)) // stderr
-			Ω(s).ShouldNot(Equal(""))
-			Eventually(out).Should(Receive(&s)) // misc
-			Ω(s).Should(Equal(""))
-		})
-	})
-
 	Describe("Agent configuration file", func() {
 		It("Requires an authorized_keys_file", func() {
 			ag := NewAgent()
@@ -485,65 +240,6 @@ var _ = Describe("Agent", func() {
 			ag := NewAgent()
 			err := ag.ReadConfig("test/plugin_scalar_test.conf")
 			Ω(err).Should(HaveOccurred())
-		})
-	})
-
-	Describe("SSH Server", func() {
-		Endpoint := "127.0.0.1:9122"
-		var ag *Agent
-		var client *Client
-
-		BeforeEach(func() {
-			var err error
-
-			ag = NewAgent()
-			err = ag.ReadConfig("test/test.conf")
-			Ω(err).ShouldNot(HaveOccurred())
-			//---STAWP
-			cconfig, err := ConfigureSSHClient("test/identities/a/id_rsa")
-			Ω(err).Should(BeNil())
-			Ω(cconfig).ShouldNot(BeNil())
-			client = NewClient(cconfig)
-			Ω(client).ShouldNot(BeNil())
-
-			go ag.ServeOne(ag.Listen, false)
-		})
-
-		collect := func(out chan string, in chan string) {
-			var buf []string
-			for {
-				s, ok := <-in
-				if !ok {
-					break
-				}
-				buf = append(buf, s)
-			}
-			out <- strings.Join(buf, "")
-			close(out)
-		}
-
-		It("handles valid agent-request messages across the session channel", func() {
-			err := client.Dial(Endpoint)
-			Ω(err).ShouldNot(HaveOccurred())
-			defer client.Close()
-
-			final := make(chan string)
-			partial := make(chan string)
-
-			go collect(final, partial)
-			err = client.Run(partial, `{
-				"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
-				"operation"       : "backup",
-				"target_plugin"   : "dummy",
-				"target_endpoint" : "TARGET-ENDPOINT",
-				"store_plugin"    : "dummy",
-				"store_endpoint"  : "STORE-ENDPOINT"
-			}`)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			var s string
-			Eventually(final).Should(Receive(&s))
-			Ω(s).ShouldNot(Equal(""))
 		})
 	})
 })
