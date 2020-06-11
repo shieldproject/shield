@@ -5,7 +5,6 @@ bbr-director
 cassandra
 consul
 consul-snapshot
-docker-postgres
 etcd
 fs
 google
@@ -14,7 +13,6 @@ mongo
 mysql
 postgres
 rabbitmq-broker
-redis-broker
 s3
 ssg
 swift
