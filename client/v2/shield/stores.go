@@ -151,7 +151,7 @@ func (c *Client) FindGlobalStore(q string, fuzzy bool) (*Store, error) {
 func (c *Client) CreateGlobalStore(in *Store) (*Store, error) {
 	fixupStoreRequest(in)
 	var out *Store
-	if err := c.post(fmt.Sprintf("/v2/global/stores"), in, &out); err != nil {
+	if err := c.post("/v2/global/stores", in, &out); err != nil {
 		return nil, err
 	}
 	fixupStoreResponse(out)
