@@ -45,8 +45,6 @@ USAGE: @G{shield} tasks --tenant @Y{TENANT}
                    @M{agent-status}      Retrieve health and metadata
                                      from a single SHIELD agent.
 
-                   @M{analyze-storage}   Process global storage usage.
-
 
       --active   Only show tasks that are still running (@W{active}),
     --inactive   or that are no longer running (@W{inactive}).

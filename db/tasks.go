@@ -15,7 +15,6 @@ const (
 	RestoreOperation        = "restore"
 	ShieldRestoreOperation  = "shield-restore"
 	AgentStatusOperation    = "agent-status"
-	AnalyzeStorageOperation = "analyze-storage"
 
 	PendingStatus   = "pending"
 	ScheduledStatus = "scheduled"

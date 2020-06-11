@@ -1480,8 +1480,6 @@ func ShowHelp(command string) {
 		fmt.Printf("                   @M{agent-status}      Retrieve health and metadata\n")
 		fmt.Printf("                                     from a single SHIELD agent.\n")
 		fmt.Printf("\n")
-		fmt.Printf("                   @M{analyze-storage}   Process global storage usage.\n")
-		fmt.Printf("\n")
 		fmt.Printf("\n")
 		fmt.Printf("      --active   Only show tasks that are still running (@W{active}),\n")
 		fmt.Printf("    --inactive   or that are no longer running (@W{inactive}).\n")
