@@ -210,8 +210,7 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 	caCertPool := x509.NewCertPool()
 
 	if caCert != "" {
-		check := caCertPool.AppendCertsFromPEM([]byte(caCert))
-		if check != true {
+		if !caCertPool.AppendCertsFromPEM([]byte(caCert)) {
 			plugin.DEBUG("CA cert did't parse right.\n")
 		}
 
