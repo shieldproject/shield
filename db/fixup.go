@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/jhunt/go-log"
-
-	"github.com/shieldproject/shield/timespec"
 )
 
 type Fixup struct {
@@ -69,116 +67,6 @@ var fixups map[string]*Fixup
 
 func init() {
 	fixups = make(map[string]*Fixup)
-
-	fixups["purge-task-516"] = &Fixup{
-		Name:      "Re-schedule Failed Purge Tasks",
-		CreatedAt: time.Date(2019, 05, 14, 15, 54, 00, 0, time.UTC).Unix(),
-		Summary: `There was an issue in versions of SHIELD between 8.1.0 and 8.2.0, where purge tasks would fail, but still mark the archive as having been removed from cloud storage.  This caused SHIELD to never retry the purge operation, leading to ever-increasing usage of cloud storage.
-
-This fixup resets the "purged" status on archives that do **not** have a successful purge operation task attached to them.
-
-See [issue #516](https://github.com/shieldproject/shield/issues/516) in GitHub for details.`,
-		fn: func(db *DB) error {
-			/* look through all archives with status = 'purged',
-			   and then cross-ref with all tasks, looking for those
-			   without any op=purge/status=done attached.
-
-			   set those archives to 'expired' */
-
-			return db.Exec(`
-				UPDATE archives
-				   SET status = 'expired'
-				 WHERE status = 'purged'
-				   AND uuid NOT IN (SELECT archive_uuid
-				                      FROM tasks
-				                     WHERE op     = 'purge'
-				                       AND status = 'done')`)
-		},
-	}
-
-	fixups["agent-status-task-tenant-uuid-522"] = &Fixup{
-		Name:      "Associate Orphaned agent-status Tasks with Global Tenant",
-		CreatedAt: time.Date(2019, 05, 15, 12, 32, 00, 0, time.UTC).Unix(),
-		Summary: `There was an issue in versions of SHIELD prior to 8.2.0, where ` + "`" + `agent-status` + "`" + ` tasks were inserted into the database with an empty tenant UUID.
-
-This renders them inaccessible to the ` + "`" + `/v2/tasks/:uuid` + "`" + ` endpoint, which drives the ` + "`" + `shield task $uuid` + "`" + ` command.
-
-This fixup re-associates all agent-status tasks with the global tenant UUID, to fix that.
-
-See [issue #522](https://github.com/shieldproject/shield/issues/522) in GitHub for details.`,
-		fn: func(db *DB) error {
-			return db.Exec(`
-				UPDATE tasks
-				   SET tenant_uuid = ?
-				 WHERE tenant_uuid = ''
-				   AND op          = 'agent-status'`, GlobalTenantUUID)
-		},
-	}
-
-	fixups["keep-n-460"] = &Fixup{
-		Name:      "Job Keep-N=0 Fix",
-		CreatedAt: time.Date(2019, 05, 15, 15, 43, 00, 0, time.UTC).Unix(),
-		Summary: `The holistic ` + "`" + `/v2/tenants/systems/...` + "`" + ` API handlers were incorrectly skipping the calculation and population of the number of kept backups, leading to front-end display of jobs created via the Web UI (only) that claim to be keeping "0 backups / X days".
-
-This has been fixed as of 8.2.0, and this data fixup re-calculates the "keep-n" attribute of all jobs that were affected.
-
-See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub for details.`,
-		fn: func(db *DB) error {
-			var uuids []string
-			err := db.exclusively(func() error {
-				r, err := db.query(`
-					SELECT uuid
-					  FROM jobs
-					 WHERE keep_n = 0`)
-				if err != nil {
-					return fmt.Errorf("unable to retrieve jobs with keep_n == 0: %s", err)
-				}
-
-				for r.Next() {
-					var uuid string
-					if err = r.Scan(&uuid); err != nil {
-						r.Close()
-						return fmt.Errorf("unable to retrieve jobs with keep_n == 0: %s", err)
-					}
-
-					uuids = append(uuids, uuid)
-				}
-				r.Close()
-				return nil
-			})
-			if err != nil {
-				return err
-			}
-
-			for _, uuid := range uuids {
-				job, err := db.GetJob(uuid)
-				if err != nil {
-					return fmt.Errorf("unable to retrieve job '%s': %s", uuid, err)
-				}
-				if job == nil {
-					return fmt.Errorf("unable to retrieve job '%s': not found in database.", uuid)
-				}
-
-				sched, err := timespec.Parse(job.Schedule)
-				if err != nil {
-					log.Errorf("failed to parse job schedule '%s': %s", job.Schedule, err)
-					continue
-				}
-				job.KeepN = sched.KeepN(job.KeepDays)
-				err = db.UpdateJob(job)
-				if err != nil {
-					log.Errorf("failed to apply UpdateJob fixup: %s", err)
-					continue
-				}
-			}
-			return nil
-		},
-	}
-
-	/* put the IDs back in so that we don't have to do it manually */
-	for id, f := range fixups {
-		f.ID = id
-	}
 }
 
 func (db *DB) GetAllFixups(filter *FixupFilter) ([]*Fixup, error) {
@@ -219,7 +107,7 @@ func (db *DB) GetFixup(id string) (*Fixup, error) {
 }
 
 func (db *DB) ApplyFixups() error {
-	db.Exec(`DELETE FROM fixups WHERE id = ""`)
+	db.Exec(`DELETE FROM fixups WHERE id = ''`)
 
 	for _, f := range fixups {
 		if existing, err := db.GetFixup(f.ID); err != nil {

@@ -172,7 +172,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --name FAST \
           --schedule 'every minute' \
           --paused \
-          --store    s3 \
+          --store    S3 \
           --target   "System #427/a01" \
           --retain   1d  \
     2>&1 | indent4
@@ -182,7 +182,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --name Weekly \
           --schedule 'sundays at 2:45am' \
           --paused \
-          --store    s3 \
+          --store    S3 \
           --target   "System #427/a02" \
           --retain   14d \
     2>&1 | indent4
@@ -192,7 +192,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --name Weekly \
           --schedule 'sundays at 3am' \
           --paused \
-          --store    s3 \
+          --store    S3 \
           --target   "System #427/a03" \
           --retain   14d \
     2>&1 | indent4
@@ -202,7 +202,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --name     Daily \
           --schedule 'daily 4:10am' \
           --paused \
-          --store    s3 \
+          --store    S3 \
           --target   "System #427/a02" \
           --retain   1d \
     2>&1 | indent4
@@ -212,7 +212,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --name     Daily \
           --schedule 'daily 4:20am' \
           --paused \
-          --store    s3 \
+          --store    S3 \
           --target   "System #427/a03" \
           --retain   1d \
     2>&1 | indent4
@@ -222,7 +222,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --name     Daily \
           --schedule 'daily 4:30am' \
           --paused \
-          --store    s3 \
+          --store    S3 \
           --target   "System #427/a04" \
           --retain   1d \
     2>&1 | indent4
@@ -232,7 +232,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --name     Daily \
           --schedule 'daily 4:40am' \
           --paused \
-          --store    s3 \
+          --store    S3 \
           --target   "System #427/a05" \
           --retain   1d \
     2>&1 | indent4

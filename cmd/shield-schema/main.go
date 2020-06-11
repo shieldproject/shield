@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/jhunt/go-cli"
 	"github.com/jhunt/go-log"
 
-	// sql drivers
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 
 	"github.com/shieldproject/shield/db"
 )
@@ -43,7 +43,8 @@ func main() {
 		fmt.Printf("  -D, --debug      Enable debugging output.\n")
 		fmt.Printf("  -v, --version    Display the SHIELD version.\n")
 		fmt.Printf("\n")
-		fmt.Printf("  -d, --database   Path to the SQLite3 database file.\n")
+		fmt.Printf("  -d, --database   The PostgreSQL data source name (DSN)\n")
+		fmt.Printf("                   (i.e. postgres://user:password@host/db?sslmode=...)\n")
 		fmt.Printf("  -r, --revision   What version of the SHIELD schema\n")
 		fmt.Printf("                   to deploy.  Defaults to latest.\n")
 		fmt.Printf("\n")
@@ -73,7 +74,7 @@ func main() {
 		Level: level,
 	})
 
-	log.Debugf("connecting to database at %s", opts.Database)
+	log.Debugf("connecting to database at %s", sanitize(opts.Database))
 	database, err := db.Connect(opts.Database)
 	if err != nil {
 		log.Errorf("failed to connect to database at %s: %s",
@@ -98,4 +99,28 @@ func main() {
 	}
 
 	log.Infof("deployed schema version %d", deployed)
+}
+
+func sanitize(s string) string {
+	re := regexp.MustCompile(`(.*:\/\/.*?:)(.*?)(@.*)`)
+	if m := re.FindStringSubmatch(s); m != nil {
+		replace := m[1]
+		for range m[2] {
+			replace += "*"
+		}
+		replace += m[3]
+		return replace
+	}
+
+	re = regexp.MustCompile(`(.*\bpassword=)(.*?)(\s.+)?$`)
+	if m := re.FindStringSubmatch(s); m != nil {
+		replace := m[1]
+		for range m[2] {
+			replace += "*"
+		}
+		replace += m[3]
+		return replace
+	}
+
+	return s
 }

@@ -42,7 +42,6 @@ func (db *DB) Setup(want int) (int, error) {
 			return 0, err
 		}
 	}
-
 	versions := schemaVersions()
 
 	for _, version := range versions {

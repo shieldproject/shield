@@ -56,7 +56,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 			wheres = append(wheres, "a.uuid = ?")
 			args = append(args, f.UUID)
 		} else {
-			wheres = append(wheres, "a.uuid LIKE ? ESCAPE '/'")
+			wheres = append(wheres, "a.uuid::text LIKE ?")
 			args = append(args, PatternPrefix(f.UUID))
 		}
 	}

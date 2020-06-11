@@ -69,7 +69,7 @@ func (f *UserFilter) Query() (string, []interface{}) {
 			args = append(args, f.UUID)
 		} else {
 
-			wheres = append(wheres, "u.uuid LIKE ? ESCAPE '/'")
+			wheres = append(wheres, "u.uuid::text LIKE ?")
 			args = append(args, PatternPrefix(f.UUID))
 		}
 	}

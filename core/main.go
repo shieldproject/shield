@@ -6,6 +6,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/jhunt/go-log"
@@ -74,7 +75,6 @@ func (c Core) Main() {
 }
 
 func (c *Core) PrintConfiguration() {
-	log.Infof("CONFIG | data directory:    '%s'", c.Config.DataDir)
 	log.Infof("CONFIG | web root:          '%s'", c.Config.WebRoot)
 	if len(c.Config.PluginPaths) == 0 {
 		log.Infof("CONFIG | plugin paths:      (none)")
@@ -103,6 +103,30 @@ func (c *Core) PrintConfiguration() {
 	log.Infof("")
 }
 
+func sanitize(s string) string {
+	re := regexp.MustCompile(`(.*:\/\/.*?:)(.*?)(@.*)`)
+	if m := re.FindStringSubmatch(s); m != nil {
+		replace := m[1]
+		for range m[2] {
+			replace += "*"
+		}
+		replace += m[3]
+		return replace
+	}
+
+	re = regexp.MustCompile(`(.*\bpassword=)(.*?)(\s.+)?$`)
+	if m := re.FindStringSubmatch(s); m != nil {
+		replace := m[1]
+		for range m[2] {
+			replace += "*"
+		}
+		replace += m[3]
+		return replace
+	}
+
+	return s
+}
+
 func (c *Core) ConnectToDatabase() {
 	log.Infof("INITIALIZING: connecting to the database...")
 	if c.db != nil {
@@ -110,8 +134,8 @@ func (c *Core) ConnectToDatabase() {
 		return
 	}
 
-	log.Debugf("connecting to database at %s...", c.DataFile("shield.db"))
-	db, err := db.Connect(c.DataFile("shield.db"))
+	log.Debugf("connecting to database at %s...", sanitize(c.Config.Database))
+	db, err := db.Connect(c.Config.Database)
 	c.MaybeTerminate(err)
 	c.db = db
 

@@ -80,7 +80,7 @@ func (f *JobFilter) Query() (string, []interface{}) {
 			wheres = []string{"j.uuid = ?"}
 			args = append(args, f.UUID)
 		} else {
-			wheres = []string{"j.uuid LIKE ? ESCAPE '/'"}
+			wheres = []string{"j.uuid::text LIKE ?"}
 			args = append(args, PatternPrefix(f.UUID))
 		}
 	}
@@ -97,7 +97,7 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	}
 
 	if len(wheres) == 0 {
-		wheres = []string{"1"}
+		wheres = []string{"true"}
 	} else if len(wheres) > 1 {
 		wheres = []string{strings.Join(wheres, " OR ")}
 	}
@@ -129,10 +129,10 @@ func (f *JobFilter) Query() (string, []interface{}) {
 
 	return `
 	   WITH recent_tasks AS (
-	           SELECT uuid AS task_uuid, job_uuid, started_at, status
+	           SELECT DISTINCT ON (job_uuid) uuid, job_uuid, started_at, status
 	             FROM tasks
 	            WHERE stopped_at IS NOT NULL
-	         GROUP BY job_uuid
+	         ORDER BY job_uuid ASC, started_at DESC
 	        )
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,

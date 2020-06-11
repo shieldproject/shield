@@ -1,14 +1,9 @@
 package db
 
-import (
-	"fmt"
-)
-
 type v4Schema struct{}
 
 func (s v4Schema) Deploy(db *DB) error {
 	var err error
-
 	// Set up Multi-Tenancy
 	err = db.Exec(`CREATE TABLE tenants (
 	                 uuid              UUID PRIMARY KEY,
@@ -41,27 +36,27 @@ func (s v4Schema) Deploy(db *DB) error {
 	if err != nil {
 		return err
 	}
-	err = db.Exec(fmt.Sprintf("ALTER TABLE jobs ADD tenant_uuid UUID NOT NULL DEFAULT '%s'", tenant))
+	err = db.Exec("ALTER TABLE jobs ADD tenant_uuid UUID")
 	if err != nil {
 		return err
 	}
-	err = db.Exec(fmt.Sprintf("ALTER TABLE stores ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
+	err = db.Exec("ALTER TABLE stores ADD tenant_uuid UUID")
 	if err != nil {
 		return err
 	}
-	err = db.Exec(fmt.Sprintf("ALTER TABLE retention ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
+	err = db.Exec("ALTER TABLE retention ADD tenant_uuid UUID")
 	if err != nil {
 		return err
 	}
-	err = db.Exec(fmt.Sprintf("ALTER TABLE archives ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
+	err = db.Exec("ALTER TABLE archives ADD tenant_uuid UUID")
 	if err != nil {
 		return err
 	}
-	err = db.Exec(fmt.Sprintf("ALTER TABLE tasks ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
+	err = db.Exec("ALTER TABLE tasks ADD tenant_uuid UUID")
 	if err != nil {
 		return err
 	}
-	err = db.Exec(fmt.Sprintf("ALTER TABLE targets ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
+	err = db.Exec("ALTER TABLE targets ADD tenant_uuid UUID")
 	if err != nil {
 		return err
 	}
@@ -96,7 +91,7 @@ func (s v4Schema) Deploy(db *DB) error {
 	               paused             BOOLEAN,
 	               name               TEXT,
 	               summary            TEXT,
-				   fixed_key          INTEGER DEFAULT 0
+				   fixed_key          BOOLEAN DEFAULT FALSE
 	             )`)
 	if err != nil {
 		return err
@@ -155,7 +150,7 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN fixed_key INT NOT NULL DEFAULT 0`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN fixed_key BOOLEAN NOT NULL DEFAULT FALSE`)
 	if err != nil {
 		return err
 	}
@@ -184,7 +179,7 @@ func (s v4Schema) Deploy(db *DB) error {
 	                 sysrole       VARCHAR(100) NOT NULL DEFAULT '',
 
 	                 -- user-managed settings
-	                 default_tenant  UUID DEFAULT '',
+	                 default_tenant  UUID DEFAULT '00000000-0000-0000-0000-000000000000'::uuid,
 
 	                 UNIQUE (account, backend)
 	               )`)
@@ -217,12 +212,12 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE stores ADD COLUMN daily_increase INTEGER DEFAULT NULL`)
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN daily_increase BIGINT DEFAULT NULL`)
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE stores ADD COLUMN storage_used INTEGER DEFAULT NULL`)
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN storage_used BIGINT DEFAULT NULL`)
 	if err != nil {
 		return err
 	}
@@ -232,7 +227,7 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE stores ADD COLUMN threshold INTEGER DEFAULT NULL`)
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN threshold BIGINT DEFAULT NULL`)
 	if err != nil {
 		return err
 	}
@@ -242,7 +237,7 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE stores ADD COLUMN last_test_task_uuid BOOLEAN DEFAULT NULL`)
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN last_test_task_uuid UUID DEFAULT NULL`)
 	if err != nil {
 		return err
 	}

@@ -70,7 +70,7 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 			wheres = append(wheres, "s.uuid = ?")
 			args = append(args, f.UUID)
 		} else {
-			wheres = append(wheres, "s.uuid LIKE ? ESCAPE '/'")
+			wheres = append(wheres, "s.uuid::text LIKE ?")
 			args = append(args, PatternPrefix(f.UUID))
 		}
 	}
@@ -86,7 +86,7 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	}
 
 	if len(wheres) == 0 {
-		wheres = []string{"1"}
+		wheres = []string{"true"}
 	} else if len(wheres) > 1 {
 		wheres = []string{strings.Join(wheres, " OR ")}
 	}
@@ -275,13 +275,13 @@ func (db *DB) CreateStore(store *Store) (*Store, error) {
 		return db.exec(`
 		   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent,
 		                       plugin, endpoint,
-		                       threshold, healthy, last_test_task_uuid)
+		                       threshold, healthy)
 		               VALUES (?, ?, ?, ?, ?,
 		                       ?, ?,
-		                       ?, ?, ?)`,
+		                       ?, ?)`,
 			store.UUID, store.TenantUUID, store.Name, store.Summary, store.Agent,
 			store.Plugin, string(rawconfig),
-			store.Threshold, store.Healthy, store.LastTestTaskUUID)
+			store.Threshold, store.Healthy)
 	})
 	if err != nil {
 		return nil, err
@@ -399,7 +399,7 @@ func (db *DB) CleanStores() error {
 	return db.Exec(`
 	   DELETE FROM stores
 	         WHERE uuid IN (SELECT uuid
-	                          FROM stores s WHERE tenant_uuid = ''
+	                          FROM stores s WHERE tenant_uuid = NULL
 	                           AND (SELECT COUNT(*)
 	                                  FROM archives a
 	                                 WHERE a.store_uuid = s.uuid

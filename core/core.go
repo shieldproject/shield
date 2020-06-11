@@ -55,6 +55,7 @@ type SsgUpdateInfo struct {
 type Config struct {
 	Debug          bool     `yaml:"debug"          env:"SHIELD_DEBUG"`
 	DataDir        string   `yaml:"data-dir"       env:"SHIELD_DATA_DIR"`
+	Database       string   `yaml:"database"       env:"SHIELD_DATABASE"`
 	WebRoot        string   `yaml:"web-root"       env:"SHIELD_WEB_ROOT"`
 	PluginPaths    []string `yaml:"plugin_paths"`
 	PluginPathsEnv string   `yaml:"-"              env:"SHIELD_PLUGIN_PATHS"`

@@ -8,6 +8,7 @@ import (
 
 	"github.com/jhunt/go-log"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"github.com/pborman/uuid"
 
 	"github.com/shieldproject/shield/core/bus"
@@ -27,7 +28,7 @@ type DB struct {
 // Connect to the backend database
 func Connect(file string) (*DB, error) {
 	db := &DB{
-		Driver: "sqlite3",
+		Driver: "postgres",
 		DSN:    file,
 	}
 
@@ -173,7 +174,7 @@ func (db *DB) exclusively(fn func() error) error {
 }
 
 func (db *DB) transactionally(fn func() error) error {
-	return db.exclusively(func () (err error) {
+	return db.exclusively(func() (err error) {
 		log.Infof("beginning transaction...")
 		if err = db.exec("BEGIN TRANSACTION"); err != nil {
 			return

@@ -82,7 +82,7 @@ EOF
 
   set -e
   echo ">> Setting up SHIELD schema"
-  ./shield-schema -d "${DATA_DIRECTORY}/shield.db"
+  ./shield-schema -d "${SHIELD_DATABASE}"
   echo
 
   echo ">> RUNNING SHIELDD"

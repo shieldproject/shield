@@ -117,7 +117,7 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 			wheres = append(wheres, "t.uuid = ?")
 			args = append(args, f.UUID)
 		} else {
-			wheres = append(wheres, "t.uuid LIKE ? ESCAPE '/'")
+			wheres = append(wheres, "t.uuid::text LIKE ?")
 			args = append(args, PatternPrefix(f.UUID))
 		}
 	}
@@ -527,12 +527,12 @@ func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
 	id := RandomID()
 	err = db.Exec(`
        INSERT INTO tasks (uuid, op, status, log, requested_at,
-                          tenant_uuid, agent, attempts, owner, tenant_uuid)
+                          tenant_uuid, agent, attempts, owner)
     
                   VALUES (?, ?, ?, ?, ?,
-                          ?, ?, ?, ?, ?)`,
+                          ?, ?, ?, ?)`,
 		id, AgentStatusOperation, PendingStatus, "", time.Now().Unix(),
-		GlobalTenantUUID, agent.Address, 0, owner, "",
+		GlobalTenantUUID, agent.Address, 0, owner,
 	)
 
 	if err != nil {
@@ -831,7 +831,7 @@ func (db *DB) MarkTasksIrrelevant() error {
         AND uuid IN (
           SELECT tasks.uuid FROM tasks
             INNER JOIN jobs ON jobs.uuid = tasks.job_uuid
-                 WHERE jobs.keepdays * 86400 + tasks.started_at < ?`, time.Now().Unix())
+                 WHERE jobs.keep_days * 86400 + tasks.started_at < ?)`, time.Now().Unix())
 
 	if err != nil {
 		return err
@@ -878,7 +878,7 @@ func (db *DB) archiveShouldExist(uuid string) error {
 
 func (db *DB) TruncateTaskLogs(age int) error {
 	return db.Exec(`
-       UPDATE tasks SET log = "(log truncated)"
+       UPDATE tasks SET log = '(log truncated)'
                   WHERE stopped_at IS NOT NULL
                     AND stopped_at < ?`,
 		(int)(time.Now().Unix())-age)

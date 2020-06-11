@@ -31,6 +31,7 @@ require (
 	github.com/jhunt/shield-storage-gateway v0.0.0-20200521135823-ceb24ff0859d
 	github.com/jmoiron/sqlx v0.0.0-20160615151803-bdae0c3219c3
 	github.com/kurin/blazer v0.5.1
+	github.com/lib/pq v1.6.0
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-shellwords v1.0.0
 	github.com/mattn/go-sqlite3 v1.1.1-0.20161028142218-86681de00ade

@@ -64,7 +64,7 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 			wheres = append(wheres, "t.uuid = ?")
 			args = append(args, f.UUID)
 		} else {
-			wheres = append(wheres, "t.uuid LIKE ? ESCAPE '/'")
+			wheres = append(wheres, "t.uuid::text LIKE ?")
 			args = append(args, PatternPrefix(f.UUID))
 		}
 	}
@@ -80,7 +80,7 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 	}
 
 	if len(wheres) == 0 {
-		wheres = []string{"1"}
+		wheres = []string{"true"}
 	} else if len(wheres) > 1 {
 		wheres = []string{strings.Join(wheres, " OR ")}
 	}
@@ -320,7 +320,7 @@ func (db *DB) CleanTargets() error {
 	   DELETE FROM targets
 	         WHERE uuid in (SELECT uuid
 	                          FROM targets t
-	                         WHERE tenant_uuid = ''
+	                         WHERE tenant_uuid = NULL
 	                           AND (SELECT COUNT(*)
 	                                  FROM archives a
 	                                 WHERE a.target_uuid = t.uuid

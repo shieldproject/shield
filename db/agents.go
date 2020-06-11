@@ -53,7 +53,7 @@ func (f *AgentFilter) Query() (string, []interface{}) {
 			wheres = []string{"a.uuid = ?"}
 			args = []interface{}{f.UUID}
 		} else {
-			wheres = []string{"a.uuid LIKE ? ESCAPE '/'"}
+			wheres = []string{"a.uuid::text LIKE ?"}
 			args = []interface{}{PatternPrefix(f.UUID)}
 		}
 	}

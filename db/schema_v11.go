@@ -24,9 +24,9 @@ func (s v11Schema) Deploy(db *DB) error {
                     keep_days          INTEGER NOT NULL DEFAULT 0,
                     next_run           INTEGER DEFAULT 0,
                     priority           INTEGER DEFAULT 50,
-                    paused             BOOLEAN NOT NULL DEFAULT 0,
-                    fixed_key          INTEGER DEFAULT 0,
-                    healthy            BOOLEAN NOT NULL DEFAULT 0
+                    paused             BOOLEAN NOT NULL DEFAULT false,
+                    fixed_key          BOOLEAN DEFAULT FALSE,
+                    healthy            BOOLEAN NOT NULL DEFAULT false
                 )`)
 	if err != nil {
 		return err
@@ -36,7 +36,7 @@ func (s v11Schema) Deploy(db *DB) error {
                             next_run, priority, paused, fixed_key, healthy)
                     SELECT j.uuid, j.target_uuid, j.store_uuid, j.tenant_uuid,
                             j.name, j.summary, j.schedule, j.keep_n, j.keep_days,
-                            j.next_run, j.priority, IFNULL(j.paused, 0), j.fixed_key, 0
+                            j.next_run, j.priority, COALESCE(j.paused, false), j.fixed_key, false
                         FROM jobs j`)
 	if err != nil {
 		return err
