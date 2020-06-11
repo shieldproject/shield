@@ -14,11 +14,7 @@ format:
 	go list ./... | grep -v vendor | xargs go fmt
 
 # Running Tests
-test: go-tests api-tests plugin-tests
-plugin-tests: plugins
-	go build ./plugin/mock
-	./t/plugins
-	@rm -f mock
+test: go-tests api-tests
 go-tests: shield
 	go list ./... | grep -v vendor/ | PATH=$$PWD:$$PWD/bin:$$PWD/test/bin:$$PATH xargs go test -race
 api-tests: shieldd shield-schema shield-agent
