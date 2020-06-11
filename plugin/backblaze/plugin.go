@@ -187,10 +187,7 @@ func (p BackblazePlugin) Store(in io.Reader, log io.Writer, endpoint plugin.Shie
 		return "", 0, err
 	}
 
-	var size int64
-	size = 1024
-
-	return path, size, nil
+	return path, 1024, nil // FIXME hard-coded size returned
 }
 
 func (p BackblazePlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
