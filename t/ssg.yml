@@ -1,0 +1,14 @@
+---
+cluster: testdev
+bind: ':8080'
+controlTokens: [integration-control]
+monitorTokens: [integration-monitor]
+buckets:
+  - key: snapshots
+    name: Cloud Storage
+    compression: none
+    encryption: none
+    provider:
+      kind: fs
+      fs:
+        root: /snapshots

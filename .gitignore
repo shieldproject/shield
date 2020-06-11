@@ -68,6 +68,9 @@ oauth.conf
 oauth.key
 oauth.key.pub
 
+# ignore files created by the ssg
+/t/data/ssg
+
 # ignore the compiled assets for demo docker
 demo/shield-agent/in
 demo/shield-core/in

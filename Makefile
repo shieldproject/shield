@@ -42,7 +42,6 @@ help.all: cmd/shield/main.go
 # Building Plugins
 plugin: plugins
 plugins:
-	go $(BUILD_TYPE) ./plugin/dummy
 	@for plugin in $$(cat plugins); do \
 		echo building plugin $$plugin/$$plugin...; \
 		go $(BUILD_TYPE) ./plugin/$$plugin/$$plugin; \
@@ -55,7 +54,6 @@ demo: clean shield plugins
 
 clean:
 	rm -f shield shieldd shield-agent shield-schema
-	rm -f $$(cat plugins) dummy
 
 
 # Assemble the CLI help with some assistance from our friend, Perl

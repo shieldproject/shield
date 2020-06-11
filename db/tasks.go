@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	BackupOperation         = "backup"
-	RestoreOperation        = "restore"
-	ShieldRestoreOperation  = "shield-restore"
-	AgentStatusOperation    = "agent-status"
+	BackupOperation        = "backup"
+	RestoreOperation       = "restore"
+	ShieldRestoreOperation = "shield-restore"
+	AgentStatusOperation   = "agent-status"
 
 	PendingStatus   = "pending"
 	ScheduledStatus = "scheduled"
@@ -114,7 +114,7 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 
 	if f.UUID != "" {
 		if f.ExactMatch {
-			wheres = append(wheres, "t.uuid = ?")
+			wheres = append(wheres, "t.uuid::text = ?")
 			args = append(args, f.UUID)
 		} else {
 			wheres = append(wheres, "t.uuid::text LIKE ?")

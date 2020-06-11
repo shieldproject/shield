@@ -492,17 +492,15 @@ func (c *Core) TasksToChores() {
 					continue
 				}
 				ep := struct {
-					URL           string `json:"url"`
-					Path          string `json:"path"`
-					UploadID      string `json:"upload_id"`
-					UploadToken   string `json:"upload_token"`
-					DownloadID    string `json:"download_id"`
-					DownloadToken string `json:"download_token"`
+					URL         string `json:"url"`
+					Path        string `json:"path"`
+					UploadID    string `json:"upload_id"`
+					UploadToken string `json:"upload_token"`
 				}{
-					URL:         uploadInfo.url,
-					Path:        uploadInfo.path,
-					UploadID:    uploadInfo.uploadInfo.ID,
-					UploadToken: uploadInfo.uploadInfo.Token,
+					URL:         uploadInfo.Gateway,
+					Path:        uploadInfo.Path,
+					UploadID:    uploadInfo.ID,
+					UploadToken: uploadInfo.Token,
 				}
 				b, err := json.Marshal(ep)
 				if err != nil {
@@ -529,15 +527,12 @@ func (c *Core) TasksToChores() {
 				}
 				ep := struct {
 					URL           string `json:"url"`
-					Path          string `json:"path"`
-					UploadID      string `json:"upload_id"`
-					UploadToken   string `json:"upload_token"`
 					DownloadID    string `json:"download_id"`
 					DownloadToken string `json:"download_token"`
 				}{
-					URL:           downloadInfo.url,
-					DownloadID:    downloadInfo.downloadInfo.ID,
-					DownloadToken: downloadInfo.downloadInfo.Token,
+					URL:           downloadInfo.Gateway,
+					DownloadID:    downloadInfo.ID,
+					DownloadToken: downloadInfo.Token,
 				}
 				b, err := json.Marshal(ep)
 				if err != nil {

@@ -3,7 +3,7 @@ package ssg
 import (
 	"io"
 
-	ssgclient "github.com/jhunt/shield-storage-gateway/client"
+	"github.com/jhunt/ssg/pkg/client"
 	"github.com/shieldproject/shield/plugin"
 )
 
@@ -30,7 +30,7 @@ func (p SsgPlugin) Meta() plugin.PluginInfo {
 }
 
 type SsgConfig struct {
-	Client        *ssgclient.Client
+	Client        *client.Client
 	UploadToken   string
 	DownloadToken string
 	UploadID      string
@@ -50,29 +50,29 @@ func (p SsgPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEn
 	return plugin.UNIMPLEMENTED
 }
 
-func getSsgConfig(e plugin.ShieldEndpoint) (*SsgConfig, error) {
+func getSsgConfig(e plugin.ShieldEndpoint, log io.Writer) (*SsgConfig, error) {
 	url, err := e.StringValue("url")
 	if err != nil {
 		return nil, err
 	}
-	client := ssgclient.NewClient(url)
+	client := client.Client{URL: url}
 
-	uploadToken, err := e.StringValue("upload_token")
+	uploadToken, err := e.StringValueDefault("upload_token", "")
 	if err != nil {
 		return nil, err
 	}
 
-	downloadToken, err := e.StringValue("download_token")
+	downloadToken, err := e.StringValueDefault("download_token", "")
 	if err != nil {
 		return nil, err
 	}
 
-	uploadID, err := e.StringValue("upload_id")
+	uploadID, err := e.StringValueDefault("upload_id", "")
 	if err != nil {
 		return nil, err
 	}
 
-	downloadID, err := e.StringValue("download_id")
+	downloadID, err := e.StringValueDefault("download_id", "")
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func getSsgConfig(e plugin.ShieldEndpoint) (*SsgConfig, error) {
 	}
 
 	return &SsgConfig{
-		Client:        client,
+		Client:        &client,
 		UploadToken:   uploadToken,
 		DownloadToken: downloadToken,
 		UploadID:      uploadID,
@@ -93,12 +93,12 @@ func getSsgConfig(e plugin.ShieldEndpoint) (*SsgConfig, error) {
 }
 
 func (p SsgPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	ssgConfig, err := getSsgConfig(endpoint)
+	ssgConfig, err := getSsgConfig(endpoint, log)
 	if err != nil {
 		return "", 0, err
 	}
 
-	size, err := ssgConfig.Client.Upload(ssgConfig.UploadID, ssgConfig.UploadToken, in, true)
+	size, err := ssgConfig.Client.Put(ssgConfig.UploadID, ssgConfig.UploadToken, in, true)
 	if err != nil {
 		return "", 0, err
 	}
@@ -106,7 +106,7 @@ func (p SsgPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndp
 }
 
 func (p SsgPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	ssgConfig, err := getSsgConfig(endpoint)
+	ssgConfig, err := getSsgConfig(endpoint, log)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func (p SsgPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.Shield
 	plugin.Infof("retrieving backup archive\n"+
 		"    from path '%s\n", file)
 
-	in, err := ssgConfig.Client.Download(ssgConfig.DownloadID, ssgConfig.DownloadToken)
+	in, err := ssgConfig.Client.Get(ssgConfig.DownloadID, ssgConfig.DownloadToken)
 	if err != nil {
 		return err
 	}

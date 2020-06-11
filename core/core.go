@@ -21,7 +21,7 @@ import (
 	"github.com/shieldproject/shield/core/scheduler"
 	"github.com/shieldproject/shield/db"
 
-	ssg "github.com/jhunt/shield-storage-gateway/client"
+	ssg "github.com/jhunt/ssg/pkg/client"
 )
 
 type Core struct {
@@ -42,13 +42,6 @@ type Core struct {
 		Color   string `json:"color,omitempty"`
 		MOTD    string `json:"motd,omitempty"`
 	}
-}
-
-type SsgUpdateInfo struct {
-	uploadInfo   *ssg.StreamInfo `json:"ssg_upload_info"`
-	downloadInfo *ssg.StreamInfo `json:"ssg_download_info"`
-	url          string          `json:"ssg_url"`
-	path         string          `json:"ssg_to"`
 }
 
 type Config struct {
@@ -136,10 +129,10 @@ type Config struct {
 	} `yaml:"prometheus"`
 
 	StorageGateway struct {
-		Gateways []string `yaml:"gateways"`
+		GatewayURLs string   `env:"SHIELD_SSG_URLS"`
+		Gateways    []string `yaml:"gateways"`
 
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
+		Token string `yaml:"token"         env:"SHIELD_SSG_TOKEN"`
 	} `yaml:"storage-gateway"`
 }
 
@@ -306,6 +299,17 @@ func Configure(file string, config Config) (*Core, error) {
 		}
 	}
 
+	if c.Config.StorageGateway.GatewayURLs != "" {
+		c.Config.StorageGateway.GatewayURLs = strings.TrimSpace(c.Config.StorageGateway.GatewayURLs)
+		c.Config.StorageGateway.Gateways = strings.Split(c.Config.StorageGateway.GatewayURLs, ",")
+	} else {
+		return nil, fmt.Errorf("No ssg urls found")
+	}
+
+	if c.Config.StorageGateway.Token == "" {
+		return nil, fmt.Errorf("No ssg control token provided")
+	}
+
 	/* set up information for /v2/info and /init.js */
 	c.info.API = 2
 	c.info.Version = Version
@@ -381,7 +385,14 @@ func (c *Core) FabricFor(task *db.Task) (fabric.Fabric, error) {
 	return fabric.Legacy(task.Agent, c.Config.LegacyAgents.cc, c.db), nil
 }
 
-func (c *Core) GatedUpload(uuid string, tries int) (*SsgUpdateInfo, error) {
+type StreamInfo struct {
+	Gateway string
+	ID      string
+	Token   string
+	Path    string
+}
+
+func (c *Core) GatedUpload(uuid string, tries int) (*StreamInfo, error) {
 	choices := make([]string, len(c.Config.StorageGateway.Gateways))
 	for i, url := range c.Config.StorageGateway.Gateways {
 		choices[i] = url
@@ -392,29 +403,33 @@ func (c *Core) GatedUpload(uuid string, tries int) (*SsgUpdateInfo, error) {
 	for i := 0; i < tries && i < len(choices); i++ {
 		url := choices[i]
 
-		cc := ssg.NewControlClient(url, c.Config.StorageGateway.Username, c.Config.StorageGateway.Password)
+		cc := ssg.Client{
+			URL:          url,
+			ControlToken: c.Config.StorageGateway.Token,
+		}
 		t := time.Now()
 		year, mon, day := t.Date()
 		hour, min, sec := t.Clock()
-		backupPath := fmt.Sprintf("%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", year, mon, day, year, mon, day, hour, min, sec, uuid)
+		backupPath := fmt.Sprintf("ssg://testdev/snapshots/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", year, mon, day, year, mon, day, hour, min, sec, uuid)
 
-		uploadInfo, err := cc.StartUpload(backupPath)
+		uploadInfo, err := cc.NewUpload(backupPath)
 		if err != nil {
 			log.Errorf("Connection to ssg failed, %d times tried: %s", i, err)
 			continue
 		}
 
-		return &SsgUpdateInfo{
-			uploadInfo: uploadInfo,
-			url:        url,
-			path:       backupPath,
+		return &StreamInfo{
+			Gateway: url,
+			ID:      uploadInfo.ID,
+			Path:    uploadInfo.Canon,
+			Token:   uploadInfo.Token,
 		}, nil
 	}
 
 	return nil, fmt.Errorf("no reachable storage gateway found")
 }
 
-func (c *Core) GatedDownload(from string, tries int) (*SsgUpdateInfo, error) {
+func (c *Core) GatedDownload(from string, tries int) (*StreamInfo, error) {
 	choices := make([]string, len(c.Config.StorageGateway.Gateways))
 	for i, url := range c.Config.StorageGateway.Gateways {
 		choices[i] = url
@@ -422,23 +437,28 @@ func (c *Core) GatedDownload(from string, tries int) (*SsgUpdateInfo, error) {
 	l := sort.StringSlice(choices)
 	rand.Shuffle(l.Len(), l.Swap)
 
+	if from == "" {
+		return nil, fmt.Errorf("restore key not found")
+	}
+
 	for i := 0; i < tries && i < len(choices); i++ {
 		url := choices[i]
 
-		cc := ssg.NewControlClient(url, c.Config.StorageGateway.Username, c.Config.StorageGateway.Password)
-
-		if from == "" {
-			return nil, fmt.Errorf("restore key not found")
+		cc := ssg.Client{
+			URL:          url,
+			ControlToken: c.Config.StorageGateway.Token,
 		}
-		info, err := cc.StartDownload(from)
+
+		info, err := cc.NewDownload(from)
 		if err != nil {
 			log.Errorf("Connection to ssg failed, %d times tried: %s", i, err)
 			continue
 		}
 
-		return &SsgUpdateInfo{
-			downloadInfo: info,
-			url:          url,
+		return &StreamInfo{
+			Gateway: url,
+			ID:      info.ID,
+			Token:   info.Token,
 		}, nil
 	}
 	return nil, fmt.Errorf("no reachable storage gateway found")
@@ -452,16 +472,19 @@ func (c *Core) GatedPurge(file string, tries int) error {
 	l := sort.StringSlice(choices)
 	rand.Shuffle(l.Len(), l.Swap)
 
+	if file == "" {
+		return fmt.Errorf("purge key not found")
+	}
+
 	for i := 0; i < tries && i < len(choices); i++ {
 		url := choices[i]
 
-		cc := ssg.NewControlClient(url, c.Config.StorageGateway.Username, c.Config.StorageGateway.Password)
-
-		if file == "" {
-			return fmt.Errorf("purge key not found")
+		cc := ssg.Client{
+			URL:          url,
+			ControlToken: c.Config.StorageGateway.Token,
 		}
 
-		err := cc.DeleteFile(file)
+		err := cc.Expunge(file)
 		if err != nil {
 			log.Errorf("Connection to ssg failed, %d times tried: %s", i, err)
 			continue

@@ -28,6 +28,7 @@ type Agent struct {
 		Interval     int
 		ShieldCACert string
 		SkipVerify   bool
+		Endpoint     string
 	}
 }
 

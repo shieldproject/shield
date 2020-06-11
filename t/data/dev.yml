@@ -1,0 +1,146 @@
+---
+  
+global:
+  storage:
+    - name: Globus
+      summary: |
+        Global Storage, for use by any and all
+      agent:  agent:5444
+      plugin: ssg
+  
+users:
+  - name:        Administrator
+    username:    admin
+    password:    password
+    sysrole:     admin
+    tenants:
+      - name:    Other Tenant
+        role:    admin
+  - name:        Engineer
+    username:    engineer
+    password:    engineer
+    sysrole:     engineer       
+  - name:     Road Runner
+    username: rrunner
+    password: password
+    tenants:
+      - name: Acme, Inc.
+        role: admin
+      - name: Other Tenant
+        role: operator
+  - name:     Wile E. Coyote
+    username: wcoyote
+    password: password
+    tenants:
+      - name:  Acme, Inc.
+        role:  engineer
+      - name:  Other Tenant
+        role:  operator
+  - name:      Chuck Jones
+    username:  cjones
+    password:  password
+    tenants:
+      - name:  Acme, Inc.
+        role:  operator
+      - name:  Other Tenant
+        role:  operator
+
+tenants:
+  - name: Acme, Inc.
+    storage:
+      - name: CloudStor
+        summary: |
+          ssg storage
+        agent:  agent:5444
+        plugin: ssg
+    systems:
+      - name: 'System #427/a01'
+        agent: agent:5444
+        plugin: fs
+        config: 
+          base_dir: /tmp
+        jobs:
+          - name: FAST
+            when: every minute
+            storage: CloudStor
+            retain: 1d
+      - name: 'System #427/a02'
+        agent: agent:5444
+        plugin: fs
+        config: 
+          base_dir: /tmp
+        jobs:
+          - name: Weekly
+            when: sundays at 2:45am
+            storage: CloudStor
+            retain: 14d
+          - name: Daily
+            when: daily 4:10am
+            storage: CloudStor
+            retain: 1d
+      - name: 'System #427/a03'
+        agent: agent:5444
+        plugin: fs
+        config: 
+          base_dir: /tmp
+        jobs:
+          - name: Weekly
+            when: sundays at 3am
+            
+            storage: CloudStor
+            retain: 14d
+          - name: Daily
+            when: daily 4:20am
+            storage: CloudStor
+            retain: 1d
+      - name: 'System #427/a04'
+        agent: agent:5444
+        plugin: fs
+        config: 
+          base_dir: /tmp
+        jobs:
+          - name: Daily
+            when: daily 4:30am
+            storage: CloudStor
+            retain: 1d
+      - name: 'System #427/a05'
+        agent: agent:5444
+        plugin: fs
+        config: 
+          base_dir: /tmp
+        jobs:
+          - name: Daily
+            when: daily 4:40am
+            storage: CloudStor
+            retain: 1d
+  - name: Other Tenant
+    storage:
+      - name: CloudStor
+        summary: |
+          A temporary ssg store for the dev environment.
+        agent:  agent:5444
+        plugin: ssg
+    systems:
+      - name: 'SHIELD'
+        agent: agent:5444
+        plugin: fs
+        config: 
+          base_dir: /tmp
+        jobs:
+          - name: Hourly
+            when: hourly at :05
+            storage: CloudStor
+            retain: 2d
+        jobs:
+          - name: Hourly
+            when: hourly at :10
+            storage: CloudStor
+            retain: 2d
+        jobs:
+          - name: Hourly
+            when: hourly at :15
+            storage: CloudStor
+            retain: 2d
+        
+    
+    

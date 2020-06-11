@@ -53,7 +53,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 	var args []interface{}
 	if f.UUID != "" {
 		if f.ExactMatch {
-			wheres = append(wheres, "a.uuid = ?")
+			wheres = append(wheres, "a.uuid::text = ?")
 			args = append(args, f.UUID)
 		} else {
 			wheres = append(wheres, "a.uuid::text LIKE ?")

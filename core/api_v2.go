@@ -1607,20 +1607,24 @@ func (c *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("POST /v2/agents", func(r *route.Request) { // {{{
 		var in struct {
-			Name  string `json:"name"`
-			Port  int    `json:"port"`
-			Token string `json:"token"`
+			Name     string `json:"name"`
+			Port     int    `json:"port"`
+			Token    string `json:"token"`
+			Endpoint string `json:"endpoint"`
 		}
 		if !r.Payload(&in) {
 			return
 		}
 
-		peer := regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.Header.Get("X-Forwarded-For"), "")
+		peer := in.Endpoint
 		if peer == "" {
-			peer = regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.RemoteAddr, "")
+			peer = regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.Header.Get("X-Forwarded-For"), "")
 			if peer == "" {
-				r.Fail(route.Oops(nil, "Unable to determine remote peer address from '%s'", r.Req.RemoteAddr))
-				return
+				peer = regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.RemoteAddr, "")
+				if peer == "" {
+					r.Fail(route.Oops(nil, "Unable to determine remote peer address from '%s'", r.Req.RemoteAddr))
+					return
+				}
 			}
 		}
 

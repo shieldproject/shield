@@ -77,7 +77,7 @@ func (f *JobFilter) Query() (string, []interface{}) {
 
 	if f.UUID != "" {
 		if f.ExactMatch {
-			wheres = []string{"j.uuid = ?"}
+			wheres = []string{"j.uuid::text = ?"}
 			args = append(args, f.UUID)
 		} else {
 			wheres = []string{"j.uuid::text LIKE ?"}

@@ -1,0 +1,53 @@
+version: '3'
+services:
+  db:
+    image: 'postgres'
+    environment:
+      POSTGRES_PASSWORD: 'password'
+      POSTGRES_DB: 'shield'
+      
+  ssg:
+    image: 'huntprod/ssg'
+    command: ['server']
+    volumes: 
+      - '$PWD/t/ssg.yml:/etc/ssg/ssg.yml'
+      - '$PWD/t/data/ssg:/snapshots'
+
+  core:
+    depends_on: 
+      - db
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports: ['9009:80']
+    command: ['/shield/init/core']
+    environment:
+      SHIELD_API_BIND: core:80
+      SHIELD_DATABASE: "postgres://postgres:password@db/shield?sslmode=disable"
+      SHIELD_LEGACY_AGENTS_REGISTRATION_TOKEN: yo-yo-im-an-agent
+      SHIELD_SSG_URLS: http://ssg:8080
+      SHIELD_SSG_TOKEN: integration-control
+    volumes:
+      - 'shield-data:/var/shield'
+      - 'shield-etc:/etc/shield'
+
+  agent:
+    depends_on:
+      - core
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports: [5444]
+    command: ['/shield/init/agent']
+    environment:
+      SHIELD_API:        'http://core:80'
+      SHIELD_AGENT_NAME: 'demo-shield-agent'
+      SHIELD_AGENT_REGISTRATION_TOKEN: yo-yo-im-an-agent
+      SHIELD_AGENT_REGISTRATION_ENDPOINT: agent
+    volumes:
+      - 'shield-data:/var/shield'
+      - 'shield-etc:/etc/shield'
+
+volumes:
+  shield-data:
+  shield-etc:

@@ -65,7 +65,7 @@ func (f *UserFilter) Query() (string, []interface{}) {
 
 	if f.UUID != "" {
 		if f.ExactMatch {
-			wheres = append(wheres, "u.uuid = ?")
+			wheres = append(wheres, "u.uuid::text = ?")
 			args = append(args, f.UUID)
 		} else {
 

@@ -29,6 +29,7 @@ type Config struct {
 	Registration       struct {
 		Token        string `yaml:"token"           env:"SHIELD_AGENT_REGISTRATION_TOKEN"`
 		URL          string `yaml:"url"             env:"SHIELD_AGENT_REGISTRATION_URL"`
+		Endpoint     string `yaml:"endpoint"        env:"SHIELD_AGENT_REGISTRATION_ENDPOINT"`
 		Interval     int    `yaml:"interval"        env:"SHIELD_AGENT_REGISTRATION_INTERVAL"`
 		ShieldCACert string `yaml:"shield_ca_cert"  env:"SHIELD_AGENT_REGISTRATION_SHIELD_CA_CERT"`
 		SkipVerify   bool   `yaml:"skip_verify"     env:"SHIELD_AGENT_REGISTRATION_SKIP_VERIFY"`
@@ -132,6 +133,7 @@ func (agent *Agent) ReadConfig(path string) error {
 	agent.Registration.Token = config.Registration.Token
 	agent.Registration.Interval = config.Registration.Interval
 	agent.Registration.SkipVerify = config.Registration.SkipVerify
+	agent.Registration.Endpoint = config.Registration.Endpoint
 
 	if config.Registration.ShieldCACert != "" {
 		if !strings.HasPrefix(config.Registration.ShieldCACert, "---") {

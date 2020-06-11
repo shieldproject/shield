@@ -44,13 +44,15 @@ func (agent *Agent) Ping() {
 	ping := func() {
 		log.Debugf("pinging shield core")
 		var params = struct {
-			Name  string `json:"name"`
-			Port  int    `json:"port"`
-			Token string `json:"token"`
+			Name     string `json:"name"`
+			Port     int    `json:"port"`
+			Token    string `json:"token"`
+			Endpoint string `json:"endpoint"`
 		}{
-			Name:  agent.Name,
-			Port:  agent.Port,
-			Token: agent.Registration.Token,
+			Name:     agent.Name,
+			Port:     agent.Port,
+			Token:    agent.Registration.Token,
+			Endpoint: agent.Registration.Endpoint,
 		}
 		b, err := json.Marshal(params)
 		if err != nil {

@@ -299,7 +299,10 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		// restore key and the size of the archive.
 		wg.Add(1)
 		go func() {
-			defer wg.Done()
+			defer func() {
+				inputStream.Close()
+				wg.Done()
+			}()
 			key, size, err := pS.Store(inputStream, logWriterStream, storeEndpoint)
 			if err != nil {
 				errors <- fmt.Errorf("store operation failed: %s", err)
@@ -364,7 +367,10 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		// target system.
 		wg.Add(1)
 		go func() {
-			defer wg.Done()
+			defer func() {
+				inputStream.Close()
+				wg.Done()
+			}()
 			err = pT.Restore(inputStream, logWriterStream, targetEndpoint)
 			if err != nil {
 				errors <- fmt.Errorf("restore operation failed: %s", err)

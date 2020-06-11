@@ -50,7 +50,7 @@ func (f *AgentFilter) Query() (string, []interface{}) {
 
 	if f.UUID != "" {
 		if f.ExactMatch {
-			wheres = []string{"a.uuid = ?"}
+			wheres = []string{"a.uuid::text = ?"}
 			args = []interface{}{f.UUID}
 		} else {
 			wheres = []string{"a.uuid::text LIKE ?"}
