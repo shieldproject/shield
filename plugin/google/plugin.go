@@ -1,13 +1,13 @@
 package google
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	fmt "github.com/jhunt/go-ansi"
-	"golang.org/x/oauth2"
 	oauthgoogle "golang.org/x/oauth2/google"
 	"google.golang.org/api/storage/v1"
 
@@ -242,9 +242,9 @@ func (gcs GoogleConnectionInfo) Connect() (*storage.Service, error) {
 		if err != nil {
 			return nil, err
 		}
-		storageClient = storageJwtConf.Client(oauth2.NoContext)
+		storageClient = storageJwtConf.Client(context.Background())
 	} else {
-		storageClient, err = oauthgoogle.DefaultClient(oauth2.NoContext, storage.DevstorageFullControlScope)
+		storageClient, err = oauthgoogle.DefaultClient(context.Background(), storage.DevstorageFullControlScope)
 		if err != nil {
 			return nil, err
 		}
