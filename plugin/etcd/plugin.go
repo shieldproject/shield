@@ -451,7 +451,7 @@ func (p EtcdPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldE
 		lineBuffer := []byte{}
 		lineBuffer = append(lineBuffer, line...)
 		for buffer {
-			partLine := []byte{}
+			var partLine []byte
 			partLine, buffer, err = reader.ReadLine()
 			if err == io.EOF {
 				break
