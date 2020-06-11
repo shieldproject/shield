@@ -52,8 +52,6 @@ var _ = Describe("tenant Management", func() {
 		Tenant3 = &Tenant{UUID: "b1d6eeeb-1235-4c93-8800-f5c44ee50f1b"}
 		AdminUser = &User{UUID: "4cedd497-9af4-484d-a0b2-b79bdb46223f"}
 		OtherUser = &User{UUID: "e0122b8b-0ca7-480e-a5d8-40aab7e5e8cb"}
-		AdminUser = AdminUser
-		OtherUser = OtherUser
 
 		db, err = Database(
 			// need a target1
