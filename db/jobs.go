@@ -12,11 +12,11 @@ import (
 type Job struct {
 	TenantUUID string `json:"-" mbus:"tenant_uuid"`
 	TargetUUID string `json:"-" mbus:"target_uuid"`
-	StoreUUID  string `json:"-" mbus:"store_uuid"`
 
 	UUID     string `json:"uuid"      mbus:"uuid"`
 	Name     string `json:"name"      mbus:"name"`
 	Summary  string `json:"summary"   mbus:"summary"`
+	Bucket   string `json:"bucket"    mbus:"bucket"`
 	KeepN    int    `json:"keep_n"    mbus:"keep_n"`
 	KeepDays int    `json:"keep_days" mbus:"keep_days"`
 	Schedule string `json:"schedule"  mbus:"schedule"`
@@ -33,18 +33,6 @@ type Job struct {
 		Endpoint string                 `json:"endpoint,omitempty"`
 		Config   map[string]interface{} `json:"config,omitempty"`
 	} `json:"target"`
-
-	Store struct {
-		UUID    string `json:"uuid"`
-		Name    string `json:"name"`
-		Agent   string `json:"agent"`
-		Plugin  string `json:"plugin"`
-		Summary string `json:"summary"`
-		Healthy bool   `json:"healthy"`
-
-		Endpoint string                 `json:"endpoint,omitempty"`
-		Config   map[string]interface{} `json:"config,omitempty"`
-	} `json:"store"`
 
 	Agent string `json:"agent"`
 
@@ -67,7 +55,7 @@ type JobFilter struct {
 
 	ForTenant  string
 	ForTarget  string
-	ForStore   string
+	ForBucket  string
 	ExactMatch bool
 }
 
@@ -110,9 +98,9 @@ func (f *JobFilter) Query() (string, []interface{}) {
 		wheres = append(wheres, "j.target_uuid = ?")
 		args = append(args, f.ForTarget)
 	}
-	if f.ForStore != "" {
-		wheres = append(wheres, "j.store_uuid = ?")
-		args = append(args, f.ForStore)
+	if f.ForBucket != "" {
+		wheres = append(wheres, "j.bucket = ?")
+		args = append(args, f.ForBucket)
 	}
 	if f.SkipPaused || f.SkipUnpaused {
 		wheres = append(wheres, "j.paused = ?")
@@ -135,14 +123,12 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	         ORDER BY job_uuid ASC, started_at DESC
 	        )
 
-	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
+	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.bucket,
 	          j.tenant_uuid, j.fixed_key, j.healthy, j.keep_n, j.keep_days,
-	          s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
 	          t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression,
 	          k.started_at, k.status
 
 	     FROM jobs j
-	          INNER JOIN stores       s  ON  s.uuid = j.store_uuid
 	          INNER JOIN targets      t  ON  t.uuid = j.target_uuid
 	          LEFT  JOIN recent_tasks k  ON  j.uuid = k.job_uuid
 
@@ -171,9 +157,8 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 			status sql.NullString
 		)
 		if err = r.Scan(
-			&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
+			&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &j.Bucket,
 			&j.TenantUUID, &j.FixedKey, &j.Healthy, &j.KeepN, &j.KeepDays,
-			&j.Store.UUID, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
 			&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
 			&j.Agent, &j.Target.Compression, &last, &status); err != nil {
 			return l, err
@@ -185,7 +170,6 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 			j.LastTaskStatus = status.String
 		}
 
-		j.StoreUUID = j.Store.UUID
 		j.TargetUUID = j.Target.UUID
 		l = append(l, j)
 	}
@@ -243,11 +227,6 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 			return fmt.Errorf("unable to create job: %s", err)
 		}
 
-		/* validate the store */
-		if err := db.storeShouldExist(job.StoreUUID); err != nil {
-			return fmt.Errorf("unable to create job: %s", err)
-		}
-
 		/* validate the target */
 		if err := db.targetShouldExist(job.TargetUUID); err != nil {
 			return fmt.Errorf("unable to create job: %s", err)
@@ -256,13 +235,13 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 		return db.Exec(`
 		   INSERT INTO jobs (uuid, tenant_uuid,
 		                     name, summary, schedule, keep_n, keep_days, paused,
-		                     target_uuid, store_uuid, fixed_key, healthy)
+		                     target_uuid, bucket, fixed_key, healthy)
 		             VALUES (?, ?,
 		                     ?, ?, ?, ?, ?, ?,
 		                     ?, ?, ?, ?)`,
 			job.UUID, job.TenantUUID,
 			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays, job.Paused,
-			job.TargetUUID, job.StoreUUID, job.FixedKey, job.Healthy)
+			job.TargetUUID, job.Bucket, job.FixedKey, job.Healthy)
 	})
 	if err != nil {
 		return nil, err
@@ -282,13 +261,6 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 
 func (db *DB) UpdateJob(job *Job) error {
 	err := db.exclusively(func() error {
-		/* validate the store */
-		if ok, err := db.Exists(`SELECT uuid FROM stores WHERE uuid = ?`, job.StoreUUID); err != nil {
-			return fmt.Errorf("unable to validate existence of store with UUID [%s]: %s", job.StoreUUID, err)
-		} else if !ok {
-			return fmt.Errorf("unable to set job store to [%s]: no such store in database", job.StoreUUID)
-		}
-
 		/* validate the target */
 		if ok, err := db.Exists(`SELECT uuid FROM targets WHERE uuid = ?`, job.TargetUUID); err != nil {
 			return fmt.Errorf("unable to validate existence of target with UUID [%s]: %s", job.TargetUUID, err)
@@ -304,11 +276,11 @@ func (db *DB) UpdateJob(job *Job) error {
 		          keep_n         = ?,
 		          keep_days      = ?,
 		          target_uuid    = ?,
-		          store_uuid     = ?,
+		          bucket         = ?,
 		          fixed_key      = ?
 		    WHERE uuid = ?`,
 			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays,
-			job.TargetUUID, job.StoreUUID, job.FixedKey,
+			job.TargetUUID, job.Bucket, job.FixedKey,
 			job.UUID)
 	})
 	if err != nil {

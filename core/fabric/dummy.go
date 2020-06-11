@@ -32,9 +32,6 @@ func (f DummyFabric) Backup(task *db.Task) scheduler.Chore {
 			chore.Errorf("DUMMY>   target plugin:   '%s'", task.TargetPlugin)
 			chore.Errorf("DUMMY>   target endpoint: '%s'", task.TargetEndpoint)
 			chore.Errorf("DUMMY>")
-			chore.Errorf("DUMMY>   store plugin:    '%s'", task.StorePlugin)
-			chore.Errorf("DUMMY>   store endpoint:  '%s'", task.StoreEndpoint)
-			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY>   compression:     '%s'", task.Compression) // FIXME
 			f.Sleep()
 			chore.Errorf("DUMMY>")
@@ -56,9 +53,6 @@ func (f DummyFabric) Restore(task *db.Task) scheduler.Chore {
 			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY>   target plugin:   '%s'", task.TargetPlugin)
 			chore.Errorf("DUMMY>   target endpoint: '%s'", task.TargetEndpoint)
-			chore.Errorf("DUMMY>")
-			chore.Errorf("DUMMY>   store plugin:    '%s'", task.StorePlugin)
-			chore.Errorf("DUMMY>   store endpoint:  '%s'", task.StoreEndpoint)
 			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY>   compression:     '%s'", task.Compression) // FIXME
 			f.Sleep()

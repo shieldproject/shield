@@ -32,17 +32,7 @@ type Job struct {
 		Config   map[string]interface{} `json:"config,omitempty"`
 	} `json:"target"`
 
-	StoreUUID string `json:"-"`
-	Store     struct {
-		UUID    string `json:"uuid"`
-		Name    string `json:"name"`
-		Agent   string `json:"agent"`
-		Plugin  string `json:"plugin"`
-		Summary string `json:"summary"`
-
-		Endpoint string                 `json:"endpoint,omitempty"`
-		Config   map[string]interface{} `json:"config,omitempty"`
-	} `json:"store"`
+	Bucket string `json:"bucket"`
 
 	AgentHost string `json:"-"`
 	AgentPort int    `json:"-"`
@@ -52,7 +42,7 @@ type JobFilter struct {
 	UUID   string `qs:"uuid"`
 	Fuzzy  bool   `qs:"exact:f:t"`
 	Name   string `qs:"name"`
-	Store  string `qs:"store"`
+	Bucket string `qs:"bucket"`
 	Target string `qs:"target"`
 	Paused *bool  `qs:"paused:t:f"`
 }
@@ -118,7 +108,7 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 		Schedule string `json:"schedule"`
 		Retain   string `json:"retain"`
 		Paused   bool   `json:"paused"`
-		Store    string `json:"store"`
+		Bucket   string `json:"bucket"`
 		Target   string `json:"target"`
 		FixedKey bool   `json:"fixed_key"`
 	}{
@@ -128,7 +118,7 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 		Retain:   job.Retain,
 		Paused:   job.Paused,
 		Target:   job.TargetUUID,
-		Store:    job.StoreUUID,
+		Bucket:   job.Bucket,
 		FixedKey: job.FixedKey,
 	}
 	if err := c.post(fmt.Sprintf("/v2/tenants/%s/jobs", parent.UUID), in, &out); err != nil {
@@ -144,7 +134,7 @@ func (c *Client) UpdateJob(parent *Tenant, job *Job) (*Job, error) {
 		Summary  string `json:"summary,omitempty"`
 		Schedule string `json:"schedule,omitempty"`
 		Retain   string `json:"retain,omitempty"`
-		Store    string `json:"store,omitempty"`
+		Bucket   string `json:"bucket,omitempty"`
 		Target   string `json:"target,omitempty"`
 		FixedKey bool   `json:"fixed_key"`
 	}{
@@ -153,7 +143,7 @@ func (c *Client) UpdateJob(parent *Tenant, job *Job) (*Job, error) {
 		Schedule: job.Schedule,
 		Retain:   job.Retain,
 		Target:   job.TargetUUID,
-		Store:    job.StoreUUID,
+		Bucket:   job.Bucket,
 		FixedKey: job.FixedKey,
 	}
 	if err := c.put(fmt.Sprintf("/v2/tenants/%s/jobs/%s", parent.UUID, job.UUID), in, nil); err != nil {

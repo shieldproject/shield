@@ -74,8 +74,7 @@ var _ = Describe("Agent", func() {
 					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
 					"target_plugin"   : "plugin",
 					"target_endpoint" : "endpoint",
-					"store_plugin"    : "plugin",
-					"store_endpoint"  : "endpoint"
+					"stream":{"url":"http://ssg:8080", "id":"f00", "token":"t0ken", "path":"ssg://foo/bar/file"}
 				}
 			`))
 			Ω(err).Should(HaveOccurred())
@@ -88,8 +87,7 @@ var _ = Describe("Agent", func() {
 					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
 					"operation"       : "backup",
 					"target_endpoint" : "endpoint",
-					"store_plugin"    : "plugin",
-					"store_endpoint"  : "endpoint"
+					"stream":{"url":"http://ssg:8080", "id":"f00", "token":"t0ken", "path":"ssg://foo/bar/file"}
 				}
 			`))
 			Ω(err).Should(HaveOccurred())
@@ -102,55 +100,11 @@ var _ = Describe("Agent", func() {
 					"task_uuid"      : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
 					"operation"      : "backup",
 					"target_plugin"  : "plugin",
-					"store_plugin"   : "plugin",
-					"store_endpoint" : "endpoint"
+					"stream":{"url":"http://ssg:8080", "id":"f00", "token":"t0ken", "path":"ssg://foo/bar/file"}
 				}
 			`))
 			Ω(err).Should(HaveOccurred())
 			Ω(err.Error()).Should(MatchRegexp(`missing required 'target_endpoint' `))
-		})
-
-		It("errors for a payload missing required 'store_plugin' field", func() {
-			_, err := ParseCommand([]byte(`
-				{
-					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
-					"operation"       : "backup",
-					"target_plugin"   : "plugin",
-					"target_endpoint" : "endpoint",
-					"store_endpoint"  : "endpoint"
-				}
-			`))
-			Ω(err).Should(HaveOccurred())
-			Ω(err.Error()).Should(MatchRegexp(`missing required 'store_plugin' `))
-		})
-
-		It("errors for a payload missing required 'store_endpoint' field", func() {
-			_, err := ParseCommand([]byte(`
-				{
-					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
-					"operation"       : "backup",
-					"target_plugin"   : "plugin",
-					"target_endpoint" : "endpoint",
-					"store_plugin"    : "plugin"
-				}
-			`))
-			Ω(err).Should(HaveOccurred())
-			Ω(err.Error()).Should(MatchRegexp(`missing required 'store_endpoint' `))
-		})
-
-		It("errors for a restore payload missing required 'restore_key' field", func() {
-			_, err := ParseCommand([]byte(`
-				{
-					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
-					"operation"       : "restore",
-					"target_plugin"   : "plugin",
-					"target_endpoint" : "endpoint",
-					"store_plugin"    : "plugin",
-					"store_endpoint"  : "endpoint"
-				}
-			`))
-			Ω(err).Should(HaveOccurred())
-			Ω(err.Error()).Should(MatchRegexp(`missing required 'restore_key'`))
 		})
 
 		It("errors for a payload with unsupported 'operation' field", func() {
@@ -159,8 +113,7 @@ var _ = Describe("Agent", func() {
 					"operation":"XYZZY",
 					"target_plugin":"plugin",
 					"target_endpoint":"endpoint",
-					"store_plugin":"plugin",
-					"store_endpoint":"endpoint"
+					"stream":{"url":"http://ssg:8080", "id":"f00", "token":"t0ken", "path":"ssg://foo/bar/file"}
 				}
 			`))
 			Ω(err).Should(HaveOccurred())
@@ -174,8 +127,7 @@ var _ = Describe("Agent", func() {
 					"operation"       : "backup",
 					"target_plugin"   : "t.plugin",
 					"target_endpoint" : "t.endpoint",
-					"store_plugin"    : "s.plugin",
-					"store_endpoint"  : "s.endpoint"
+					"stream":{"url":"http://ssg:8080", "id":"f00", "token":"t0ken", "path":"ssg://foo/bar/file"}
 				}
 			`))
 			Ω(err).ShouldNot(HaveOccurred())
@@ -183,9 +135,6 @@ var _ = Describe("Agent", func() {
 			Ω(cmd.Op).Should(Equal("backup"))
 			Ω(cmd.TargetPlugin).Should(Equal("t.plugin"))
 			Ω(cmd.TargetEndpoint).Should(Equal("t.endpoint"))
-			Ω(cmd.StorePlugin).Should(Equal("s.plugin"))
-			Ω(cmd.StoreEndpoint).Should(Equal("s.endpoint"))
-			Ω(cmd.RestoreKey).Should(Equal(""))
 		})
 
 		It("returns a Command object for a valid restore operation", func() {
@@ -195,9 +144,7 @@ var _ = Describe("Agent", func() {
 					"operation"       : "restore",
 					"target_plugin"   : "t.plugin",
 					"target_endpoint" : "t.endpoint",
-					"store_plugin"    : "s.plugin",
-					"store_endpoint"  : "s.endpoint",
-					"restore_key"     : "r.key"
+					"stream":{"url":"http://ssg:8080", "id":"f00", "token":"t0ken", "path":"ssg://foo/bar/file"}
 				}
 			`))
 			Ω(err).ShouldNot(HaveOccurred())
@@ -205,9 +152,6 @@ var _ = Describe("Agent", func() {
 			Ω(cmd.Op).Should(Equal("restore"))
 			Ω(cmd.TargetPlugin).Should(Equal("t.plugin"))
 			Ω(cmd.TargetEndpoint).Should(Equal("t.endpoint"))
-			Ω(cmd.StorePlugin).Should(Equal("s.plugin"))
-			Ω(cmd.StoreEndpoint).Should(Equal("s.endpoint"))
-			Ω(cmd.RestoreKey).Should(Equal("r.key"))
 		})
 	})
 

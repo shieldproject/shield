@@ -21,11 +21,6 @@ func datauuid(thing interface{}) string {
 	case *Job:
 		return fmt.Sprintf("job [%s]", what.UUID)
 
-	case Store:
-		return fmt.Sprintf("store [%s]", what.UUID)
-	case *Store:
-		return fmt.Sprintf("store [%s]", what.UUID)
-
 	case Target:
 		return fmt.Sprintf("target [%s]", what.UUID)
 	case *Target:
@@ -58,9 +53,6 @@ func datatype(thing interface{}) string {
 
 	case Job, *Job:
 		return "job"
-
-	case Store, *Store:
-		return "store"
 
 	case Target, *Target:
 		return "target"

@@ -3,16 +3,9 @@ package core
 import (
 	"fmt"
 
-	"github.com/jhunt/go-log"
-
 	"github.com/shieldproject/shield/db"
 )
 
-type StorageHealth struct {
-	UUID    string `json:"uuid"`
-	Name    string `json:"name"`
-	Healthy bool   `json:"healthy"`
-}
 type JobHealth struct {
 	UUID    string `json:"uuid"`
 	Target  string `json:"target"`
@@ -25,45 +18,17 @@ type Health struct {
 		Jobs    bool `json:"jobs_ok"`
 	} `json:"health"`
 
-	Storage []StorageHealth `json:"storage"`
-	Jobs    []JobHealth     `json:"jobs"`
+	Jobs []JobHealth `json:"jobs"`
 
 	Stats struct {
-		Jobs     int   `json:"jobs"`
-		Systems  int   `json:"systems"`
-		Archives int   `json:"archives"`
-		Storage  int64 `json:"storage"`
-		Daily    int64 `json:"daily"`
+		Jobs     int `json:"jobs"`
+		Systems  int `json:"systems"`
+		Archives int `json:"archives"`
 	} `json:"stats"`
 }
 
 func (c *Core) checkHealth() (Health, error) {
 	var health Health
-
-	stores, err := c.db.GetAllStores(nil)
-	if err != nil {
-		log.Errorf("Failed to get stores for health tests: %s", err)
-	}
-	health.Health.Storage = true
-	for _, store := range stores {
-		if !store.Healthy {
-			health.Health.Storage = false
-		}
-	}
-
-	if err != nil {
-		return health, fmt.Errorf("failed to retrieve all stores: %s", err)
-	}
-	health.Storage = make([]StorageHealth, len(stores))
-	for i, store := range stores {
-		health.Storage[i].UUID = store.UUID
-		health.Storage[i].Name = store.Name
-		health.Storage[i].Healthy = store.Healthy
-		if !health.Storage[i].Healthy {
-			health.Health.Storage = false
-		}
-	}
-
 	health.Health.Jobs = true
 	jobs, err := c.db.GetAllJobs(nil)
 	if err != nil {
@@ -92,34 +57,12 @@ func (c *Core) checkHealth() (Health, error) {
 		return health, fmt.Errorf("failed to retrieve count of valid archives: %s", err)
 	}
 
-	if health.Stats.Storage, err = c.db.ArchiveStorageFootprint(&db.ArchiveFilter{
-		WithStatus: []string{"valid"},
-	}); err != nil {
-		return health, fmt.Errorf("failed to calcualte storage footprint: %s", err)
-	}
-
-	health.Stats.Daily = 0 // FIXME
 	return health, nil
 }
 
 func (c *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 	var health Health
 	health.Health.Storage = true
-	stores, err := c.db.GetAllStores(&db.StoreFilter{
-		ForTenant: tenantUUID,
-	})
-	if err != nil {
-		return health, err
-	}
-	health.Storage = make([]StorageHealth, len(stores))
-	for i, store := range stores {
-		health.Storage[i].UUID = store.UUID
-		health.Storage[i].Name = store.Name
-		health.Storage[i].Healthy = store.Healthy
-		if !health.Storage[i].Healthy {
-			health.Health.Storage = false
-		}
-	}
 
 	health.Health.Jobs = true
 	jobs, err := c.db.GetAllJobs(&db.JobFilter{
@@ -156,8 +99,6 @@ func (c *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 	}
 
 	health.Stats.Archives = tenant.ArchiveCount
-	health.Stats.Storage = tenant.StorageUsed
-	health.Stats.Daily = tenant.DailyIncrease
 
 	return health, nil
 }

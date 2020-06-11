@@ -8,6 +8,9 @@ import (
 	"sync"
 
 	"github.com/jhunt/go-log"
+	ssg "github.com/jhunt/ssg/pkg/client"
+	"golang.org/x/crypto/ssh"
+
 	"github.com/shieldproject/shield/plugin"
 	"github.com/shieldproject/shield/plugin/cassandra"
 	"github.com/shieldproject/shield/plugin/consul"
@@ -17,22 +20,22 @@ import (
 	"github.com/shieldproject/shield/plugin/mongo"
 	"github.com/shieldproject/shield/plugin/mysql"
 	"github.com/shieldproject/shield/plugin/postgres"
-	"github.com/shieldproject/shield/plugin/ssg"
 	"github.com/shieldproject/shield/plugin/vault"
-	"github.com/shieldproject/shield/plugin/webdav"
 	"github.com/shieldproject/shield/plugin/xtrabackup"
-	"golang.org/x/crypto/ssh"
 )
 
 type Command struct {
 	Op             string `json:"operation"`
 	TargetPlugin   string `json:"target_plugin,omitempty"`
 	TargetEndpoint string `json:"target_endpoint,omitempty"`
-	StorePlugin    string `json:"store_plugin,omitempty"`
-	StoreEndpoint  string `json:"store_endpoint,omitempty"`
-	RestoreKey     string `json:"restore_key,omitempty"`
 	Compression    string `json:"compression,omitempty"` // FIXME
 	TaskUUID       string `json:"task_uuid,omitempty"`
+	Stream         struct {
+		URL   string `json:"url"`
+		ID    string `json:"id"`
+		Token string `json:"token"`
+		Path  string `json:"path,omitempty"`
+	} `json:"stream"`
 }
 
 func ParseCommand(b []byte) (*Command, error) {
@@ -52,11 +55,17 @@ func ParseCommand(b []byte) (*Command, error) {
 			return nil, fmt.Errorf("missing required 'target_endpoint' value in payload")
 		}
 
-		if cmd.StorePlugin == "" {
-			return nil, fmt.Errorf("missing required 'store_plugin' value in payload")
+		if cmd.Stream.URL == "" {
+			return nil, fmt.Errorf("missing required 'stream.url' value in payload")
 		}
-		if cmd.StoreEndpoint == "" {
-			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
+		if cmd.Stream.ID == "" {
+			return nil, fmt.Errorf("missing required 'stream.id' value in payload")
+		}
+		if cmd.Stream.Token == "" {
+			return nil, fmt.Errorf("missing required 'stream.token' value in payload")
+		}
+		if cmd.Stream.Path == "" {
+			return nil, fmt.Errorf("missing required 'stream.path' value in payload")
 		}
 
 	case "restore", "shield-restore":
@@ -67,15 +76,14 @@ func ParseCommand(b []byte) (*Command, error) {
 			return nil, fmt.Errorf("missing required 'target_endpoint' value in payload")
 		}
 
-		if cmd.StorePlugin == "" {
-			return nil, fmt.Errorf("missing required 'store_plugin' value in payload")
+		if cmd.Stream.URL == "" {
+			return nil, fmt.Errorf("missing required 'stream.url' value in payload")
 		}
-		if cmd.StoreEndpoint == "" {
-			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
+		if cmd.Stream.ID == "" {
+			return nil, fmt.Errorf("missing required 'stream.id' value in payload")
 		}
-
-		if cmd.RestoreKey == "" {
-			return nil, fmt.Errorf("missing required 'restore_key' value in payload (for restore operation)")
+		if cmd.Stream.Token == "" {
+			return nil, fmt.Errorf("missing required 'stream.token' value in payload")
 		}
 
 	case "status":
@@ -101,12 +109,12 @@ func ParseCommandFromSSHRequest(r *ssh.Request) (*Command, error) {
 func (c *Command) Details() string {
 	switch c.Op {
 	case "backup":
-		return fmt.Sprintf("backup of target '%s' to store '%s' with task_uuid '%s'",
-			c.TargetPlugin, c.StorePlugin, c.TaskUUID)
+		return fmt.Sprintf("backup of target '%s' with task_uuid '%s'",
+			c.TargetPlugin, c.TaskUUID)
 
 	case "restore":
-		return fmt.Sprintf("restore of [%s] from store '%s' to target '%s'",
-			c.RestoreKey, c.StorePlugin, c.TargetPlugin)
+		return fmt.Sprintf("restore target '%s'",
+			c.TargetPlugin)
 
 	default:
 		return fmt.Sprintf("%s op", c.Op)
@@ -114,14 +122,6 @@ func (c *Command) Details() string {
 }
 
 func (agent *Agent) Execute(c *Command, out chan string) error {
-	//   c.OP                      Operation: either 'backup' or 'restore'
-	//   c.TargetPlugin            Target plugin to use
-	//   c.Targetendpoint          The target endpoint config (probably JSON)
-	//   c.StorePlugin             Store plugin to use
-	//   c.StoreEndpoint           The store endpoint config (probably JSON)
-	//   c.RestoreKey              Archive key for 'restore' operations
-	//   c.Compression             What type of compression to perform
-
 	defer close(out)
 
 	// Select the target plugin.
@@ -161,36 +161,12 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		return fmt.Errorf("unrecognized target plugin %s", c.TargetPlugin)
 	}
 
-	// Select the store plugin.
-	var pS plugin.Plugin
-	switch c.StorePlugin {
-	case "ssg":
-		log.Debugf("ssg plugin selected")
-		pS = ssg.SsgPlugin{}
-	case "webdav":
-		log.Debugf("webdav plugin selected")
-		pS = webdav.WebDAVPlugin{}
-	case "":
-		break
-	default:
-		return fmt.Errorf("unrecognized store plugin %s", c.StorePlugin)
-	}
-
 	// If the target plugin exists parse the endpoint json data.
 	var targetEndpoint plugin.ShieldEndpoint
 	if c.TargetPlugin != "" {
 		err := json.Unmarshal([]byte(c.TargetEndpoint), &targetEndpoint)
 		if err != nil {
 			return fmt.Errorf("error parsing target endpoint json data: %s", err)
-		}
-	}
-
-	// If the store plugin exists parse the endpoint json data.
-	var storeEndpoint plugin.ShieldEndpoint
-	if c.StorePlugin != "" {
-		err := json.Unmarshal([]byte(c.StoreEndpoint), &storeEndpoint)
-		if err != nil {
-			return fmt.Errorf("error parsing store endpoint json data :%s", err)
 		}
 	}
 
@@ -202,7 +178,7 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 
 	// inputStream and outputStream are used by while doing backup, store and
 	// restore, retrieve operations for passing the data between the
-	// the target and the store plugins.
+	// the target and cloud storage.
 	inputStream, outputStream := io.Pipe()
 
 	// logReaderStream and logWriterStream are used by all the plugin functions to
@@ -244,9 +220,7 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 				"mongo":           mongo.New().Meta(),
 				"mysql":           mysql.New().Meta(),
 				"postgres":        postgres.New().Meta(),
-				"ssg":             ssg.New().Meta(),
 				"vault":           vault.New().Meta(),
-				"webdav":          webdav.New().Meta(),
 				"xtrabackup":      xtrabackup.New().Meta(),
 			},
 		}
@@ -265,13 +239,6 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 			break
 		}
 
-		fmt.Fprintf(logWriterStream, "Validating "+c.StorePlugin+" plugin\n")
-		err = pS.Validate(logWriterStream, storeEndpoint)
-		if err != nil {
-			errors <- fmt.Errorf("store plugin validation failed: %s", err)
-			break
-		}
-
 		switch c.Compression {
 		case "compression":
 			fmt.Fprintf(logWriterStream, "Running backup task using compression\n")
@@ -283,29 +250,25 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		// that is being backed-up is written to the outputStream.
 		wg.Add(1)
 		go func() {
-			defer func() {
-				wg.Done()
-				outputStream.Close()
-			}()
-			err = pT.Backup(outputStream, logWriterStream, targetEndpoint)
-			if err != nil {
+			if err = pT.Backup(outputStream, logWriterStream, targetEndpoint); err != nil {
 				errors <- fmt.Errorf("backup operation failed: %s", err)
 			}
+			outputStream.Close()
+			wg.Done()
 		}()
 
-		// This goroutine performs the store function on the store plugin. The
-		// store plugin reads from the inputStream which is continuously getting
-		// data from the outputStream. Once all the data is read, it returns the
-		// restore key and the size of the archive.
+		// This goroutine uploads the archive to the storage gateway.
 		wg.Add(1)
 		go func() {
 			defer func() {
 				inputStream.Close()
 				wg.Done()
 			}()
-			key, size, err := pS.Store(inputStream, logWriterStream, storeEndpoint)
+
+			gw := ssg.Client{URL: c.Stream.URL}
+			size, err := gw.Put(c.Stream.ID, c.Stream.Token, inputStream, true)
 			if err != nil {
-				errors <- fmt.Errorf("store operation failed: %s", err)
+				errors <- fmt.Errorf("store failed: %s", err)
 				return
 			}
 			v := struct {
@@ -313,7 +276,7 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 				Size        int64  `json:"archive_size"`
 				Compression string `json:"compression"`
 			}{
-				Key:         key,
+				Key:         c.Stream.Path,
 				Size:        size,
 				Compression: c.Compression,
 			}
@@ -333,13 +296,6 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 			break
 		}
 
-		fmt.Fprintf(logWriterStream, "Validating "+c.StorePlugin+" plugin\n")
-		err = pS.Validate(logWriterStream, storeEndpoint)
-		if err != nil {
-			errors <- fmt.Errorf("store plugin validation failed: %s", err)
-			break
-		}
-
 		switch c.Compression {
 		case "compression":
 			fmt.Fprintf(logWriterStream, "Running restore task using compression\n")
@@ -347,19 +303,21 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 			fmt.Fprintf(logWriterStream, "Running restore task without compression\n")
 		}
 
-		// This goroutine is retrieving the archive data from the respective store
-		// plugin. The data is being written to outputStream.
+		// This goroutine retrieves the archive data from the storage gateway,
+		// and writes it to outputStream for the target plugin to read.
 		wg.Add(1)
 		errors := make(chan error, 2)
 		go func() {
-			defer func() {
-				wg.Done()
-				outputStream.Close()
-			}()
-			err = pS.Retrieve(outputStream, logWriterStream, storeEndpoint, c.RestoreKey)
+			gw := ssg.Client{URL: c.Stream.URL}
+			dl, err := gw.Get(c.Stream.ID, c.Stream.Token)
 			if err != nil {
-				errors <- fmt.Errorf("could not retrieve from path %s, error: %s", c.RestoreKey, err)
+				errors <- fmt.Errorf("could not retrieve archive: %s", err)
 			}
+
+			io.Copy(outputStream, dl)
+			dl.Close()
+			outputStream.Close()
+			wg.Done()
 		}()
 
 		// This goroutine is reading data from the inputStream which tracks the
@@ -367,14 +325,12 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		// target system.
 		wg.Add(1)
 		go func() {
-			defer func() {
-				inputStream.Close()
-				wg.Done()
-			}()
 			err = pT.Restore(inputStream, logWriterStream, targetEndpoint)
 			if err != nil {
 				errors <- fmt.Errorf("restore operation failed: %s", err)
 			}
+			inputStream.Close()
+			wg.Done()
 		}()
 
 	default:

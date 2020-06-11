@@ -21,6 +21,7 @@ var Schemas = map[int]Schema{
 	10: v10Schema{},
 	11: v11Schema{},
 	12: v12Schema{},
+	13: v13Schema{},
 }
 
 type Schema interface {
@@ -70,7 +71,7 @@ func schemaVersions() []int {
 
 func currentSchema() int {
 	versions := schemaVersions()
-	return int(versions[len(versions)-1:][0])
+	return int(versions[len(versions)-1])
 }
 
 func (db *DB) SchemaVersion() (int, error) {

@@ -178,44 +178,6 @@ func (w *Worker) Execute(chore Chore) {
 			panic(fmt.Errorf("failed to create task archive database record '%s': %s", task.ArchiveUUID, err))
 		}
 
-		w.db.UpdateTaskLog(task.UUID, "\nBACKUP: recalculating cloud storage usage statistics...\n")
-		store, err := w.db.GetStore(task.StoreUUID)
-		if err != nil {
-			log.Errorf("%s: failed to retrieve store from the database: %s", chore, err)
-			w.db.UpdateTaskLog(task.UUID, "WARNING: store usage statistics were NOT updated...\n")
-
-		} else {
-			store.StorageUsed += v.Size
-			store.ArchiveCount += 1
-			store.DailyIncrease += v.Size
-			err := w.db.UpdateStore(store)
-			if err != nil {
-				log.Errorf("%s: failed to update store in the database: %s", chore, err)
-				w.db.UpdateTaskLog(task.UUID, "WARNING: store usage statistics were NOT updated...\n")
-			} else {
-				w.db.UpdateTaskLog(task.UUID, "    ... store usage statistics updated.\n")
-			}
-		}
-
-		tenant, err := w.db.GetTenant(task.TenantUUID)
-		if err != nil {
-			log.Errorf("%s: failed to retrieve tenant from the database: %s", chore, err)
-			w.db.UpdateTaskLog(task.UUID, "WARNING: tenant usage statistics were not updated...\n")
-
-		} else {
-			tenant.StorageUsed += v.Size
-			tenant.ArchiveCount += 1
-			tenant.DailyIncrease += v.Size
-			_, err := w.db.UpdateTenant(tenant)
-			if err != nil {
-				log.Errorf("%s: failed to update tenant in the database: %s", chore, err)
-				w.db.UpdateTaskLog(task.UUID, "WARNING: tenant usage statistics were not updated...\n")
-			} else {
-				w.db.UpdateTaskLog(task.UUID, "    ... tenant usage statistics updated.\n")
-			}
-		}
-		w.db.UpdateTaskLog(task.UUID, "\n\n")
-
 	case db.AgentStatusOperation:
 		agent, err := w.db.GetAgentByAddress(task.Agent)
 		if err != nil {

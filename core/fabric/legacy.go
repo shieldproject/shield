@@ -31,51 +31,62 @@ type Command struct {
 	TargetPlugin   string `json:"target_plugin,omitempty"`
 	TargetEndpoint string `json:"target_endpoint,omitempty"`
 
-	StorePlugin   string `json:"store_plugin,omitempty"`
-	StoreEndpoint string `json:"store_endpoint,omitempty"`
-
 	TaskUUID string `json:"task_uuid,omitempty"`
 
-	RestoreKey string `json:"restore_key,omitempty"`
-
 	Compression string `json:"compression,omitempty"` // FIXME
+
+	Stream struct {
+		URL   string `json:"url"`
+		ID    string `json:"id"`
+		Token string `json:"token"`
+		Path  string `json:"path,omitempty"`
+	} `json:"stream"`
 }
 
 func (f LegacyFabric) Backup(task *db.Task) scheduler.Chore {
 	op := "backup"
 
-	return f.Execute(op, task.UUID, Command{
+	cmd := Command{
 		Op: op,
 
 		TargetPlugin:   task.TargetPlugin,
 		TargetEndpoint: task.TargetEndpoint,
 
-		StorePlugin:   task.StorePlugin,
-		StoreEndpoint: task.StoreEndpoint,
-
 		TaskUUID: task.UUID,
 
 		Compression: task.Compression, // FIXME
-	})
+	}
+
+	err := json.Unmarshal([]byte(task.Stream), &cmd.Stream)
+	if err != nil {
+		log.Errorf("failed to deserialize task [%s] storage stream credentials: %s", task.UUID, err)
+		// let the validation on the agent side fail...
+	}
+
+	return f.Execute(op, task.UUID, cmd)
 }
 
 func (f LegacyFabric) Restore(task *db.Task) scheduler.Chore {
 	op := "restore"
 
-	return f.Execute(op, task.UUID, Command{
+	cmd := Command{
 		Op: op,
 
-		RestoreKey:     task.RestoreKey,
 		TargetPlugin:   task.TargetPlugin,
 		TargetEndpoint: task.TargetEndpoint,
-
-		StorePlugin:   task.StorePlugin,
-		StoreEndpoint: task.StoreEndpoint,
 
 		TaskUUID: task.UUID,
 
 		Compression: task.Compression, // FIXME
-	})
+	}
+
+	err := json.Unmarshal([]byte(task.Stream), &cmd.Stream)
+	if err != nil {
+		log.Errorf("failed to deserialize task [%s] storage stream credentials: %s", task.UUID, err)
+		// let the validation on the agent side fail...
+	}
+
+	return f.Execute(op, task.UUID, cmd)
 }
 
 func (f LegacyFabric) Status(task *db.Task) scheduler.Chore {

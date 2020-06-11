@@ -41,7 +41,7 @@ type v2SystemTask struct {
 	JobUUID     string `json:"job_uuid"`
 	TenantUUID  string `json:"tenant_uuid"`
 	ArchiveUUID string `json:"archive_uuid"`
-	StoreUUID   string `json:"store_uuid"`
+	Bucket      string `json:"bucket"`
 	TargetUUID  string `json:"target_uuid"`
 }
 type v2SystemJob struct {
@@ -51,14 +51,7 @@ type v2SystemJob struct {
 	From        string `json:"from"`
 	To          string `json:"to"`
 	OK          bool   `json:"ok"`
-
-	Store struct {
-		UUID    string `json:"uuid"`
-		Name    string `json:"name"`
-		Summary string `json:"summary"`
-		Plugin  string `json:"plugin"`
-		Healthy bool   `json:"healthy"`
-	} `json:"store"`
+	Bucket      string `json:"bucket"`
 
 	Keep struct {
 		N    int `json:"n"`
@@ -109,8 +102,8 @@ func (c *Core) v2API() *route.Router {
 			/* The currently logged-in user. */
 			User *db.User `json:"user"`
 
-			/* Global storage systems */
-			Stores []*db.Store `json:"stores"`
+			/* Storage buckets */
+			Buckets []bucket `json:"buckets"`
 
 			/* Initial "seed" data for the web UI data layer.
 			   This, combined with the stream of event data that
@@ -126,13 +119,7 @@ func (c *Core) v2API() *route.Router {
 
 		} else if user != nil {
 			out.User = user
-
-			/* retrieve global stores */
-			out.Stores, err = c.db.GetAllStores(&db.StoreFilter{ForTenant: db.GlobalTenantUUID})
-			if err != nil {
-				r.Fail(route.Oops(err, "Unable to retrieve global stores"))
-				return
-			}
+			out.Buckets = c.buckets
 
 			/* retrieve the memberships for this user */
 			memberships, err := c.db.GetMembershipsForUser(user.UUID)
@@ -153,6 +140,13 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		r.OK(out)
+	})
+	// }}}
+	r.Dispatch("GET /v2/buckets", func(r *route.Request) { // {{{
+		if c.IsNotAuthenticated(r) {
+			return
+		}
+		r.OK(c.buckets)
 	})
 	// }}}
 	r.Dispatch("GET /v2/health", func(r *route.Request) { // {{{
@@ -199,7 +193,6 @@ func (c *Core) v2API() *route.Router {
 			Agent string `json:"agent"`
 
 			Tenant  *named   `json:"tenant,omitempty"`
-			Store   *named   `json:"store,omitempty"`
 			System  *named   `json:"system,omitempty"`
 			Job     *job     `json:"job,omitempty"`
 			Archive *archive `json:"archive,omitempty"`
@@ -216,7 +209,6 @@ func (c *Core) v2API() *route.Router {
 			Agent  string `json:"agent"`
 
 			Tenant  *named   `json:"tenant,omitempty"`
-			Store   *named   `json:"store,omitempty"`
 			System  *named   `json:"system,omitempty"`
 			Job     *job     `json:"job,omitempty"`
 			Archive *archive `json:"archive,omitempty"`
@@ -234,7 +226,6 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		tenants := make(map[string]*db.Tenant)
-		stores := make(map[string]*db.Store)
 		systems := make(map[string]*db.Target)
 		jobs := make(map[string]*db.Job)
 		archives := make(map[string]*db.Archive)
@@ -281,23 +272,6 @@ func (c *Core) v2API() *route.Router {
 						if found {
 							out.Backlog[i].Tenant.UUID = t.UUID
 							out.Backlog[i].Tenant.Name = t.Name
-						}
-					}
-				}
-
-				if task.StoreUUID != "" {
-					s, found := stores[task.StoreUUID]
-					if !found {
-						s, err = c.db.GetStore(task.StoreUUID)
-						if s != nil && err == nil {
-							stores[s.UUID] = s
-							found = true
-						}
-					}
-					if found {
-						out.Backlog[i].Store = &named{
-							UUID: s.UUID,
-							Name: s.Name,
 						}
 					}
 				}
@@ -386,23 +360,6 @@ func (c *Core) v2API() *route.Router {
 						if found {
 							out.Workers[i].Tenant.UUID = t.UUID
 							out.Workers[i].Tenant.Name = t.Name
-						}
-					}
-				}
-
-				if task.StoreUUID != "" {
-					s, found := stores[task.StoreUUID]
-					if !found {
-						s, err = c.db.GetStore(task.StoreUUID)
-						if s != nil && err == nil {
-							stores[s.UUID] = s
-							found = true
-						}
-					}
-					if found {
-						out.Workers[i].Store = &named{
-							UUID: s.UUID,
-							Name: s.Name,
 						}
 					}
 				}
@@ -575,7 +532,6 @@ func (c *Core) v2API() *route.Router {
 				SkipInactive:  r.ParamIs("active", "t"),
 				ForStatus:     r.Param("status", ""),
 				ForTarget:     r.Param("target", ""),
-				ForStore:      r.Param("store", ""),
 				ForOp:         r.Param("type", ""),
 				Limit:         limit,
 				Before:        paginationDate,
@@ -1234,7 +1190,6 @@ func (c *Core) v2API() *route.Router {
 
 			system.Tasks[i].JobUUID = task.JobUUID
 			system.Tasks[i].TenantUUID = task.TenantUUID
-			system.Tasks[i].StoreUUID = task.StoreUUID
 			system.Tasks[i].ArchiveUUID = task.ArchiveUUID
 			system.Tasks[i].TargetUUID = task.TargetUUID
 
@@ -1294,20 +1249,10 @@ func (c *Core) v2API() *route.Router {
 				Config map[string]interface{} `json:"config"`
 			} `json:"target"`
 
-			Store struct {
-				UUID      string `json:"uuid"`
-				Name      string `json:"name"`
-				Summary   string `json:"summary"`
-				Plugin    string `json:"plugin"`
-				Agent     string `json:"agent"`
-				Threshold int64  `json:"threshold"`
-
-				Config map[string]interface{} `json:"config"`
-			} `json:"store"`
-
 			Job struct {
 				Name     string `json:"name"`
 				Schedule string `json:"schedule"`
+				Bucket   string `json:"bucket"`
 				KeepDays int    `json:"keep_days"`
 				FixedKey bool   `json:"fixed_key"`
 				Paused   bool   `json:"paused"`
@@ -1343,11 +1288,7 @@ func (c *Core) v2API() *route.Router {
 			in.Target.Compression = DefaultCompressionType
 		}
 
-		var (
-			target *db.Target
-			store  *db.Store
-		)
-
+		var target *db.Target
 		if in.Target.UUID != "" {
 			target, err = c.db.GetTarget(in.Target.UUID)
 			if err != nil {
@@ -1376,42 +1317,14 @@ func (c *Core) v2API() *route.Router {
 			}
 		}
 
-		if in.Store.UUID != "" {
-			store, err = c.db.GetStore(in.Store.UUID)
-			if err != nil {
-				r.Fail(route.Oops(err, "Unable to retrieve cloud storage information"))
-				return
-			}
-			if store == nil || (!store.Global && store.TenantUUID != r.Args[1]) {
-				r.Fail(route.NotFound(nil, "No such store"))
-				return
-			}
-
-		} else {
-			store, err = c.db.CreateStore(&db.Store{
-				TenantUUID: r.Args[1],
-				Name:       in.Store.Name,
-				Summary:    in.Store.Summary,
-				Agent:      in.Store.Agent,
-				Plugin:     in.Store.Plugin,
-				Config:     in.Store.Config,
-				Threshold:  in.Store.Threshold,
-				Healthy:    true, /* let's be optimistic */
-			})
-			if store == nil || err != nil {
-				r.Fail(route.Oops(err, "Unable to create new storage system"))
-				return
-			}
-		}
-
 		job, err := c.db.CreateJob(&db.Job{
 			TenantUUID: r.Args[1],
 			Name:       in.Job.Name,
 			Schedule:   in.Job.Schedule,
+			Bucket:     in.Job.Bucket,
 			KeepN:      in.Job.KeepN,
 			KeepDays:   in.Job.KeepDays,
 			Paused:     in.Job.Paused,
-			StoreUUID:  store.UUID,
 			TargetUUID: target.UUID,
 			FixedKey:   in.Job.FixedKey,
 		})
@@ -2275,220 +2188,6 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/tenants/:uuid/stores", func(r *route.Request) { // {{{
-		if c.IsNotTenantOperator(r, r.Args[1]) {
-			return
-		}
-
-		stores, err := c.db.GetAllStores(
-			&db.StoreFilter{
-				SkipUsed:   r.ParamIs("unused", "t"),
-				SkipUnused: r.ParamIs("unused", "f"),
-
-				UUID:       r.Param("uuid", ""),
-				SearchName: r.Param("name", ""),
-
-				ForPlugin:  r.Param("plugin", ""),
-				ExactMatch: r.ParamIs("exact", "t"),
-				ForTenant:  r.Args[1],
-			},
-		)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
-			return
-		}
-
-		r.OK(stores)
-	})
-	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotTenantOperator(r, r.Args[1]) {
-			return
-		}
-
-		store, err := c.db.GetStore(r.Args[2])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-
-		if store == nil || store.TenantUUID != r.Args[1] {
-			r.Fail(route.NotFound(nil, "No such storage system"))
-			return
-		}
-
-		r.OK(store)
-	})
-	// }}}""
-	r.Dispatch("GET /v2/tenants/:uuid/stores/:uuid/config", func(r *route.Request) { // {{{
-		if c.IsNotTenantOperator(r, r.Args[1]) {
-			return
-		}
-
-		store, err := c.db.GetStore(r.Args[2])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-
-		if store == nil || store.TenantUUID != r.Args[1] {
-			r.Fail(route.NotFound(nil, "No such storage system"))
-			return
-		}
-
-		config, err := store.Configuration(c.db, c.CanSeeCredentials(r, store.TenantUUID))
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-
-		r.OK(config)
-	})
-	// }}}""
-	r.Dispatch("POST /v2/tenants/:uuid/stores", func(r *route.Request) { // {{{
-		if c.IsNotTenantEngineer(r, r.Args[1]) {
-			return
-		}
-
-		var in struct {
-			Name      string `json:"name"`
-			Summary   string `json:"summary"`
-			Agent     string `json:"agent"`
-			Plugin    string `json:"plugin"`
-			Threshold int64  `json:"threshold"`
-
-			Config map[string]interface{} `json:"config"`
-		}
-
-		if !r.Payload(&in) {
-			return
-		}
-
-		if r.Missing("name", in.Name, "agent", in.Agent, "plugin", in.Plugin, "threshold", fmt.Sprint(in.Threshold)) {
-			return
-		}
-
-		tenant, err := c.db.GetTenant(r.Args[1])
-		if tenant == nil || err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-
-		if r.ParamIs("test", "t") {
-			r.Success("validation suceeded (request made in ?test=t mode)")
-			return
-		}
-
-		store, err := c.db.CreateStore(&db.Store{
-			TenantUUID: tenant.UUID,
-			Name:       in.Name,
-			Summary:    in.Summary,
-			Agent:      in.Agent,
-			Plugin:     in.Plugin,
-			Config:     in.Config,
-			Threshold:  in.Threshold,
-			Healthy:    true, /* let's be optimistic */
-		})
-		if store == nil || err != nil {
-			r.Fail(route.Oops(err, "Unable to create new storage system"))
-			return
-		}
-
-		r.OK(store)
-	})
-	// }}}
-	r.Dispatch("PUT /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotTenantEngineer(r, r.Args[1]) {
-			return
-		}
-
-		var in struct {
-			Name      string `json:"name"`
-			Summary   string `json:"summary"`
-			Agent     string `json:"agent"`
-			Plugin    string `json:"plugin"`
-			Threshold int64  `json:"threshold"`
-
-			Config map[string]interface{} `json:"config"`
-		}
-		if !r.Payload(&in) {
-			r.Fail(route.Bad(nil, "Unable to update storage system"))
-			return
-		}
-
-		store, err := c.db.GetStore(r.Args[2])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-		if store == nil || store.TenantUUID != r.Args[1] {
-			r.Fail(route.NotFound(err, "No such storage system"))
-			return
-		}
-
-		if in.Name != "" {
-			store.Name = in.Name
-		}
-		if in.Summary != "" {
-			store.Summary = in.Summary
-		}
-		if in.Agent != "" {
-			store.Agent = in.Agent
-		}
-		if in.Plugin != "" {
-			store.Plugin = in.Plugin
-		}
-		if in.Threshold != 0 {
-			store.Threshold = in.Threshold
-		}
-
-		if in.Config != nil {
-			store.Config = in.Config
-		}
-
-		if err := c.db.UpdateStore(store); err != nil {
-			r.Fail(route.Oops(err, "Unable to update storage system"))
-			return
-		}
-
-		store, err = c.db.GetStore(store.UUID)
-		if store == nil || err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-
-		r.OK(store)
-	})
-	// }}}
-	r.Dispatch("DELETE /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotTenantEngineer(r, r.Args[1]) {
-			return
-		}
-
-		store, err := c.db.GetStore(r.Args[2])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-		if store == nil || store.TenantUUID != r.Args[1] {
-			r.Fail(route.NotFound(err, "No such storage system"))
-			return
-		}
-
-		deleted, err := c.db.DeleteStore(store.UUID)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to delete storage system"))
-			return
-		}
-		if !deleted {
-			r.Fail(route.Bad(nil, "The storage system cannot be deleted at this time"))
-			return
-		}
-
-		r.Success("Storage system deleted successfully")
-	})
-	// }}}
-
 	r.Dispatch("GET /v2/tenants/:uuid/jobs", func(r *route.Request) { // {{{
 		if c.IsNotTenantOperator(r, r.Args[1]) {
 			return
@@ -2504,7 +2203,7 @@ func (c *Core) v2API() *route.Router {
 				SearchName: r.Param("name", ""),
 
 				ForTarget:  r.Param("target", ""),
-				ForStore:   r.Param("store", ""),
+				ForBucket:  r.Param("bucket", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
 			},
 		)
@@ -2526,7 +2225,7 @@ func (c *Core) v2API() *route.Router {
 			Summary  string `json:"summary"`
 			Schedule string `json:"schedule"`
 			Paused   bool   `json:"paused"`
-			Store    string `json:"store"`
+			Bucket   string `json:"bucket"`
 			Target   string `json:"target"`
 			Retain   string `json:"retain"`
 			FixedKey bool   `json:"fixed_key"`
@@ -2535,7 +2234,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		if r.Missing("name", in.Name, "store", in.Store, "target", in.Target, "schedule", in.Schedule, "retain", in.Retain) {
+		if r.Missing("name", in.Name, "bucket", in.Bucket, "target", in.Target, "schedule", in.Schedule, "retain", in.Retain) {
 			return
 		}
 
@@ -2568,7 +2267,7 @@ func (c *Core) v2API() *route.Router {
 			KeepDays:   keepdays,
 			KeepN:      keepn,
 			Paused:     in.Paused,
-			StoreUUID:  in.Store,
+			Bucket:     in.Bucket,
 			TargetUUID: in.Target,
 			FixedKey:   in.FixedKey,
 		})
@@ -2610,7 +2309,7 @@ func (c *Core) v2API() *route.Router {
 			Schedule string `json:"schedule"`
 			Retain   string `json:"retain"`
 
-			StoreUUID  string `json:"store"`
+			Bucket     string `json:"bucket"`
 			TargetUUID string `json:"target"`
 			FixedKey   *bool  `json:"fixed_key"`
 		}
@@ -2667,9 +2366,8 @@ func (c *Core) v2API() *route.Router {
 		if in.TargetUUID != "" {
 			job.TargetUUID = in.TargetUUID
 		}
-		job.StoreUUID = job.Store.UUID
-		if in.StoreUUID != "" {
-			job.StoreUUID = in.StoreUUID
+		if in.Bucket != "" {
+			job.Bucket = in.Bucket
 		}
 		if in.FixedKey != nil {
 			job.FixedKey = *in.FixedKey
@@ -2826,7 +2524,6 @@ func (c *Core) v2API() *route.Router {
 				SkipInactive:  r.ParamIs("active", "t"),
 				ForStatus:     r.Param("status", ""),
 				ForTarget:     r.Param("target", ""),
-				ForStore:      r.Param("store", ""),
 				ForOp:         r.Param("type", ""),
 				ForTenant:     r.Args[1],
 				Limit:         limit,
@@ -2914,7 +2611,6 @@ func (c *Core) v2API() *route.Router {
 				ExactMatch: r.ParamIs("exact", "t"),
 				ForTenant:  r.Args[1],
 				ForTarget:  r.Param("target", ""),
-				ForStore:   r.Param("store", ""),
 				Before:     r.ParamDate("before"),
 				After:      r.ParamDate("after"),
 				WithStatus: status,
@@ -3188,207 +2884,6 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/global/stores", func(r *route.Request) { // {{{
-		if c.IsNotAuthenticated(r) {
-			return
-		}
-
-		stores, err := c.db.GetAllStores(
-			&db.StoreFilter{
-				SkipUsed:   r.ParamIs("unused", "t"),
-				SkipUnused: r.ParamIs("unused", "f"),
-
-				UUID:       r.Param("uuid", ""),
-				SearchName: r.Param("name", ""),
-
-				ForPlugin:  r.Param("plugin", ""),
-				ExactMatch: r.ParamIs("exact", "t"),
-				ForTenant:  db.GlobalTenantUUID,
-			},
-		)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
-			return
-		}
-
-		r.OK(stores)
-	})
-	// }}}
-	r.Dispatch("GET /v2/global/stores/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotAuthenticated(r) {
-			return
-		}
-
-		store, err := c.db.GetStore(r.Args[1])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-
-		if store == nil || store.TenantUUID != db.GlobalTenantUUID {
-			r.Fail(route.NotFound(nil, "No such storage system"))
-			return
-		}
-
-		r.OK(store)
-	})
-	// }}}""
-	r.Dispatch("GET /v2/global/stores/:uuid/config", func(r *route.Request) { // {{{
-		if c.IsNotSystemEngineer(r) {
-			return
-		}
-
-		store, err := c.db.GetStore(r.Args[1])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-
-		if store == nil || store.TenantUUID != db.GlobalTenantUUID {
-			r.Fail(route.NotFound(nil, "No such storage system"))
-			return
-		}
-
-		config, err := store.Configuration(c.db, true)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-		r.OK(config)
-	})
-	// }}}""
-	r.Dispatch("POST /v2/global/stores", func(r *route.Request) { // {{{
-		if c.IsNotSystemEngineer(r) {
-			return
-		}
-
-		var in struct {
-			Name      string `json:"name"`
-			Summary   string `json:"summary"`
-			Agent     string `json:"agent"`
-			Plugin    string `json:"plugin"`
-			Threshold int64  `json:"threshold"`
-
-			Config map[string]interface{} `json:"config"`
-		}
-
-		if !r.Payload(&in) {
-			return
-		}
-
-		if r.Missing("name", in.Name, "agent", in.Agent, "plugin", in.Plugin, "threshold", fmt.Sprint(in.Threshold)) {
-			return
-		}
-
-		store, err := c.db.CreateStore(&db.Store{
-			TenantUUID: db.GlobalTenantUUID,
-			Name:       in.Name,
-			Summary:    in.Summary,
-			Agent:      in.Agent,
-			Plugin:     in.Plugin,
-			Config:     in.Config,
-			Threshold:  in.Threshold,
-			Healthy:    true, /* let's be optimistic */
-		})
-		if store == nil || err != nil {
-			r.Fail(route.Oops(err, "Unable to create new storage system"))
-			return
-		}
-
-		r.OK(store)
-	})
-	// }}}
-	r.Dispatch("PUT /v2/global/stores/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotSystemEngineer(r) {
-			return
-		}
-
-		var in struct {
-			Name      string `json:"name"`
-			Summary   string `json:"summary"`
-			Agent     string `json:"agent"`
-			Plugin    string `json:"plugin"`
-			Threshold int64  `json:"threshold"`
-
-			Config map[string]interface{} `json:"config"`
-		}
-		if !r.Payload(&in) {
-			r.Fail(route.Bad(nil, "Unable to update storage system"))
-			return
-		}
-
-		store, err := c.db.GetStore(r.Args[1])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-		if store == nil || store.TenantUUID != db.GlobalTenantUUID {
-			r.Fail(route.NotFound(err, "No such storage system"))
-			return
-		}
-
-		if in.Name != "" {
-			store.Name = in.Name
-		}
-		if in.Summary != "" {
-			store.Summary = in.Summary
-		}
-		if in.Agent != "" {
-			store.Agent = in.Agent
-		}
-		if in.Plugin != "" {
-			store.Plugin = in.Plugin
-		}
-		if in.Threshold != 0 {
-			store.Threshold = in.Threshold
-		}
-		if in.Config != nil {
-			store.Config = in.Config
-		}
-
-		if err := c.db.UpdateStore(store); err != nil {
-			r.Fail(route.Oops(err, "Unable to update storage system"))
-			return
-		}
-
-		store, err = c.db.GetStore(store.UUID)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-
-		r.OK(store)
-	})
-	// }}}
-	r.Dispatch("DELETE /v2/global/stores/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotSystemEngineer(r) {
-			return
-		}
-
-		store, err := c.db.GetStore(r.Args[1])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-		if store == nil || store.TenantUUID != db.GlobalTenantUUID {
-			r.Fail(route.NotFound(err, "No such storage system"))
-			return
-		}
-
-		deleted, err := c.db.DeleteStore(store.UUID)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to delete storage system"))
-			return
-		}
-		if !deleted {
-			r.Fail(route.Bad(nil, "The storage system cannot be deleted at this time"))
-			return
-		}
-
-		r.Success("Storage system deleted successfully")
-	})
-	// }}}
-
 	r.Dispatch("GET /v2/fixups", func(r *route.Request) { // {{{
 		if c.IsNotSystemEngineer(r) {
 			return
@@ -3486,12 +2981,7 @@ func (c *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 		dst.Jobs[j].UUID = job.UUID
 		dst.Jobs[j].Schedule = job.Schedule
 		dst.Jobs[j].From = job.Target.Plugin
-		dst.Jobs[j].To = job.Store.Plugin
 		dst.Jobs[j].OK = job.Healthy
-		dst.Jobs[j].Store.UUID = job.Store.UUID
-		dst.Jobs[j].Store.Name = job.Store.Name
-		dst.Jobs[j].Store.Summary = job.Store.Summary
-		dst.Jobs[j].Store.Healthy = job.Store.Healthy
 
 		if !job.Healthy {
 			dst.OK = false

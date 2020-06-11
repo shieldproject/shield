@@ -31,12 +31,11 @@ type Task struct {
 	Op             string         `json:"type"            mbus:"op"`
 	JobUUID        string         `json:"job_uuid"        mbus:"job_uuid"`
 	ArchiveUUID    string         `json:"archive_uuid"    mbus:"archive_uuid"`
-	StoreUUID      string         `json:"store_uuid"      mbus:"store_uuid"`
-	StorePlugin    string         `json:"-"`
-	StoreEndpoint  string         `json:"-"`
 	TargetUUID     string         `json:"target_uuid"     mbus:"target_uuid"`
 	TargetPlugin   string         `json:"-"`
 	TargetEndpoint string         `json:"-"`
+	Stream         string         `json:"-"`
+	Bucket         string         `json:"-"`
 	Compression    string         `json:"-"`
 	Status         string         `json:"status"          mbus:"status"`
 	RequestedAt    int64          `json:"requested_at"    mbus:"requested_at"`
@@ -70,7 +69,6 @@ type TaskFilter struct {
 	SkipStopped   bool
 	ForTenant     string
 	ForTarget     string
-	ForStore      string
 	ForStatus     string
 	ForArchive    string
 	Limit         int
@@ -146,11 +144,6 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		args = append(args, f.ForTarget)
 	}
 
-	if f.ForStore != "" {
-		wheres = append(wheres, "t.store_uuid = ?")
-		args = append(args, f.ForStore)
-	}
-
 	if f.Before > 0 {
 		wheres = append(wheres, "t.requested_at < ?")
 		args = append(args, f.Before)
@@ -189,10 +182,9 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 	return `
         SELECT t.uuid, t.tenant_uuid, t.owner, t.op,
                t.job_uuid, t.archive_uuid,
-               t.store_uuid,  t.store_plugin,  t.store_endpoint,
                t.target_uuid, t.target_plugin, t.target_endpoint,
                t.status, t.requested_at, t.started_at, t.stopped_at, t.timeout_at,
-               t.restore_key, t.attempts, t.agent, t.log,
+               t.bucket, t.stream, t.restore_key, t.attempts, t.agent, t.log,
                t.ok, t.notes, t.clear, t.fixed_key, t.compression
 
         FROM tasks t
@@ -219,15 +211,14 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 		t := &Task{}
 
 		var (
-			started, stopped, deadline       *int64
-			job, archive, store, target, log sql.NullString
+			started, stopped, deadline *int64
+			job, archive, target, log  sql.NullString
 		)
 		if err = r.Scan(
 			&t.UUID, &t.TenantUUID, &t.Owner, &t.Op, &job, &archive,
-			&store, &t.StorePlugin, &t.StoreEndpoint,
 			&target, &t.TargetPlugin, &t.TargetEndpoint,
 			&t.Status, &t.RequestedAt, &started, &stopped, &deadline,
-			&t.RestoreKey, &t.Attempts, &t.Agent, &log,
+			&t.Bucket, &t.Stream, &t.RestoreKey, &t.Attempts, &t.Agent, &log,
 			&t.OK, &t.Notes, &t.Clear, &t.FixedKey, &t.Compression); err != nil {
 			return l, err
 		}
@@ -236,9 +227,6 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 		}
 		if archive.Valid {
 			t.ArchiveUUID = archive.String
-		}
-		if store.Valid {
-			t.StoreUUID = store.String
 		}
 		if target.Valid {
 			t.TargetUUID = target.String
@@ -283,57 +271,27 @@ func (db *DB) ReinsertTask(task *Task) error {
 	return db.Exec(`
         INSERT INTO tasks
             (uuid, owner, op,
-             tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
+             tenant_uuid, job_uuid, archive_uuid, target_uuid,
              status, requested_at, started_at, stopped_at, timeout_at,
              log, attempts, agent, fixed_key, compression,
              target_plugin, target_endpoint,
-             store_plugin, store_endpoint, restore_key,
+             bucket, stream, restore_key,
              ok, notes, clear)
         VALUES
             (?, ?, ?,
-             ?, ?, ?, ?, ?,
+             ?, ?, ?, ?,
              ?, ?, ?, ?, ?,
              ?, ?, ?, ?, ?,
              ?, ?,
-             ?, ?, ?,
+             ?, ?,
              ?, ?, ?)`,
 		task.UUID, task.Owner, task.Op,
-		task.TenantUUID, task.JobUUID, task.ArchiveUUID, task.TargetUUID, task.StoreUUID,
+		task.TenantUUID, task.JobUUID, task.ArchiveUUID, task.TargetUUID,
 		task.Status, task.RequestedAt, task.StartedAt, task.StoppedAt, task.TimeoutAt,
 		task.Log, task.Attempts, task.Agent, task.FixedKey, task.Compression,
 		task.TargetPlugin, task.TargetEndpoint,
-		task.StorePlugin, task.StoreEndpoint, task.RestoreKey,
+		task.Bucket, task.Stream, task.RestoreKey,
 		task.OK, task.Notes, task.Clear)
-}
-
-func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
-	id := RandomID()
-
-	err := db.exclusively(func() error {
-		/* validate the tenant */
-		if err := db.tenantShouldExist(tenant); err != nil {
-			return fmt.Errorf("unable to create internal task: %s", err)
-		}
-
-		return db.Exec(`
-          INSERT INTO tasks (uuid, owner, op, status, tenant_uuid, log, requested_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			id, owner, op, RunningStatus, tenant, "", time.Now().Unix())
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	task, err := db.GetTask(id)
-	if err != nil {
-		return nil, err
-	}
-	if task == nil {
-		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database", id)
-	}
-
-	db.sendCreateObjectEvent(task, "tenant:"+task.TenantUUID)
-	return task, nil
 }
 
 func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
@@ -351,11 +309,6 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 			return fmt.Errorf("unable to create backup task: %s", err)
 		}
 
-		/* validate the store */
-		if err := db.storeShouldExist(job.StoreUUID); err != nil {
-			return fmt.Errorf("unable to create backup task: %s", err)
-		}
-
 		/* note: the archive has not yet been created;
 		   we record it in the task record so that when the
 		   store plugin gives us the details, we know where
@@ -364,16 +317,16 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		return db.Exec(
 			`INSERT INTO tasks
                 (uuid, owner, op, job_uuid, status, log, requested_at,
-                 archive_uuid, store_uuid, store_plugin, store_endpoint,
+                 bucket, archive_uuid,
                  target_uuid, target_plugin, target_endpoint, restore_key,
                  agent, attempts, tenant_uuid, fixed_key, compression)
               VALUES
                 (?, ?, ?, ?, ?, ?, ?,
-                 ?, ?, ?, ?,
+                 ?, ?,
                  ?, ?, ?, ?,
                  ?, ?, ?, ?, ?)`,
 			id, owner, BackupOperation, job.UUID, PendingStatus, "", time.Now().Unix(),
-			archive, job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
+			job.Bucket, archive,
 			job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
 			job.Agent, 0, job.TenantUUID, job.FixedKey, job.Target.Compression)
 	})
@@ -408,27 +361,19 @@ func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) 
 			return fmt.Errorf("unable to create (skipped) backup task: %s", err)
 		}
 
-		/* validate the store */
-		if err := db.storeShouldExist(job.StoreUUID); err != nil {
-			return fmt.Errorf("unable to create (skipped) backup task: %s", err)
-		}
-
 		return db.Exec(
 			`INSERT INTO tasks
                 (uuid, owner, op, job_uuid, status, log,
                  requested_at, started_at, stopped_at, ok,
-                 store_uuid, store_plugin, store_endpoint,
                  target_uuid, target_plugin, target_endpoint, restore_key,
                  agent, attempts, tenant_uuid, fixed_key, compression)
               VALUES
                 (?, ?, ?, ?, ?, ?,
                  ?, ?, ?, ?,
-                 ?, ?, ?,
                  ?, ?, ?, ?,
                  ?, ?, ?, ?, ?)`,
 			id, owner, BackupOperation, job.UUID, CanceledStatus, msg,
 			now, now, now, 0,
-			job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
 			job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
 			job.Agent, 0, job.TenantUUID, job.FixedKey, job.Target.Compression)
 	})
@@ -471,24 +416,16 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 			return fmt.Errorf("unable to create restore task: %s", err)
 		}
 
-		/* validate the store */
-		if err := db.storeShouldExist(archive.StoreUUID); err != nil {
-			return fmt.Errorf("unable to create restore task: %s", err)
-		}
-
 		return db.Exec(
 			`INSERT INTO tasks
                 (uuid, owner, op, archive_uuid, status, log, requested_at,
-                 store_uuid, store_plugin, store_endpoint,
                  target_uuid, target_plugin, target_endpoint,
                  restore_key, compression, agent, attempts, tenant_uuid)
               VALUES
                 (?, ?, ?, ?, ?, ?, ?,
                  ?, ?, ?,
-                 ?, ?, ?,
                  ?, ?, ?, ?, ?)`,
 			id, owner, RestoreOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
-			archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
 			target.UUID, target.Plugin, endpoint,
 			archive.StoreKey, archive.Compression, target.Agent, 0, archive.TenantUUID)
 	})

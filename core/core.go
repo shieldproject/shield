@@ -4,9 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
@@ -20,9 +18,15 @@ import (
 	"github.com/shieldproject/shield/core/metrics"
 	"github.com/shieldproject/shield/core/scheduler"
 	"github.com/shieldproject/shield/db"
-
-	ssg "github.com/jhunt/ssg/pkg/client"
 )
+
+type bucket struct {
+	Key         string `json:"key"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Compression string `json:"compression"`
+	Encryption  string `json:"encryption"`
+}
 
 type Core struct {
 	Config Config
@@ -32,6 +36,8 @@ type Core struct {
 	bus       *bus.Bus
 	scheduler *scheduler.Scheduler
 	metrics   *metrics.Exporter
+
+	buckets []bucket
 
 	bailout bool
 
@@ -364,114 +370,4 @@ func (c *Core) DataFile(rel string) string {
 
 func (c *Core) FabricFor(task *db.Task) (fabric.Fabric, error) {
 	return fabric.Legacy(task.Agent, c.Config.LegacyAgents.cc, c.db), nil
-}
-
-type StreamInfo struct {
-	Gateway string
-	ID      string
-	Token   string
-	Path    string
-}
-
-func (c *Core) GatedUpload(uuid string, tries int) (*StreamInfo, error) {
-	choices := make([]string, len(c.Config.StorageGateway.Gateways))
-	for i, url := range c.Config.StorageGateway.Gateways {
-		choices[i] = url
-	}
-	l := sort.StringSlice(choices)
-	rand.Shuffle(l.Len(), l.Swap)
-
-	for i := 0; i < tries && i < len(choices); i++ {
-		url := choices[i]
-
-		cc := ssg.Client{
-			URL:          url,
-			ControlToken: c.Config.StorageGateway.Token,
-		}
-		t := time.Now()
-		year, mon, day := t.Date()
-		hour, min, sec := t.Clock()
-		backupPath := fmt.Sprintf("ssg://testdev/snapshots/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", year, mon, day, year, mon, day, hour, min, sec, uuid)
-
-		uploadInfo, err := cc.NewUpload(backupPath)
-		if err != nil {
-			log.Errorf("Connection to ssg failed, %d times tried: %s", i, err)
-			continue
-		}
-
-		return &StreamInfo{
-			Gateway: url,
-			ID:      uploadInfo.ID,
-			Path:    uploadInfo.Canon,
-			Token:   uploadInfo.Token,
-		}, nil
-	}
-
-	return nil, fmt.Errorf("no reachable storage gateway found")
-}
-
-func (c *Core) GatedDownload(from string, tries int) (*StreamInfo, error) {
-	choices := make([]string, len(c.Config.StorageGateway.Gateways))
-	for i, url := range c.Config.StorageGateway.Gateways {
-		choices[i] = url
-	}
-	l := sort.StringSlice(choices)
-	rand.Shuffle(l.Len(), l.Swap)
-
-	if from == "" {
-		return nil, fmt.Errorf("restore key not found")
-	}
-
-	for i := 0; i < tries && i < len(choices); i++ {
-		url := choices[i]
-
-		cc := ssg.Client{
-			URL:          url,
-			ControlToken: c.Config.StorageGateway.Token,
-		}
-
-		info, err := cc.NewDownload(from)
-		if err != nil {
-			log.Errorf("Connection to ssg failed, %d times tried: %s", i, err)
-			continue
-		}
-
-		return &StreamInfo{
-			Gateway: url,
-			ID:      info.ID,
-			Token:   info.Token,
-		}, nil
-	}
-	return nil, fmt.Errorf("no reachable storage gateway found")
-}
-
-func (c *Core) GatedPurge(file string, tries int) error {
-	choices := make([]string, len(c.Config.StorageGateway.Gateways))
-	for i, url := range c.Config.StorageGateway.Gateways {
-		choices[i] = url
-	}
-	l := sort.StringSlice(choices)
-	rand.Shuffle(l.Len(), l.Swap)
-
-	if file == "" {
-		return fmt.Errorf("purge key not found")
-	}
-
-	for i := 0; i < tries && i < len(choices); i++ {
-		url := choices[i]
-
-		cc := ssg.Client{
-			URL:          url,
-			ControlToken: c.Config.StorageGateway.Token,
-		}
-
-		err := cc.Expunge(file)
-		if err != nil {
-			log.Errorf("Connection to ssg failed, %d times tried: %s", i, err)
-			continue
-		}
-
-		return nil
-	}
-	return fmt.Errorf("no reachable storage gateway found")
 }

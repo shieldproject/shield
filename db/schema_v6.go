@@ -1,9 +1,5 @@
 package db
 
-import (
-	"github.com/shieldproject/shield/timespec"
-)
-
 type v6Schema struct{}
 
 func (s v6Schema) Deploy(db *DB) error {
@@ -51,21 +47,6 @@ func (s v6Schema) Deploy(db *DB) error {
 	err = db.Exec(`DROP TABLE retention`)
 	if err != nil {
 		return err
-	}
-
-	/* fix keep_n on all jobs */
-	jobs, err := db.GetAllJobs(nil)
-	if err != nil {
-		return err
-	}
-	for _, job := range jobs {
-		if sched, err := timespec.Parse(job.Schedule); err != nil {
-			job.KeepN = sched.KeepN(job.KeepDays)
-			err = db.UpdateJob(job)
-			if err != nil {
-				return err
-			}
-		}
 	}
 
 	err = db.Exec(`UPDATE schema_info set version = 6`)

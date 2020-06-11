@@ -278,13 +278,6 @@ func (db *DB) DeleteAgent(agent *Agent) error {
 			return fmt.Errorf("agent is still referenced by configured data systems")
 		}
 
-		n, err = db.Count(`SELECT uuid FROM stores WHERE agent = ?`, agent.Address)
-		if err != nil {
-			return fmt.Errorf("unable to determine if agent can be deleted: %s", err)
-		}
-		if n > 0 {
-			return fmt.Errorf("agent is still referenced by configured storage systems")
-		}
 		db.sendDeleteObjectEvent(agent, "*")
 		return db.Exec(`DELETE FROM agents WHERE uuid = ?`, agent.UUID)
 	})

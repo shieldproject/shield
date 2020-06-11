@@ -18,8 +18,6 @@ import (
 	"github.com/shieldproject/shield/timespec"
 )
 
-const StorageGatewayPlugin = "ssg"
-
 func (c Core) Main() {
 	/* print out our configuration */
 	c.PrintConfiguration()
@@ -40,6 +38,7 @@ func (c Core) Main() {
 	/* prepare for operation */
 	c.Bind()
 	c.StartScheduler()
+	c.SyncStorageGateways()
 	go c.metrics.Watch("*")
 
 	log.Infof("INITIALIZATION COMPLETE; entering main loop.")
@@ -63,6 +62,7 @@ func (c Core) Main() {
 			c.TasksToChores()
 
 		case <-slow.C:
+			c.CheckStorageGateways()
 			c.CheckArchiveExpiries()
 			c.MarkIrrelevantTasks()
 			c.ScheduleAgentStatusCheckTasks(nil)
@@ -146,9 +146,6 @@ func (c *Core) InitializePrometheus() error {
 	targets, err := c.db.GetAllTargets(nil)
 	c.MaybeTerminate(err)
 
-	stores, err := c.db.GetAllStores(nil)
-	c.MaybeTerminate(err)
-
 	jobs, err := c.db.GetAllJobs(nil)
 	c.MaybeTerminate(err)
 
@@ -158,9 +155,6 @@ func (c *Core) InitializePrometheus() error {
 	archives, err := c.db.GetAllArchives(nil)
 	c.MaybeTerminate(err)
 
-	storageBytesUsed, err := c.db.ArchiveStorageFootprint(&db.ArchiveFilter{
-		WithStatus: []string{"valid"},
-	})
 	c.MaybeTerminate(err)
 
 	c.metrics = metrics.New(&metrics.Exporter{
@@ -169,14 +163,12 @@ func (c *Core) InitializePrometheus() error {
 		Realm:     c.Config.Prometheus.Realm,
 		Namespace: c.Config.Prometheus.Namespace,
 
-		TenantCount:      len(tenants),
-		AgentCount:       len(agents),
-		TargetCount:      len(targets),
-		StoreCount:       len(stores),
-		JobCount:         len(jobs),
-		TaskCount:        len(tasks),
-		ArchiveCount:     len(archives),
-		StorageUsedCount: storageBytesUsed,
+		TenantCount:  len(tenants),
+		AgentCount:   len(agents),
+		TargetCount:  len(targets),
+		JobCount:     len(jobs),
+		TaskCount:    len(tasks),
+		ArchiveCount: len(archives),
 	})
 
 	return nil
@@ -476,30 +468,28 @@ func (c *Core) TasksToChores() {
 				log.Infof("SCHEDULER: SKIPPING [%s] task %s, another %s task [%s] is already in-flight for target [%s]", task.Op, task.UUID, other.Op, other.UUID, task.TargetUUID)
 				continue
 			}
-			if task.StorePlugin == StorageGatewayPlugin {
-				uploadInfo, err := c.GatedUpload(task.ArchiveUUID, 3)
-				if err != nil {
-					c.TaskErrored(task, "unable to set up storage gateway upload:\n%s\n", err)
-					continue
-				}
-				ep := struct {
-					URL         string `json:"url"`
-					Path        string `json:"path"`
-					UploadID    string `json:"upload_id"`
-					UploadToken string `json:"upload_token"`
-				}{
-					URL:         uploadInfo.Gateway,
-					Path:        uploadInfo.Path,
-					UploadID:    uploadInfo.ID,
-					UploadToken: uploadInfo.Token,
-				}
-				b, err := json.Marshal(ep)
-				if err != nil {
-					c.TaskErrored(task, "unable to set up storage gateway upload:\n%s\n", err)
-					continue
-				}
-				task.StoreEndpoint = string(b)
+			upload, err := c.upload(task.Bucket, task.ArchiveUUID)
+			if err != nil {
+				c.TaskErrored(task, "unable to start upload via storage gateways: %s", err)
+				continue
 			}
+			ep := struct {
+				URL   string `json:"url"`
+				ID    string `json:"id"`
+				Token string `json:"token"`
+				Path  string `json:"path"`
+			}{
+				URL:   upload.gateway,
+				ID:    upload.id,
+				Token: upload.token,
+				Path:  upload.path,
+			}
+			b, err := json.Marshal(ep)
+			if err != nil {
+				c.TaskErrored(task, "unable to set up storage gateway upload:\n%s\n", err)
+				continue
+			}
+			task.Stream = string(b)
 
 			c.scheduler.Schedule(20, fabric.Backup(task))
 			inflight[task.TargetUUID] = task
@@ -510,28 +500,26 @@ func (c *Core) TasksToChores() {
 				continue
 			}
 
-			if task.StorePlugin == StorageGatewayPlugin {
-				downloadInfo, err := c.GatedDownload(task.RestoreKey, 3)
-				if err != nil {
-					c.TaskErrored(task, "unable to set up storage gateway download:\n%s\n", err)
-					continue
-				}
-				ep := struct {
-					URL           string `json:"url"`
-					DownloadID    string `json:"download_id"`
-					DownloadToken string `json:"download_token"`
-				}{
-					URL:           downloadInfo.Gateway,
-					DownloadID:    downloadInfo.ID,
-					DownloadToken: downloadInfo.Token,
-				}
-				b, err := json.Marshal(ep)
-				if err != nil {
-					c.TaskErrored(task, "unable to set up storage gateway download:\n%s\n", err)
-					continue
-				}
-				task.StoreEndpoint = string(b)
+			download, err := c.download(task.RestoreKey)
+			if err != nil {
+				c.TaskErrored(task, "unable to start download via storage gateways: %s", err)
+				continue
 			}
+			ep := struct {
+				URL   string `json:"url"`
+				ID    string `json:"id"`
+				Token string `json:"token"`
+			}{
+				URL:   download.gateway,
+				ID:    download.id,
+				Token: download.token,
+			}
+			b, err := json.Marshal(ep)
+			if err != nil {
+				c.TaskErrored(task, "unable to set up storage gateway download:\n%s\n", err)
+				continue
+			}
+			task.Stream = string(b)
 
 			c.scheduler.Schedule(20, fabric.Restore(task))
 			inflight[task.TargetUUID] = task
@@ -544,6 +532,51 @@ func (c *Core) TasksToChores() {
 			log.Errorf("unable to mark task %s as 'scheduled' in the database: %s", err)
 			log.Errorf("THIS TASK MAY BE INADVERTANTLY RE-SCHEDULED!!!")
 		}
+	}
+}
+
+func (c *Core) checkStorageGateways() error {
+	// for right now, we assume that we only have one
+	// cluster, and that the configuration is truly
+	// homogenous; in the future we'll want to check
+	// that ourselves, and blacklist gateways who are
+	// not in-line with the majority.
+	//
+	// that means that, at least for now, we can return
+	// the first set of buckets we get from any gateway.
+	for _, gw := range c.gateways() {
+		buckets, err := gw.Buckets()
+		if err != nil {
+			log.Errorf("unable to retrieve list of storage buckets from %s: %s", gw.URL, err)
+			continue
+		}
+		log.Infof("received current list of storage buckets from %s", gw.URL)
+
+		l := make([]bucket, len(buckets))
+		for i, b := range buckets {
+			l[i] = bucket{
+				Key:         b.Key,
+				Name:        b.Name,
+				Description: b.Description,
+				Encryption:  b.Encryption,
+				Compression: b.Compression,
+			}
+		}
+		c.buckets = l
+		return nil
+	}
+	return fmt.Errorf("unable to retrieve list of storage buckets from any gateway")
+}
+
+func (c *Core) SyncStorageGateways() {
+	log.Infof("INITIALIZING: synchronizing buckets from storage gateways...")
+	c.MaybeTerminate(c.checkStorageGateways())
+}
+
+func (c *Core) CheckStorageGateways() {
+	log.Infof("UPKEEP: checking on storage gateways...")
+	if err := c.checkStorageGateways(); err != nil {
+		log.Errorf("%s", err)
 	}
 }
 
@@ -594,10 +627,6 @@ func (c *Core) CleanupOrphanedObjects() {
 
 	if err := c.db.CleanTargets(); err != nil {
 		log.Errorf("Failed to clean up orphaned targets: %s", err)
-	}
-
-	if err := c.db.CleanStores(); err != nil {
-		log.Errorf("Failed to clean up orphaned stores: %s", err)
 	}
 }
 

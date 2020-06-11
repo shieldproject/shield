@@ -245,15 +245,6 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 			return fmt.Errorf("unable to clear tenant targets: %s", err)
 		}
 
-		/* detach all cloud storage systems from this tenant */
-		err = db.Exec(`
-		   UPDATE stores
-		      SET tenant_uuid = NULL
-		    WHERE tenant_uuid = ?`, tenant.UUID)
-		if err != nil {
-			return fmt.Errorf("unable to clear tenant stores: %s", err)
-		}
-
 		/* detach and expire all archives from this tenant */
 		err = db.Exec(`
 		   UPDATE archives
@@ -266,10 +257,6 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 	} else {
 		if n, _ := db.Count(`SELECT uuid FROM jobs WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
 			return fmt.Errorf("unable to delete tenant: tenant has outstanding jobs")
-		}
-
-		if n, _ := db.Count(`SELECT uuid FROM stores WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
-			return fmt.Errorf("unable to delete tenant: tenant has outstanding stores")
 		}
 
 		if n, _ := db.Count(`SELECT uuid FROM targets WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {

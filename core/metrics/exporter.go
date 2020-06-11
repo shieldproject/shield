@@ -10,15 +10,13 @@ import (
 )
 
 type Exporter struct {
-	Namespace        string
-	TenantCount      int
-	AgentCount       int
-	TargetCount      int
-	StoreCount       int
-	JobCount         int
-	TaskCount        int
-	ArchiveCount     int
-	StorageUsedCount int64
+	Namespace    string
+	TenantCount  int
+	AgentCount   int
+	TargetCount  int
+	JobCount     int
+	TaskCount    int
+	ArchiveCount int
 
 	Username string
 	Password string
@@ -28,7 +26,6 @@ type Exporter struct {
 	tenantsGauge          prometheus.Gauge
 	agentsGauge           prometheus.Gauge
 	targetsGauge          prometheus.Gauge
-	storesGauge           prometheus.Gauge
 	jobsGauge             prometheus.Gauge
 	tasksGauge            prometheus.Gauge
 	archivesGauge         prometheus.Gauge
@@ -39,14 +36,12 @@ const (
 	tenantsTotal      = "tenants_total"
 	agentsTotal       = "agents_total"
 	targetsTotal      = "targets_total"
-	storesTotal       = "stores_total"
 	jobsTotal         = "jobs_total"
 	tasksTotal        = "tasks_total"
 	archivesTotal     = "archives_total"
 	storageBytesTotal = "storage_used_bytes"
 	/* TODO
 	targetHealthStatus = "target_health_status"
-	storeHealthStatus  = "storeHealthStatus"
 	coreStatus         = "core_status" */
 )
 
@@ -89,13 +84,6 @@ func New(endpoint *Exporter) *Exporter {
 			Help:      "How many Target Systems have been defined",
 		})
 
-	endpoint.storesGauge = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: endpoint.Namespace,
-			Name:      storesTotal,
-			Help:      "How many Cloud Storage Systems have been defined",
-		})
-
 	endpoint.jobsGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: endpoint.Namespace,
@@ -128,7 +116,6 @@ func New(endpoint *Exporter) *Exporter {
 		endpoint.tenantsGauge,
 		endpoint.agentsGauge,
 		endpoint.targetsGauge,
-		endpoint.storesGauge,
 		endpoint.jobsGauge,
 		endpoint.tasksGauge,
 		endpoint.archivesGauge,
@@ -138,11 +125,9 @@ func New(endpoint *Exporter) *Exporter {
 	endpoint.tenantsGauge.Set(float64(endpoint.TenantCount))
 	endpoint.agentsGauge.Set(float64(endpoint.AgentCount))
 	endpoint.targetsGauge.Set(float64(endpoint.TargetCount))
-	endpoint.storesGauge.Set(float64(endpoint.StoreCount))
 	endpoint.jobsGauge.Set(float64(endpoint.JobCount))
 	endpoint.tasksGauge.Set(float64(endpoint.TaskCount))
 	endpoint.archivesGauge.Set(float64(endpoint.ArchiveCount))
-	endpoint.storageUsedBytesGauge.Set(float64(endpoint.StorageUsedCount))
 
 	return endpoint
 }
@@ -169,8 +154,6 @@ func (e *Exporter) createObjectCount(typ string, raw interface{}) {
 		e.agentsGauge.Inc()
 	case "target":
 		e.targetsGauge.Inc()
-	case "store":
-		e.storesGauge.Inc()
 	case "job":
 		e.jobsGauge.Inc()
 	case "task":
@@ -204,8 +187,6 @@ func (e *Exporter) deleteObjectCount(typ string) {
 		e.agentsGauge.Dec()
 	case "target":
 		e.targetsGauge.Dec()
-	case "store":
-		e.storesGauge.Dec()
 	case "job":
 		e.jobsGauge.Dec()
 	default:

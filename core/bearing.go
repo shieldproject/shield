@@ -11,7 +11,6 @@ type Bearing struct {
 	Archives []*db.Archive `json:"archives"`
 	Jobs     []*db.Job     `json:"jobs"`
 	Targets  []*db.Target  `json:"targets"`
-	Stores   []*db.Store   `json:"stores"`
 	Agents   []*db.Agent   `json:"agents"`
 	Role     string        `json:"role"`
 
@@ -59,12 +58,6 @@ func (c *Core) BearingFor(m *db.Membership) (Bearing, error) {
 	b.Targets, err = c.db.GetAllTargets(&db.TargetFilter{ForTenant: b.Tenant.UUID})
 	if err != nil {
 		return b, fmt.Errorf("unable to retrieve targets for tenant [%s]: %s", b.Tenant.UUID, err)
-	}
-
-	/* assemble stores for this tenant */
-	b.Stores, err = c.db.GetAllStores(&db.StoreFilter{ForTenant: b.Tenant.UUID})
-	if err != nil {
-		return b, fmt.Errorf("unable to retrieve stores for tenant [%s]: %s", b.Tenant.UUID, err)
 	}
 
 	/* assemble agents and plugins for this tenant */

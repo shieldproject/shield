@@ -65,7 +65,6 @@ func (db *DB) importArchives(n uint, in *json.Decoder) error {
 		UUID           string `json:"uuid"`
 		TenantUUID     string `json:"tenant_uuid"`
 		TargetUUID     string `json:"target_uuid"`
-		StoreUUID      string `json:"store_uuid"`
 		StoreKey       string `json:"store_key"`
 		TakenAt        int    `json:"taken_at"`
 		ExpiresAt      int    `json:"expires_at"`
@@ -94,14 +93,14 @@ func (db *DB) importArchives(n uint, in *json.Decoder) error {
 		log.Infof("IMPORT: inserting archive %s...", v.UUID)
 		err := db.Exec(`
 		  INSERT INTO archives
-		    (uuid, tenant_uuid, target_uuid, store_uuid,
+		    (uuid, tenant_uuid, target_uuid,
 		     store_key, taken_at, expires_at, notes, purge_reason,
 		     status, size, job, encryption_type, compression)
 		  VALUES
 		    (?, ?, ?, ?,
 		     ?, ?, ?, ?, ?,
 		     ?, ?, ?, ?, ?)`,
-			v.UUID, v.TenantUUID, v.TargetUUID, v.StoreUUID,
+			v.UUID, v.TenantUUID, v.TargetUUID,
 			v.StoreKey, v.TakenAt, v.ExpiresAt, v.Notes, v.PurgeReason,
 			v.Status, v.Size, v.Job, v.EncryptionType, v.Compression)
 		if err != nil {
@@ -149,13 +148,13 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 	type job struct {
 		UUID       string `json:"uuid"`
 		TargetUUID string `json:"target_uuid"`
-		StoreUUID  string `json:"store_uuid"`
 		TenantUUID string `json:"tenant_uuid"`
 		Name       string `json:"name"`
 		Summary    string `json:"summary"`
 		Schedule   string `json:"schedule"`
 		KeepN      int    `json:"keep_n"`
 		KeepDays   int    `json:"keep_days"`
+		Bucket     string `json:"bucket"`
 		NextRun    int    `json:"next_run"`
 		Priority   int    `json:"priority"`
 		Paused     bool   `json:"paused"`
@@ -177,14 +176,14 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 		log.Infof("IMPORT: inserting job %s...", v.UUID)
 		err := db.Exec(`
 		  INSERT INTO jobs
-		    (uuid, target_uuid, store_uuid, tenant_uuid,
+		    (uuid, target_uuid, bucket, tenant_uuid,
 		     name, summary, schedule, keep_n, keep_days,
 		     next_run, priority, paused, fixed_key, healthy)
 		  VALUES
 		    (?, ?, ?, ?,
 		     ?, ?, ?, ?, ?,
 		     ?, ?, ?, ?, ?)`,
-			v.UUID, v.TargetUUID, v.StoreUUID, v.TenantUUID,
+			v.UUID, v.TargetUUID, v.Bucket, v.TenantUUID,
 			v.Name, v.Summary, v.Schedule, v.KeepN, v.KeepDays,
 			v.NextRun, v.Priority, v.Paused, v.FixedKey, v.Healthy)
 		if err != nil {
@@ -218,57 +217,6 @@ func (db *DB) importMemberships(n uint, in *json.Decoder) error {
 		  VALUES
 		    (?, ?, ?)`,
 			v.UserUUID, v.TenantUUID, v.Role)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (db *DB) importStores(n uint, in *json.Decoder) error {
-	type store struct {
-		UUID             string `json:"uuid"`
-		TenantUUID       string `json:"tenant_uuid"`
-		Name             string `json:"name"`
-		Summary          string `json:"summary"`
-		Plugin           string `json:"plugin"`
-		Endpoint         string `json:"endpoint"`
-		Agent            string `json:"agent"`
-		DailyIncrease    *int   `json:"daily_increase"`
-		StorageUsed      *int   `json:"storage_used"`
-		ArchiveCount     *int   `json:"archive_count"`
-		Threshold        *int   `json:"threshold"`
-		Healthy          bool   `json:"healthy"`
-		LastTestTaskUUID string `json:"last_test_task_uuid"`
-		Error            string `json:"error"`
-	}
-
-	for ; n > 0; n-- {
-		var v store
-		if err := in.Decode(&v); err != nil {
-			return err
-		}
-
-		if v.Error != "" {
-			return fmt.Errorf(v.Error)
-		}
-
-		log.Infof("IMPORT: inserting store %s...", v.UUID)
-		err := db.Exec(`
-		  INSERT INTO stores
-		    (uuid, tenant_uuid, name, summary,
-		     plugin, endpoint, agent,
-		     daily_increase, storage_used, archive_count,
-		     threshold, healthy, last_test_task_uuid)
-		  VALUES
-		    (?, ?, ?, ?,
-		     ?, ?, ?,
-		     ?, ?, ?,
-		     ?, ?, ?)`,
-			v.UUID, v.TenantUUID, v.Name, v.Summary,
-			v.Plugin, v.Endpoint, v.Agent,
-			v.DailyIncrease, v.StorageUsed, v.ArchiveCount,
-			v.Threshold, v.Healthy, v.LastTestTaskUUID)
 		if err != nil {
 			return err
 		}
@@ -326,7 +274,6 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		JobUUID        *string `json:"job_uuid"`
 		ArchiveUUID    *string `json:"archive_uuid"`
 		TargetUUID     *string `json:"target_uuid"`
-		StoreUUID      *string `json:"store_uuid"`
 		Status         string  `json:"status"`
 		RequestedAt    int     `json:"requested_at"`
 		StartedAt      *int    `json:"started_at"`
@@ -338,8 +285,6 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		FixedKey       string  `json:"fixed_key"`
 		TargetPlugin   string  `json:"target_plugin"`
 		TargetEndpoint string  `json:"target_endpoint"`
-		StorePlugin    string  `json:"store_plugin"`
-		StoreEndpoint  string  `json:"store_endpoint"`
 		RestoreKey     string  `json:"restore_key"`
 		OK             bool    `json:"ok"`
 		Notes          string  `json:"notes"`
@@ -371,26 +316,26 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 			err := db.Exec(`
             INSERT INTO tasks
                 (uuid, owner, op,
-                tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
+                tenant_uuid, job_uuid, archive_uuid, target_uuid,
                 status, requested_at, started_at, stopped_at, timeout_at,
                 log, attempts, agent, fixed_key, compression,
                 target_plugin, target_endpoint,
-                store_plugin, store_endpoint, restore_key,
+                restore_key,
                 ok, notes, clear)
             VALUES
                 (?, ?, ?,
-                ?, ?, ?, ?, ?,
+                ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?,
-                ?, ?, ?,
+                ?,
                 ?, ?, ?)`,
 				v.UUID, v.Owner, v.Op,
-				v.TenantUUID, v.JobUUID, v.ArchiveUUID, v.TargetUUID, v.StoreUUID,
+				v.TenantUUID, v.JobUUID, v.ArchiveUUID, v.TargetUUID,
 				v.Status, v.RequestedAt, v.StartedAt, v.StoppedAt, v.TimeoutAt,
 				v.Log, v.Attempts, v.Agent, v.FixedKey, v.Compression,
 				v.TargetPlugin, v.TargetEndpoint,
-				v.StorePlugin, v.StoreEndpoint, v.RestoreKey,
+				v.RestoreKey,
 				v.OK, v.Notes, v.Clear)
 			if err != nil {
 				return err
@@ -561,7 +506,7 @@ func (db *DB) Import(in *json.Decoder, restoreKey, uuid string) error {
 	}
 
 	err = db.transactionally(func() error {
-		err = db.clear("agents", "archives", "fixups", "jobs", "memberships", "stores")
+		err = db.clear("agents", "archives", "fixups", "jobs", "memberships")
 		if err != nil {
 			return err
 		}
@@ -605,11 +550,6 @@ func (db *DB) Import(in *json.Decoder, restoreKey, uuid string) error {
 
 			case "memberships":
 				if err := db.importMemberships(h.N, in); err != nil {
-					return err
-				}
-
-			case "stores":
-				if err := db.importStores(h.N, in); err != nil {
 					return err
 				}
 

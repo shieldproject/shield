@@ -102,7 +102,6 @@ func (db *DB) exportArchives(out *json.Encoder) error {
 		UUID           string `json:"uuid"`
 		TenantUUID     string `json:"tenant_uuid"`
 		TargetUUID     string `json:"target_uuid"`
-		StoreUUID      string `json:"store_uuid"`
 		StoreKey       string `json:"store_key"`
 		TakenAt        int    `json:"taken_at"`
 		ExpiresAt      int    `json:"expires_at"`
@@ -131,7 +130,7 @@ func (db *DB) exportArchives(out *json.Encoder) error {
 		v := archive{}
 
 		if err = r.Scan(
-			&v.UUID, &v.TenantUUID, &v.TargetUUID, &v.StoreUUID,
+			&v.UUID, &v.TenantUUID, &v.TargetUUID,
 			&v.StoreKey, &v.TakenAt, &v.ExpiresAt, &v.Notes, &v.PurgeReason,
 			&v.Status, &v.Size, &v.Job, &v.Compression); err != nil {
 
@@ -182,13 +181,13 @@ func (db *DB) exportJobs(out *json.Encoder) error {
 	type job struct {
 		UUID       string `json:"uuid"`
 		TargetUUID string `json:"target_uuid"`
-		StoreUUID  string `json:"store_uuid"`
 		TenantUUID string `json:"tenant_uuid"`
 		Name       string `json:"name"`
 		Summary    string `json:"summary"`
 		Schedule   string `json:"schedule"`
 		KeepN      int    `json:"keep_n"`
 		KeepDays   int    `json:"keep_days"`
+		Bucket     string `json:"bucket"`
 		NextRun    int    `json:"next_run"`
 		Priority   int    `json:"priority"`
 		Paused     bool   `json:"paused"`
@@ -197,8 +196,8 @@ func (db *DB) exportJobs(out *json.Encoder) error {
 	}
 
 	r, err := db.query(`
-	  SELECT uuid, target_uuid, store_uuid, tenant_uuid,
-	         name, summary, schedule, keep_n, keep_days,
+	  SELECT uuid, target_uuid, tenant_uuid,
+	         name, summary, schedule, keep_n, keep_days, bucket,
 	         next_run, priority, paused, fixed_key, healthy
 	    FROM jobs`)
 	if err != nil {
@@ -210,8 +209,8 @@ func (db *DB) exportJobs(out *json.Encoder) error {
 		v := job{}
 
 		if err = r.Scan(
-			&v.UUID, &v.TargetUUID, &v.StoreUUID, &v.TenantUUID,
-			&v.Name, &v.Summary, &v.Schedule, &v.KeepN, &v.KeepDays,
+			&v.UUID, &v.TargetUUID, &v.TenantUUID,
+			&v.Name, &v.Summary, &v.Schedule, &v.KeepN, &v.KeepDays, &v.Bucket,
 			&v.NextRun, &v.Priority, &v.Paused, &v.FixedKey, &v.Healthy); err != nil {
 
 			return err
@@ -244,51 +243,6 @@ func (db *DB) exportMemberships(out *json.Encoder) error {
 
 		if err = r.Scan(
 			&v.UserUUID, &v.TenantUUID, &v.Role); err != nil {
-
-			return err
-		}
-
-		out.Encode(&v)
-	}
-	return nil
-}
-
-func (db *DB) exportStores(out *json.Encoder) error {
-	db.exportHeader(out, "stores")
-
-	type store struct {
-		UUID             string `json:"uuid"`
-		TenantUUID       string `json:"tenant_uuid"`
-		Name             string `json:"name"`
-		Summary          string `json:"summary"`
-		Plugin           string `json:"plugin"`
-		Endpoint         string `json:"endpoint"`
-		Agent            string `json:"agent"`
-		DailyIncrease    *int   `json:"daily_increase"`
-		StorageUsed      *int   `json:"storage_used"`
-		ArchiveCount     *int   `json:"archive_count"`
-		Threshold        *int   `json:"threshold"`
-		Healthy          bool   `json:"healthy"`
-		LastTestTaskUUID string `json:"last_test_task_uuid"`
-	}
-
-	r, err := db.query(`
-	  SELECT uuid, tenant_uuid, name, summary, plugin, endpoint,
-	         agent, daily_increase, storage_used, archive_count,
-	         threshold, healthy, last_test_task_uuid
-	    FROM stores`)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-
-	for r.Next() {
-		v := store{}
-
-		if err = r.Scan(
-			&v.UUID, &v.TenantUUID, &v.Name, &v.Summary, &v.Plugin, &v.Endpoint,
-			&v.Agent, &v.DailyIncrease, &v.StorageUsed, &v.ArchiveCount,
-			&v.Threshold, &v.Healthy, &v.LastTestTaskUUID); err != nil {
 
 			return err
 		}
@@ -348,7 +302,6 @@ func (db *DB) exportTasks(out *json.Encoder) error {
 		JobUUID        *string `json:"job_uuid"`
 		ArchiveUUID    *string `json:"archive_uuid"`
 		TargetUUID     *string `json:"target_uuid"`
-		StoreUUID      *string `json:"store_uuid"`
 		Status         string  `json:"status"`
 		RequestedAt    int     `json:"requested_at"`
 		StartedAt      *int    `json:"started_at"`
@@ -360,8 +313,6 @@ func (db *DB) exportTasks(out *json.Encoder) error {
 		FixedKey       string  `json:"fixed_key"`
 		TargetPlugin   string  `json:"target_plugin"`
 		TargetEndpoint string  `json:"target_endpoint"`
-		StorePlugin    string  `json:"store_plugin"`
-		StoreEndpoint  string  `json:"store_endpoint"`
 		RestoreKey     string  `json:"restore_key"`
 		OK             bool    `json:"ok"`
 		Notes          string  `json:"notes"`
@@ -370,10 +321,10 @@ func (db *DB) exportTasks(out *json.Encoder) error {
 	}
 
 	r, err := db.query(`
-	  SELECT uuid, owner, op, tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
+	  SELECT uuid, owner, op, tenant_uuid, job_uuid, archive_uuid, target_uuid,
 	         status, requested_at, started_at, stopped_at, timeout_at,
 	         log, attempts, agent, fixed_key, compression,
-	         target_plugin, target_endpoint, store_plugin, store_endpoint,
+	         target_plugin, target_endpoint,
 	         restore_key, ok, notes, clear
 	    FROM tasks`)
 	if err != nil {
@@ -385,10 +336,10 @@ func (db *DB) exportTasks(out *json.Encoder) error {
 		v := task{}
 
 		if err = r.Scan(
-			&v.UUID, &v.Owner, &v.Op, &v.TenantUUID, &v.JobUUID, &v.ArchiveUUID, &v.TargetUUID, &v.StoreUUID,
+			&v.UUID, &v.Owner, &v.Op, &v.TenantUUID, &v.JobUUID, &v.ArchiveUUID, &v.TargetUUID,
 			&v.Status, &v.RequestedAt, &v.StartedAt, &v.StoppedAt, &v.TimeoutAt,
 			&v.Log, &v.Attempts, &v.Agent, &v.FixedKey, &v.Compression,
-			&v.TargetPlugin, &v.TargetEndpoint, &v.StorePlugin, &v.StoreEndpoint,
+			&v.TargetPlugin, &v.TargetEndpoint,
 			&v.RestoreKey, &v.OK, &v.Notes, &v.Clear); err != nil {
 
 			return err
@@ -529,11 +480,6 @@ func (db *DB) Export(out *json.Encoder) {
 		}
 
 		err = db.exportTenants(out)
-		if err != nil {
-			db.exportErrors(out, err)
-		}
-
-		err = db.exportStores(out)
 		if err != nil {
 			db.exportErrors(out, err)
 		}

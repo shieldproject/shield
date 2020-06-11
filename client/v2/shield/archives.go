@@ -14,7 +14,6 @@ type Archive struct {
 	Notes  string `json:"notes"`
 
 	Target *Target `json:"target,omitempty"`
-	Store  *Store  `json:"store,omitempty"`
 
 	Compression    string `json:"compression"`
 	EncryptionType string `json:"encryption_type"`
@@ -25,7 +24,6 @@ type ArchiveFilter struct {
 	UUID   string `qs:"uuid"`
 	Fuzzy  bool   `qs:"exact:f:t"`
 	Target string `qs:"target"`
-	Store  string `qs:"store"`
 	Status string `qs:"status"`
 	//Before string `qs:"before"`
 	//After string `qs:"after"`
