@@ -282,10 +282,9 @@ STORAGE COMMANDS
 		err = dispatch(p, command, opt)
 		if err != nil {
 			DEBUG("'%s' action returned error: %s", command, err)
-			switch err.(type) {
+			switch e := err.(type) {
 			case UnsupportedActionError:
-				if err.(UnsupportedActionError).Action == "" {
-					e := err.(UnsupportedActionError)
+				if e.Action == "" {
 					e.Action = command
 					err = e
 				}

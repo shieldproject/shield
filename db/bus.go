@@ -10,41 +10,41 @@ import (
 )
 
 func datauuid(thing interface{}) string {
-	switch thing.(type) {
+	switch what := thing.(type) {
 	case Agent:
-		return fmt.Sprintf("agent [%s]", thing.(Agent).UUID)
+		return fmt.Sprintf("agent [%s]", what.UUID)
 	case *Agent:
-		return fmt.Sprintf("agent [%s]", thing.(*Agent).UUID)
+		return fmt.Sprintf("agent [%s]", what.UUID)
 
 	case Job:
-		return fmt.Sprintf("job [%s]", thing.(Job).UUID)
+		return fmt.Sprintf("job [%s]", what.UUID)
 	case *Job:
-		return fmt.Sprintf("job [%s]", thing.(*Job).UUID)
+		return fmt.Sprintf("job [%s]", what.UUID)
 
 	case Store:
-		return fmt.Sprintf("store [%s]", thing.(Store).UUID)
+		return fmt.Sprintf("store [%s]", what.UUID)
 	case *Store:
-		return fmt.Sprintf("store [%s]", thing.(*Store).UUID)
+		return fmt.Sprintf("store [%s]", what.UUID)
 
 	case Target:
-		return fmt.Sprintf("target [%s]", thing.(Target).UUID)
+		return fmt.Sprintf("target [%s]", what.UUID)
 	case *Target:
-		return fmt.Sprintf("target [%s]", thing.(*Target).UUID)
+		return fmt.Sprintf("target [%s]", what.UUID)
 
 	case Tenant:
-		return fmt.Sprintf("tenant [%s]", thing.(Tenant).UUID)
+		return fmt.Sprintf("tenant [%s]", what.UUID)
 	case *Tenant:
-		return fmt.Sprintf("tenant [%s]", thing.(*Tenant).UUID)
+		return fmt.Sprintf("tenant [%s]", what.UUID)
 
 	case Task:
-		return fmt.Sprintf("task [%s]", thing.(Task).UUID)
+		return fmt.Sprintf("task [%s]", what.UUID)
 	case *Task:
-		return fmt.Sprintf("task [%s]", thing.(*Task).UUID)
+		return fmt.Sprintf("task [%s]", what.UUID)
 
 	case Archive:
-		return fmt.Sprintf("archive [%s]", thing.(Archive).UUID)
+		return fmt.Sprintf("archive [%s]", what.UUID)
 	case *Archive:
-		return fmt.Sprintf("archive [%s]", thing.(*Archive).UUID)
+		return fmt.Sprintf("archive [%s]", what.UUID)
 
 	default:
 		panic("SHIELD was unable to determine the type of thing, in order to craft a message bus event for it.  This is most certainly a bug in SHIELD itself.")

@@ -7,17 +7,17 @@ import (
 )
 
 func StringifyKeys(things interface{}) interface{} {
-	switch things.(type) {
+	switch what := things.(type) {
 	case map[interface{}]interface{}:
 		m := make(map[string]interface{})
-		for k, v := range things.(map[interface{}]interface{}) {
+		for k, v := range what {
 			m[fmt.Sprintf("%s", k)] = StringifyKeys(v)
 		}
 		return m
 
 	case []interface{}:
 		l := make([]interface{}, 0)
-		for _, thing := range things.([]interface{}) {
+		for _, thing := range what {
 			l = append(l, StringifyKeys(thing))
 		}
 		return l
