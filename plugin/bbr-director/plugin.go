@@ -229,7 +229,7 @@ func (p BBRPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEn
 
 	fmt.Fprintf(log, "Combining BBR output files into an uncompressed tarball...\n")
 	archive := tar.NewWriter(out)
-	err = filepath.Walk(workspace, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(workspace, func(path string, info os.FileInfo, _ error) error {
 		fmt.Fprintf(log, "  - analyzing %s ... ", path)
 		rel, err := filepath.Rel(workspace, path)
 		if err != nil {
