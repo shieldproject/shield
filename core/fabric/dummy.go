@@ -43,7 +43,6 @@ func (f DummyFabric) Backup(task *db.Task) scheduler.Chore {
 				time.Now().Format("2006/01/02/15/04/05/2006-01-02T1504.archive"),
 				task.Compression)
 			chore.UnixExit(0)
-			return
 		})
 }
 
@@ -66,7 +65,6 @@ func (f DummyFabric) Restore(task *db.Task) scheduler.Chore {
 			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY> restore operation complete.")
 			chore.UnixExit(0)
-			return
 		})
 }
 
@@ -81,6 +79,5 @@ func (f DummyFabric) Status(task *db.Task) scheduler.Chore {
 			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY> agent-status operation complete.")
 			chore.UnixExit(0)
-			return
 		})
 }
