@@ -37,7 +37,5 @@ func (s *Scheduler) Elevate() {
 
 	/* merge previous top-priority chores onto
 	   the back of the new top-priority chores */
-	for _, chore := range old0 {
-		s.chores[0] = append(s.chores[0], chore)
-	}
+	s.chores[0] = append(s.chores[0], old0...)
 }

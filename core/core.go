@@ -263,9 +263,7 @@ func Configure(file string, config Config) (*Core, error) {
 
 	if len(c.Config.PluginPaths) == 0 && c.Config.PluginPathsEnv != "" {
 		p := strings.Split(c.Config.PluginPathsEnv, ":")
-		for _, path := range c.Config.PluginPaths {
-			p = append(p, path)
-		}
+		p = append(p, c.Config.PluginPaths...)
 		c.Config.PluginPaths = p
 	}
 	for _, path := range c.Config.PluginPaths {

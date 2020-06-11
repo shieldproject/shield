@@ -64,9 +64,7 @@ func (agent *Agent) ReadConfig(path string) error {
 
 	if config.PluginPathsEnv != "" {
 		p := strings.Split(config.PluginPathsEnv, ":")
-		for _, path := range config.PluginPaths {
-			p = append(p, path)
-		}
+		p = append(p, config.PluginPaths...)
 		config.PluginPaths = p
 	}
 	if len(config.PluginPaths) == 0 {
