@@ -11,8 +11,6 @@ type Membership struct {
 }
 
 func (db *DB) GetMembershipsForUser(user string) ([]*Membership, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	r, err := db.query(`
 	    SELECT t.uuid, t.name, m.role
 	      FROM tenants t INNER JOIN memberships m ON m.tenant_uuid = t.uuid
@@ -50,7 +48,7 @@ func (db *DB) AddUserToTenant(user, tenant_id, role string) error {
 		if err := db.userShouldExist(user); err != nil {
 			return fmt.Errorf("unable to create tenant membership: %s", err)
 		}
-		exists, err := db.exists(`
+		exists, err := db.Exists(`
 		    SELECT m.role
 		      FROM memberships m
 		     WHERE m.user_uuid = ?
@@ -59,7 +57,7 @@ func (db *DB) AddUserToTenant(user, tenant_id, role string) error {
 			return err
 		}
 		if exists {
-			return db.exec(`
+			return db.Exec(`
 			    UPDATE memberships
 			       SET role = ?
 			     WHERE user_uuid = ?
@@ -67,7 +65,7 @@ func (db *DB) AddUserToTenant(user, tenant_id, role string) error {
 				role, user, tenant.UUID)
 
 		} else {
-			return db.exec(`
+			return db.Exec(`
 			    INSERT INTO memberships (user_uuid, tenant_uuid, role)
 			                     VALUES (?, ?, ?)`,
 				user, tenant.UUID, role)

@@ -145,14 +145,10 @@ func (db *DB) getAgent(id string) (*Agent, error) {
 }
 
 func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	return db.getAllAgents(filter)
 }
 
 func (db *DB) GetAgent(id string) (*Agent, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	return db.getAgent(id)
 }
 
@@ -168,8 +164,6 @@ func (db *DB) GetAgentByAddress(address string) (*Agent, error) {
 }
 
 func (db *DB) GetAgentPluginMetadata(addr, name string) (*plugin.PluginInfo, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	r, err := db.query(`SELECT metadata FROM agents WHERE address = ?`, addr)
 	if err != nil {
 		return nil, err
@@ -243,7 +237,7 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 
 func (db *DB) UpdateAgent(agent *Agent) error {
 	return db.exclusively(func() error {
-		err := db.exec(
+		err := db.Exec(
 			`UPDATE agents SET name            = ?,
 		                   address         = ?,
 		                   version         = ?,
@@ -276,7 +270,7 @@ func (db *DB) UpdateAgent(agent *Agent) error {
 
 func (db *DB) DeleteAgent(agent *Agent) error {
 	return db.exclusively(func() error {
-		n, err := db.count(`SELECT uuid FROM targets WHERE agent = ?`, agent.Address)
+		n, err := db.Count(`SELECT uuid FROM targets WHERE agent = ?`, agent.Address)
 		if err != nil {
 			return fmt.Errorf("unable to determine if agent can be deleted: %s", err)
 		}
@@ -284,7 +278,7 @@ func (db *DB) DeleteAgent(agent *Agent) error {
 			return fmt.Errorf("agent is still referenced by configured data systems")
 		}
 
-		n, err = db.count(`SELECT uuid FROM stores WHERE agent = ?`, agent.Address)
+		n, err = db.Count(`SELECT uuid FROM stores WHERE agent = ?`, agent.Address)
 		if err != nil {
 			return fmt.Errorf("unable to determine if agent can be deleted: %s", err)
 		}
@@ -292,6 +286,6 @@ func (db *DB) DeleteAgent(agent *Agent) error {
 			return fmt.Errorf("agent is still referenced by configured storage systems")
 		}
 		db.sendDeleteObjectEvent(agent, "*")
-		return db.exec(`DELETE FROM agents WHERE uuid = ?`, agent.UUID)
+		return db.Exec(`DELETE FROM agents WHERE uuid = ?`, agent.UUID)
 	})
 }

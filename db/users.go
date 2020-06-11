@@ -121,8 +121,6 @@ func (db *DB) GetAllUsers(filter *UserFilter) ([]*User, error) {
 	l := []*User{}
 	query, args := filter.Query()
 
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
@@ -141,8 +139,6 @@ func (db *DB) GetAllUsers(filter *UserFilter) ([]*User, error) {
 }
 
 func (db *DB) GetUserByID(id string) (*User, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	r, err := db.query(`
 	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash,
 	           u.default_tenant
@@ -165,9 +161,6 @@ func (db *DB) GetUserByID(id string) (*User, error) {
 }
 
 func (db *DB) GetUser(account string, backend string) (*User, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
 	r, err := db.query(`
 	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash,
 	           u.default_tenant
@@ -223,7 +216,7 @@ func (db *DB) DeleteUser(user *User) error {
 }
 
 func (db *DB) userShouldExist(uuid string) error {
-	if ok, err := db.exists(`SELECT uuid FROM users WHERE uuid = ?`, uuid); err != nil {
+	if ok, err := db.Exists(`SELECT uuid FROM users WHERE uuid = ?`, uuid); err != nil {
 		return fmt.Errorf("unable to look up user [%s]: %s", uuid, err)
 	} else if !ok {
 		return fmt.Errorf("user [%s] does not exist", uuid)

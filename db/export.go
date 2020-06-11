@@ -19,7 +19,7 @@ type fail struct {
 }
 
 func (db *DB) exportHeader(out *json.Encoder, table string) error {
-	n, err := db.count(fmt.Sprintf(`SELECT * FROM %s`, table))
+	n, err := db.Count(fmt.Sprintf(`SELECT * FROM %s`, table))
 	if err != nil {
 		return err
 	}

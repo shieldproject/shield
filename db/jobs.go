@@ -151,9 +151,6 @@ func (f *JobFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
 	if filter == nil {
 		filter = &JobFilter{}
 	}
@@ -256,7 +253,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 			return fmt.Errorf("unable to create job: %s", err)
 		}
 
-		return db.exec(`
+		return db.Exec(`
 		   INSERT INTO jobs (uuid, tenant_uuid,
 		                     name, summary, schedule, keep_n, keep_days, paused,
 		                     target_uuid, store_uuid, fixed_key, healthy)
@@ -286,20 +283,20 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 func (db *DB) UpdateJob(job *Job) error {
 	err := db.exclusively(func() error {
 		/* validate the store */
-		if ok, err := db.exists(`SELECT uuid FROM stores WHERE uuid = ?`, job.StoreUUID); err != nil {
+		if ok, err := db.Exists(`SELECT uuid FROM stores WHERE uuid = ?`, job.StoreUUID); err != nil {
 			return fmt.Errorf("unable to validate existence of store with UUID [%s]: %s", job.StoreUUID, err)
 		} else if !ok {
 			return fmt.Errorf("unable to set job store to [%s]: no such store in database", job.StoreUUID)
 		}
 
 		/* validate the target */
-		if ok, err := db.exists(`SELECT uuid FROM targets WHERE uuid = ?`, job.TargetUUID); err != nil {
+		if ok, err := db.Exists(`SELECT uuid FROM targets WHERE uuid = ?`, job.TargetUUID); err != nil {
 			return fmt.Errorf("unable to validate existence of target with UUID [%s]: %s", job.TargetUUID, err)
 		} else if !ok {
 			return fmt.Errorf("unable to set job target to [%s]: no such target in database", job.TargetUUID)
 		}
 
-		return db.exec(`
+		return db.Exec(`
 		   UPDATE jobs
 		      SET name           = ?,
 		          summary        = ?,

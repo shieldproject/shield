@@ -133,9 +133,6 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
 	if filter == nil {
 		filter = &StoreFilter{}
 	}
@@ -196,9 +193,6 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 }
 
 func (db *DB) GetStore(id string) (*Store, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
 	r, err := db.query(`
 	       SELECT s.uuid, s.name, s.summary, s.agent,
 	              s.plugin, s.endpoint, s.tenant_uuid,
@@ -272,7 +266,7 @@ func (db *DB) CreateStore(store *Store) (*Store, error) {
 			return fmt.Errorf("unable to create store: %s", err)
 		}
 
-		return db.exec(`
+		return db.Exec(`
 		   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent,
 		                       plugin, endpoint,
 		                       threshold, healthy)
@@ -407,7 +401,7 @@ func (db *DB) CleanStores() error {
 }
 
 func (db *DB) storeShouldExist(uuid string) error {
-	if ok, err := db.exists(`SELECT uuid FROM stores WHERE uuid = ?`, uuid); err != nil {
+	if ok, err := db.Exists(`SELECT uuid FROM stores WHERE uuid = ?`, uuid); err != nil {
 		return fmt.Errorf("unable to look up store [%s]: %s", uuid, err)
 	} else if !ok {
 		return fmt.Errorf("store [%s] does not exist", uuid)

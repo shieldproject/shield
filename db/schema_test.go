@@ -61,8 +61,6 @@ var _ = Describe("Database Schema", func() {
 				_, err := db.Setup(0)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				db.exclusive.Lock()
-				defer db.exclusive.Unlock()
 				r, err := db.query(`SELECT version FROM schema_info`)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(r).ShouldNot(BeNil())

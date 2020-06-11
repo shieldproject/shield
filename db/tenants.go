@@ -71,8 +71,6 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 
 	l := make([]*Tenant, 0)
 	query, args := filter.Query()
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
@@ -106,8 +104,6 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 }
 
 func (db *DB) GetTenant(id string) (*Tenant, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	r, err := db.query(`
 	     SELECT t.uuid, t.name,
 	            t.daily_increase, t.storage_used, t.archive_count
@@ -195,8 +191,6 @@ func (db *DB) UpdateTenant(tenant *Tenant) (*Tenant, error) {
 }
 
 func (db *DB) GetTenantRole(org string, team string) (string, string, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	rows, err := db.query(`SELECT tenant_uuid, role FROM org_team_tenant_role WHERE org = ? AND team = ?`, org, team)
 	if err != nil {
 		return "", "", err
@@ -302,7 +296,7 @@ func (db *DB) tenantShouldExist(uuid string) error {
 		return nil
 	}
 
-	if ok, err := db.exists(`SELECT uuid FROM tenants WHERE uuid = ?`, uuid); err != nil {
+	if ok, err := db.Exists(`SELECT uuid FROM tenants WHERE uuid = ?`, uuid); err != nil {
 		return fmt.Errorf("unable to look up tenant [%s]: %s", uuid, err)
 	} else if !ok {
 		return fmt.Errorf("tenant [%s] does not exist", uuid)

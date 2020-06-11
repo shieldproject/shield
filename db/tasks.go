@@ -203,9 +203,6 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
 	if filter == nil {
 		filter = &TaskFilter{}
 	}
@@ -318,7 +315,7 @@ func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
 			return fmt.Errorf("unable to create internal task: %s", err)
 		}
 
-		return db.exec(`
+		return db.Exec(`
           INSERT INTO tasks (uuid, owner, op, status, tenant_uuid, log, requested_at)
                      VALUES (?, ?, ?, ?, ?, ?, ?)`,
 			id, owner, op, RunningStatus, tenant, "", time.Now().Unix())
@@ -364,7 +361,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		   store plugin gives us the details, we know where
 		   to put it already. */
 
-		return db.exec(
+		return db.Exec(
 			`INSERT INTO tasks
                 (uuid, owner, op, job_uuid, status, log, requested_at,
                  archive_uuid, store_uuid, store_plugin, store_endpoint,
@@ -416,7 +413,7 @@ func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) 
 			return fmt.Errorf("unable to create (skipped) backup task: %s", err)
 		}
 
-		return db.exec(
+		return db.Exec(
 			`INSERT INTO tasks
                 (uuid, owner, op, job_uuid, status, log,
                  requested_at, started_at, stopped_at, ok,
@@ -479,7 +476,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 			return fmt.Errorf("unable to create restore task: %s", err)
 		}
 
-		return db.exec(
+		return db.Exec(
 			`INSERT INTO tasks
                 (uuid, owner, op, archive_uuid, status, log, requested_at,
                  store_uuid, store_plugin, store_endpoint,
@@ -557,8 +554,6 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 		return true, nil
 	}
 
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	r, err := db.query(`
         SELECT uuid FROM tasks
           WHERE target_uuid = ? AND status = ? LIMIT 1`, task.TargetUUID, RunningStatus)
@@ -573,7 +568,6 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 	return false, nil
 }
 
-//The caller must Lock the db mutex
 func (db *DB) taskQueue(id string) string {
 	r, err := db.query(`SELECT tenant_uuid FROM tasks WHERE uuid = ?`, id)
 	if err != nil {
@@ -660,12 +654,10 @@ func (db *DB) updateTaskStatus(id, status string, at int64, ok int) error {
 }
 
 func (db *DB) CancelTask(id string, at time.Time) error {
-	//updateTaskStatus grabs the lock
 	return db.updateTaskStatus(id, CanceledStatus, effectively(at), 1)
 }
 
 func (db *DB) FailTask(id string, at time.Time) error {
-	//updateTaskStatus grabs the lock
 	err := db.updateTaskStatus(id, FailedStatus, effectively(at), 0)
 	if err != nil {
 		return err
@@ -688,7 +680,6 @@ func (db *DB) FailTask(id string, at time.Time) error {
 }
 
 func (db *DB) CompleteTask(id string, at time.Time) error {
-	//updateTaskStatus grabs the lock
 	err := db.updateTaskStatus(id, DoneStatus, effectively(at), 1)
 	if err != nil {
 		return err
@@ -745,7 +736,7 @@ func (db *DB) getTaskArchiveRetention(id string) (int, error) {
 	return n, nil
 }
 
-func (db *DB) createTaskArchive(id, archive_id, key string, at time.Time, encryptionType, compression string, archive_size int64, tenant_uuid string) (string, error) {
+func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryptionType, compression string, archive_size int64, tenant_uuid string) (string, error) {
 	if key == "" {
 		return "", fmt.Errorf("cannot create an archive without a store_key")
 	}
@@ -774,16 +765,9 @@ func (db *DB) createTaskArchive(id, archive_id, key string, at time.Time, encryp
 	db.sendCreateObjectEvent(archive, "tenant:"+archive.TenantUUID)
 
 	// and finally, associate task -> archive
-	return archive_id, db.exec(
+	return archive_id, db.Exec(
 		`UPDATE tasks SET archive_uuid = ? WHERE uuid = ?`,
 		archive_id, id)
-}
-
-func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryptionType, compression string, archive_size int64, tenant_uuid string) (string, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
-	return db.createTaskArchive(id, archive_id, key, at, encryptionType, compression, archive_size, tenant_uuid)
 }
 
 type TaskAnnotation struct {
@@ -868,7 +852,7 @@ func (db *DB) UnscheduleAllTasks() error {
 }
 
 func (db *DB) archiveShouldExist(uuid string) error {
-	if ok, err := db.exists(`SELECT uuid FROM archives WHERE uuid = ?`, uuid); err != nil {
+	if ok, err := db.Exists(`SELECT uuid FROM archives WHERE uuid = ?`, uuid); err != nil {
 		return fmt.Errorf("unable to look up archive [%s]: %s", uuid, err)
 	} else if !ok {
 		return fmt.Errorf("archive [%s] does not exist", uuid)

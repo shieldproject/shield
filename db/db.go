@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/jhunt/go-log"
 	"github.com/jmoiron/sqlx"
@@ -21,7 +20,6 @@ type DB struct {
 	Driver     string
 	DSN        string
 
-	exclusive sync.Mutex
 	bus       *bus.Bus
 }
 
@@ -64,14 +62,6 @@ func (db *DB) Inform(mbus *bus.Bus) {
 
 // Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)
 func (db *DB) Exec(sql string, args ...interface{}) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(sql, args...)
-}
-
-// Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)
-// The caller is responsible for locking the Mutex.
-func (db *DB) exec(sql string, args ...interface{}) error {
 	s, err := db.statement(sql)
 	if err != nil {
 		return err
@@ -104,8 +94,6 @@ func (r *queryResult) Close() error {
 }
 
 // Execute a named, data query (SELECT)
-// The caller is responsible for holding the database lock, as the rows object
-// returned holds a SQLite read lock until the rows object is closed.
 func (db *DB) query(sql string, args ...interface{}) (*queryResult, error) {
 	s, err := db.statement(sql)
 	if err != nil {
@@ -130,14 +118,6 @@ func (db *DB) query(sql string, args ...interface{}) (*queryResult, error) {
 
 // Execute a data query (SELECT) and return how many rows were returned
 func (db *DB) Count(sql string, args ...interface{}) (uint, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.count(sql, args...)
-}
-
-// Execute a data query (SELECT) and return how many rows were returned
-// The caller is responsible for locking the Mutex.
-func (db *DB) count(sql string, args ...interface{}) (uint, error) {
 	r, err := db.query(sql, args...)
 	if err != nil {
 		return 0, err
@@ -153,47 +133,37 @@ func (db *DB) count(sql string, args ...interface{}) (uint, error) {
 
 // Execute a data query (SELECT) and return true if any rows exist
 func (db *DB) Exists(sql string, args ...interface{}) (bool, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exists(sql, args...)
-}
-
-// Execute a data query (SELECT) and return true if any rows exist
-// The caller is responsible for locking the Mutex.
-func (db *DB) exists(sql string, args ...interface{}) (bool, error) {
-	n, err := db.count(sql, args...)
+	n, err := db.Count(sql, args...)
 	return n > 0, err
 }
 
 // Run some arbitrary code with the database lock held,
 // properly releasing it whenever the passed function returns.
 func (db *DB) exclusively(fn func() error) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	return fn()
 }
 
 func (db *DB) transactionally(fn func() error) error {
 	return db.exclusively(func() (err error) {
 		log.Infof("beginning transaction...")
-		if err = db.exec("BEGIN TRANSACTION"); err != nil {
+		if err = db.Exec("BEGIN TRANSACTION"); err != nil {
 			return
 		}
 		defer func() {
 			if r := recover(); r != nil {
 				log.Infof("rolling back (panic: %s)...", r)
-				db.exec("ROLLBACK")
+				db.Exec("ROLLBACK")
 				panic(r)
 			}
 
 			if err != nil {
 				log.Infof("rolling back (error: %s)...", err)
-				db.exec("ROLLBACK")
+				db.Exec("ROLLBACK")
 				return
 			}
 
 			log.Infof("commiting transaction...")
-			err = db.exec("COMMIT")
+			err = db.Exec("COMMIT")
 		}()
 		return fn()
 	})

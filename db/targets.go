@@ -131,9 +131,6 @@ func (db *DB) CountTargets(filter *TargetFilter) (int, error) {
 }
 
 func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
 	if filter == nil {
 		filter = &TargetFilter{}
 	}
@@ -169,9 +166,6 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 }
 
 func (db *DB) GetTarget(id string) (*Target, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
 	r, err := db.query(`
 	    SELECT uuid, tenant_uuid, name, summary, plugin,
 	           endpoint, agent, compression, healthy
@@ -219,7 +213,7 @@ func (db *DB) CreateTarget(target *Target) (*Target, error) {
 			return fmt.Errorf("unable to create target: %s", err)
 		}
 
-		return db.exec(`
+		return db.Exec(`
 		    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin,
 		                         endpoint, agent, compression, healthy)
 		                 VALUES (?, ?, ?, ?, ?,
@@ -328,7 +322,7 @@ func (db *DB) CleanTargets() error {
 }
 
 func (db *DB) targetShouldExist(uuid string) error {
-	if ok, err := db.exists(`SELECT uuid FROM targets WHERE uuid = ?`, uuid); err != nil {
+	if ok, err := db.Exists(`SELECT uuid FROM targets WHERE uuid = ?`, uuid); err != nil {
 		return fmt.Errorf("unable to look up target [%s]: %s", uuid, err)
 	} else if !ok {
 		return fmt.Errorf("target [%s] does not exist", uuid)

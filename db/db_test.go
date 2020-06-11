@@ -60,8 +60,6 @@ var _ = Describe("Database", func() {
 			It("can insert records", func() {
 				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
 
-				db.exclusive.Lock()
-				defer db.exclusive.Unlock()
 				r, err := db.query(`SELECT number FROM things WHERE type = ?`, "monkey")
 				Ω(err).Should(Succeed())
 				defer r.Close()
@@ -72,8 +70,6 @@ var _ = Describe("Database", func() {
 				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
 				Ω(db.Exec(`UPDATE things SET number = number + ? WHERE type = ?`, 42, "monkey")).Should(Succeed())
 
-				db.exclusive.Lock()
-				defer db.exclusive.Unlock()
 				r, err := db.query(`SELECT number FROM things WHERE type = ?`, "monkey")
 				Ω(err).Should(Succeed())
 				defer r.Close()
@@ -84,8 +80,6 @@ var _ = Describe("Database", func() {
 				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
 				Ω(db.Exec(`UPDATE things SET number = number + ? WHERE type = ?`, 13, "monkey")).Should(Succeed())
 
-				db.exclusive.Lock()
-				defer db.exclusive.Unlock()
 				r, err := db.query(`SELECT number FROM things WHERE type = "monkey"`)
 				Ω(err).Should(Succeed())
 				defer r.Close()
@@ -96,8 +90,6 @@ var _ = Describe("Database", func() {
 				Ω(db.Exec("INSERT INTO things (type, number) VALUES (?, ?)", "lion", 3)).
 					Should(Succeed())
 
-				db.exclusive.Lock()
-				defer db.exclusive.Unlock()
 				r, err := db.query(`SELECT number FROM things WHERE type = ?`, "lion")
 				Ω(err).Should(Succeed())
 				defer r.Close()

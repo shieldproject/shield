@@ -85,8 +85,6 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 
 	l := []*Session{}
 	query, args := filter.Query()
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
@@ -119,9 +117,6 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 }
 
 func (db *DB) GetSession(id string) (*Session, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
 	r, err := db.query(`
 	         SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token,
 	                s.name, s.ip_addr, s.user_agent, u.account, u.backend
@@ -161,8 +156,6 @@ func (db *DB) GetSession(id string) (*Session, error) {
 }
 
 func (db *DB) GetUserForSession(id string) (*User, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	r, err := db.query(`
 	        SELECT u.uuid, u.name, u.account, u.backend, u.sysrole,
 	               u.pwhash, u.default_tenant

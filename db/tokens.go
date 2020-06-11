@@ -46,9 +46,6 @@ func (t AuthTokenFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllAuthTokens(filter *AuthTokenFilter) ([]*AuthToken, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
 	if filter == nil {
 		filter = &AuthTokenFilter{}
 	}

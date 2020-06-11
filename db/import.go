@@ -41,7 +41,7 @@ func (db *DB) importAgents(n uint, in *json.Decoder) error {
 		}
 
 		log.Infof("IMPORT: inserting agent %s...", v.UUID)
-		err := db.exec(`
+		err := db.Exec(`
 		  INSERT INTO agents
 		    (uuid, name, address, version, hidden,
 		     last_seen_at, last_checked_at, last_error,
@@ -92,7 +92,7 @@ func (db *DB) importArchives(n uint, in *json.Decoder) error {
 		}
 
 		log.Infof("IMPORT: inserting archive %s...", v.UUID)
-		err := db.exec(`
+		err := db.Exec(`
 		  INSERT INTO archives
 		    (uuid, tenant_uuid, target_uuid, store_uuid,
 		     store_key, taken_at, expires_at, notes, purge_reason,
@@ -132,7 +132,7 @@ func (db *DB) importFixups(n uint, in *json.Decoder) error {
 		}
 
 		log.Infof("IMPORT: inserting fixup #%s...", v.ID)
-		err := db.exec(`
+		err := db.Exec(`
 		  INSERT INTO fixups
 		    (id, name, summary, created_at, applied_at)
 		  VALUES
@@ -175,7 +175,7 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 		}
 
 		log.Infof("IMPORT: inserting job %s...", v.UUID)
-		err := db.exec(`
+		err := db.Exec(`
 		  INSERT INTO jobs
 		    (uuid, target_uuid, store_uuid, tenant_uuid,
 		     name, summary, schedule, keep_n, keep_days,
@@ -212,7 +212,7 @@ func (db *DB) importMemberships(n uint, in *json.Decoder) error {
 			return fmt.Errorf(v.Error)
 		}
 
-		err := db.exec(`
+		err := db.Exec(`
 		  INSERT INTO memberships
 		    (user_uuid, tenant_uuid, role)
 		  VALUES
@@ -254,7 +254,7 @@ func (db *DB) importStores(n uint, in *json.Decoder) error {
 		}
 
 		log.Infof("IMPORT: inserting store %s...", v.UUID)
-		err := db.exec(`
+		err := db.Exec(`
 		  INSERT INTO stores
 		    (uuid, tenant_uuid, name, summary,
 		     plugin, endpoint, agent,
@@ -301,7 +301,7 @@ func (db *DB) importTargets(n uint, in *json.Decoder) error {
 		}
 
 		log.Infof("IMPORT: inserting target %s...", v.UUID)
-		err := db.exec(`
+		err := db.Exec(`
 		  INSERT INTO targets
 		    (uuid, tenant_uuid, name, summary,
 		     plugin, endpoint, agent, compression, healthy)
@@ -368,7 +368,7 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		}
 		if v.Status == "done" || v.Status == "failed" || v.Status == "canceled" {
 			log.Infof("IMPORT: inserting task %s... ", v.UUID)
-			err := db.exec(`
+			err := db.Exec(`
             INSERT INTO tasks
                 (uuid, owner, op,
                 tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
@@ -423,7 +423,7 @@ func (db *DB) importTenants(n uint, in *json.Decoder) error {
 		}
 
 		log.Infof("IMPORT: inserting tenant %s...", v.UUID)
-		err := db.exec(`
+		err := db.Exec(`
 		  INSERT INTO tenants
 		    (uuid, name,
 		     daily_increase, storage_used, archive_count)
@@ -462,7 +462,7 @@ func (db *DB) importUsers(n uint, in *json.Decoder) error {
 		}
 
 		log.Infof("IMPORT: inserting user %s...", v.UUID)
-		err := db.exec(`
+		err := db.Exec(`
 		  INSERT INTO users
 		    (uuid, name, account, backend,
 		     pwhash, sysrole, default_tenant)
@@ -504,7 +504,7 @@ func (db *DB) importSessions(n uint, in *json.Decoder) error {
 		}
 
 		log.Infof("IMPORT: inserting session %s...", v.UUID)
-		err := db.exec(`
+		err := db.Exec(`
           INSERT INTO sessions
             (uuid, user_uuid, created_at, last_seen,
              token, name, ip_addr, user_agent)
@@ -545,7 +545,7 @@ func (db *DB) preimportState(restoreKey, uuid string) (*preimport, error) {
 func (db *DB) clear(tables ...string) error {
 	for _, t := range tables {
 		log.Infof("IMPORT: clearing table %s...", t)
-		if err := db.exec(fmt.Sprintf("DELETE FROM %s", t)); err != nil {
+		if err := db.Exec(fmt.Sprintf("DELETE FROM %s", t)); err != nil {
 			return fmt.Errorf("clear table failed: %s", err)
 		}
 	}
