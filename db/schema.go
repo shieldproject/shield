@@ -37,7 +37,7 @@ func (db *DB) Setup(want int) (int, error) {
 		want = CurrentSchema
 	}
 	if current > want {
-		err = fmt.Errorf("Schema version %d is newer than this version of SHIELD (%d)", current, want)
+		err = fmt.Errorf("schema version %d is newer than this version of SHIELD (%d)", current, want)
 		if err != nil {
 			return 0, err
 		}
@@ -105,7 +105,7 @@ func (db *DB) SchemaVersion() (int, error) {
 
 	// invalid (negative) schema version is an actual error
 	if v < 0 {
-		return 0, fmt.Errorf("Invalid schema version %d found", v)
+		return 0, fmt.Errorf("invalid schema version %d found", v)
 	}
 
 	return int(v), nil

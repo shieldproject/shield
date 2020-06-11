@@ -38,7 +38,7 @@ func (c *Client) Lookup() (string, string, map[string][]string, error) {
 		return "", "", nil, err
 	}
 	if user.Login == nil {
-		return "", "", nil, fmt.Errorf("no login name found in Github profile...")
+		return "", "", nil, fmt.Errorf("no login name found in Github profile")
 	}
 
 	orgs, _, err := c.gh.Organizations.List("", nil)

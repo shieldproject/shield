@@ -339,7 +339,7 @@ func (db *DB) PurgeArchive(id string) error {
 		return fmt.Errorf("unable to retrieve archive [%s]: %s", id, err)
 	}
 	if a == nil {
-		return fmt.Errorf("unable to retrieve archive [%s]: not found in database.", id)
+		return fmt.Errorf("unable to retrieve archive [%s]: not found in database", id)
 	}
 
 	if a.Status == "valid" {
@@ -460,7 +460,7 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int64, error) {
 
 	var p *int64
 	if !r.Next() {
-		return 0, fmt.Errorf("no results from SUM(size) query...")
+		return 0, fmt.Errorf("no results from SUM(size) query")
 	}
 
 	if err = r.Scan(&p); err != nil {

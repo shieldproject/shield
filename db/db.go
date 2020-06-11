@@ -202,7 +202,7 @@ func (db *DB) transactionally(fn func() error) error {
 // Return the prepared statement for a given SQL query
 func (db *DB) statement(sql string) (*sql.Stmt, error) {
 	if db.connection == nil {
-		return nil, fmt.Errorf("Not connected to database")
+		return nil, fmt.Errorf("not connected to database")
 	}
 
 	return db.connection.Prepare(db.connection.Rebind(sql))

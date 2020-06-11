@@ -244,21 +244,21 @@ func Configure(file string, config Config) (*Core, error) {
 	}
 
 	if c.Config.DataDir == "" {
-		return nil, fmt.Errorf("SHIELD data directory '%s' is invalid (must be a valid path)", c.Config.DataDir)
+		return nil, fmt.Errorf("data directory '%s' is invalid (must be a valid path)", c.Config.DataDir)
 	}
 	if st, err := os.Stat(c.Config.DataDir); err != nil {
-		return nil, fmt.Errorf("SHIELD data directory '%s' is invalid (%s)", c.Config.DataDir, err)
+		return nil, fmt.Errorf("data directory '%s' is invalid (%s)", c.Config.DataDir, err)
 	} else if !st.Mode().IsDir() {
-		return nil, fmt.Errorf("SHIELD data directory '%s' is invalid (not a directory)", c.Config.DataDir)
+		return nil, fmt.Errorf("data directory '%s' is invalid (not a directory)", c.Config.DataDir)
 	}
 
 	if c.Config.WebRoot == "" {
-		return nil, fmt.Errorf("SHIELD web root directory '%s' is invalid (must be a valid path)", c.Config.WebRoot)
+		return nil, fmt.Errorf("web root directory '%s' is invalid (must be a valid path)", c.Config.WebRoot)
 	}
 	if st, err := os.Stat(c.Config.WebRoot); err != nil {
-		return nil, fmt.Errorf("SHIELD web root directory '%s' is invalid (%s)", c.Config.WebRoot, err)
+		return nil, fmt.Errorf("web root directory '%s' is invalid (%s)", c.Config.WebRoot, err)
 	} else if !st.Mode().IsDir() {
-		return nil, fmt.Errorf("SHIELD web root directory '%s' is invalid (not a directory)", c.Config.WebRoot)
+		return nil, fmt.Errorf("web root directory '%s' is invalid (not a directory)", c.Config.WebRoot)
 	}
 
 	if len(c.Config.PluginPaths) == 0 && c.Config.PluginPathsEnv != "" {
@@ -270,32 +270,32 @@ func Configure(file string, config Config) (*Core, error) {
 	}
 	for _, path := range c.Config.PluginPaths {
 		if path == "" {
-			return nil, fmt.Errorf("SHIELD plugin directory '%s' is invalid (must be a valid path)", path)
+			return nil, fmt.Errorf("plugin directory '%s' is invalid (must be a valid path)", path)
 		}
 		if st, err := os.Stat(path); err != nil {
-			return nil, fmt.Errorf("SHIELD plugin directory '%s' is invalid (%s)", path, err)
+			return nil, fmt.Errorf("plugin directory '%s' is invalid (%s)", path, err)
 		} else if !st.Mode().IsDir() {
-			return nil, fmt.Errorf("SHIELD plugin directory '%s' is invalid (not a directory)", path)
+			return nil, fmt.Errorf("plugin directory '%s' is invalid (not a directory)", path)
 		}
 	}
 
 	if !c.Config.LegacyAgents.Enabled {
-		return nil, fmt.Errorf("Agent communication has been disabled.  Please set legacy-agents.enabled to 'yes'")
+		return nil, fmt.Errorf("agent communication has been disabled.  Please set legacy-agents.enabled to 'yes'")
 	}
 	if c.Config.LegacyAgents.Enabled {
 		if c.Config.LegacyAgents.PrivateKey == "" {
-			return nil, fmt.Errorf("No SSH private key provided for communicating with legacy agents")
+			return nil, fmt.Errorf("no SSH private key provided for communicating with legacy agents")
 		}
 		signer, err := ssh.ParsePrivateKey([]byte(c.Config.LegacyAgents.PrivateKey))
 		if err != nil {
-			return nil, fmt.Errorf("Invalid SSH private key provided for communicating with legacy agents: %s", err)
+			return nil, fmt.Errorf("invalid SSH private key provided for communicating with legacy agents: %s", err)
 		}
 		c.Config.LegacyAgents.pub = fmt.Sprintf("%s %s",
 			signer.PublicKey().Type(),
 			base64.StdEncoding.EncodeToString(signer.PublicKey().Marshal()))
 
 		if c.Config.LegacyAgents.DialTimeout < 0 {
-			return nil, fmt.Errorf("Invalid connection timeout provided for communicating with legacy agents: %d is less than 0", c.Config.LegacyAgents.DialTimeout)
+			return nil, fmt.Errorf("invalid connection timeout provided for communicating with legacy agents: %d is less than 0", c.Config.LegacyAgents.DialTimeout)
 		}
 
 		if len(c.Config.LegacyAgents.MACs) == 0 {

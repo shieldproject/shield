@@ -61,7 +61,7 @@ func (c *Client) initialize() error {
 
 		/* add the explicit ca certificate */
 		if c.CACertificate != "" && !pool.AppendCertsFromPEM([]byte(c.CACertificate)) {
-			return fmt.Errorf("Unable to parse CA Certificate for inclusion in trusted CA pool")
+			return fmt.Errorf("unable to parse CA Certificate for inclusion in trusted CA pool")
 		}
 
 		/* set up the client we will use on all requests */

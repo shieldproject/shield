@@ -221,7 +221,7 @@ func (db *DB) PauseOrUnpauseJob(id string, pause bool) (bool, error) {
 		return true, err
 	}
 	if job == nil {
-		return true, fmt.Errorf("unable to update job [%s]: not found in database.", id)
+		return true, fmt.Errorf("unable to update job [%s]: not found in database", id)
 	}
 
 	db.sendUpdateObjectEvent(job, "tenant:"+job.TenantUUID)
@@ -276,7 +276,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 		return nil, err
 	}
 	if job == nil {
-		return nil, fmt.Errorf("failed to retrieve newly-inserted job [%s]: not found in database.", job.UUID)
+		return nil, fmt.Errorf("failed to retrieve newly-inserted job [%s]: not found in database", job.UUID)
 	}
 
 	db.sendCreateObjectEvent(job, "tenant:"+job.TenantUUID)
@@ -333,10 +333,10 @@ func (db *DB) UpdateJob(job *Job) error {
 func (db *DB) UpdateJobHealth(id string, status bool) error {
 	job, err := db.GetJob(id)
 	if err != nil {
-		return fmt.Errorf("Error when finding job with uuid `%s' to update health: %s", id, err)
+		return fmt.Errorf("error when finding job with uuid `%s' to update health: %s", id, err)
 	}
 	if job == nil {
-		return fmt.Errorf("No job with uuid `%s' was found to update health", id)
+		return fmt.Errorf("no job with uuid `%s' was found to update health", id)
 	}
 	err = db.Exec(`
         UPDATE jobs

@@ -40,7 +40,7 @@ type Command struct {
 func ParseCommand(b []byte) (*Command, error) {
 	cmd := &Command{}
 	if err := json.Unmarshal(b, &cmd); err != nil {
-		return nil, fmt.Errorf("malformed agent command: %s\n", err)
+		return nil, fmt.Errorf("malformed agent command: %s", err)
 	}
 
 	switch cmd.Op {

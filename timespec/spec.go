@@ -138,25 +138,25 @@ func (s *Spec) Next(t time.Time) (time.Time, error) {
 			}
 			target = offsetM(target, int(s.Cardinality))
 		}
-		return t, fmt.Errorf("Cannot calculate the %0.2fth minute", s.Cardinality)
+		return t, fmt.Errorf("cannot calculate the %0.2fth minute", s.Cardinality)
 	}
 
 	if s.Interval == Hourly && s.TimeOfHour < 60 {
 		if s.Cardinality != 0 {
 			//Check bounds on cardinality for a one day period
 			if s.Cardinality < 0 || s.Cardinality > 23 {
-				return t, fmt.Errorf("Invalid Cardinality: Cannot calculate the %0.2fth hour in a day", s.Cardinality)
+				return t, fmt.Errorf("invalid Cardinality: Cannot calculate the %0.2fth hour in a day", s.Cardinality)
 			}
 			//Check Cardinality is Valid (i.e. integer, half, or quarter)
 			if s.Cardinality != float32(int(s.Cardinality)) {
 				if s.Cardinality != 0.5 && s.Cardinality != 0.25 {
-					return t, fmt.Errorf("Invalid Cardinality: Cannot calculate the %0.2fth hour in a day", s.Cardinality)
+					return t, fmt.Errorf("invalid Cardinality: Cannot calculate the %0.2fth hour in a day", s.Cardinality)
 				}
 			}
 			//Ensure "FROM" is reduced to its simplest form
 			if float32(s.TimeOfDay) >= (s.Cardinality * 60) {
 				s.TimeOfDay = s.TimeOfDay % int(s.Cardinality*60)
-				return t, fmt.Errorf("Invalid FROM time: did you mean %d:%02d", s.TimeOfDay/60, s.TimeOfDay%60)
+				return t, fmt.Errorf("invalid FROM time: did you mean %d:%02d", s.TimeOfDay/60, s.TimeOfDay%60)
 			}
 			target := offsetM(midnight, s.TimeOfDay)
 			for i := 0; i < 97; i++ { //Incrementing 96 1/4hours in the worst case
@@ -165,7 +165,7 @@ func (s *Spec) Next(t time.Time) (time.Time, error) {
 				}
 				target = offsetM(target, int(60*s.Cardinality))
 			}
-			return t, fmt.Errorf("Cannot calculate the %0.2fth hour in a day", s.Cardinality)
+			return t, fmt.Errorf("cannot calculate the %0.2fth hour in a day", s.Cardinality)
 		}
 
 		target := offsetM(t, s.TimeOfHour-t.Minute())
@@ -194,7 +194,7 @@ func (s *Spec) Next(t time.Time) (time.Time, error) {
 
 	} else if s.Interval == Monthly && s.Week != 0 {
 		if s.Week < 1 || s.Week > 5 {
-			return t, fmt.Errorf("Cannot calculate the %dth week in a month", s.Week)
+			return t, fmt.Errorf("cannot calculate the %dth week in a month", s.Week)
 		}
 		target := offsetM(midnight, s.TimeOfDay)
 		for target.Weekday() != s.DayOfWeek || target.Before(t) {
@@ -207,7 +207,7 @@ func (s *Spec) Next(t time.Time) (time.Time, error) {
 
 	} else if s.Interval == Monthly && s.DayOfMonth != 0 {
 		if s.DayOfMonth < 1 || s.DayOfMonth > 31 {
-			return t, fmt.Errorf("Cannot calculate the %dth week in a month", s.Week)
+			return t, fmt.Errorf("cannot calculate the %dth week in a month", s.Week)
 		}
 		target := offsetM(midnight, s.TimeOfDay)
 		for target.Day() != s.DayOfMonth || target.Before(t) {

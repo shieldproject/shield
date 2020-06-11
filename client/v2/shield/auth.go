@@ -43,7 +43,7 @@ func (c *Client) Authenticate(auth AuthMethod) error {
 		return err
 	}
 	if id.Unauthenticated {
-		return fmt.Errorf("Authentication failed")
+		return fmt.Errorf("authentication failed")
 	}
 	return nil
 }

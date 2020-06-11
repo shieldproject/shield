@@ -144,7 +144,7 @@ func (f *Form) Confirm(prompt string) bool {
 
 func FieldIsRequired(name string, value string) (interface{}, error) {
 	if len(value) < 1 {
-		return value, fmt.Errorf("Field %s is a required field.\n", name)
+		return value, fmt.Errorf("field %s is required", name)
 	}
 	return value, nil
 }
@@ -165,7 +165,7 @@ func FieldIsBoolean(name string, value string) (interface{}, error) {
 		return false, nil
 	}
 
-	return "", fmt.Errorf("'%s' is not a boolean value.  Acceptable values are (y)es or (n)o.", value)
+	return "", fmt.Errorf("'%s' is not a boolean value.  Acceptable values are (y)es or (n)o", value)
 }
 
 func (f *Form) BuildContent() (string, error) {
@@ -180,7 +180,7 @@ func (f *Form) BuildContent() (string, error) {
 	}
 	j, err := json.Marshal(c)
 	if err != nil {
-		return "", fmt.Errorf("Could not marshal into JSON\nmapped input:%v\nerror:%s", c, err)
+		return "", fmt.Errorf("could not marshal into JSON: %s", err)
 	}
 	return string(j), nil
 }

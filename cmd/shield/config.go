@@ -100,7 +100,7 @@ func (c *Config) Select(alias string) error {
 		c.Current = core
 		return nil
 	}
-	return fmt.Errorf("Unknown SHIELD Core '%s'", alias)
+	return fmt.Errorf("unknown SHIELD core '%s'", alias)
 }
 
 func (c *Config) Add(alias string, core SHIELD) {

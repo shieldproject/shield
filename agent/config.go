@@ -52,14 +52,14 @@ func (agent *Agent) ReadConfig(path string) error {
 	env.Override(&config)
 
 	if config.Name == "" {
-		return fmt.Errorf("No agent name specified.")
+		return fmt.Errorf("no agent name specified")
 	}
 	if config.ListenAddress == "" {
-		return fmt.Errorf("No listen address and/or port supplied.")
+		return fmt.Errorf("no listen address and/or port supplied")
 	}
 
 	if config.AuthorizedKeysFile == "" && config.AuthorizedKey == "" {
-		return fmt.Errorf("No authorized keys supplied.")
+		return fmt.Errorf("no authorized keys supplied")
 	}
 
 	if config.PluginPathsEnv != "" {
@@ -70,7 +70,7 @@ func (agent *Agent) ReadConfig(path string) error {
 		config.PluginPaths = p
 	}
 	if len(config.PluginPaths) == 0 {
-		return fmt.Errorf("No plugin path supplied.")
+		return fmt.Errorf("no plugin path supplied")
 	}
 
 	var authorizedKeys []ssh.PublicKey
@@ -80,7 +80,7 @@ func (agent *Agent) ReadConfig(path string) error {
 		authorizedKeys, err = LoadAuthorizedKeysFromFile(config.AuthorizedKeysFile)
 	}
 	if err != nil {
-		log.Errorf("failed to load authorized keys: %s\n", err)
+		log.Errorf("failed to load authorized keys: %s", err)
 		return err
 	}
 
@@ -93,7 +93,7 @@ func (agent *Agent) ReadConfig(path string) error {
 		hostKey, err = GeneratePrivateKey()
 	}
 	if err != nil {
-		log.Errorf("failed to load host key: %s\n", err)
+		log.Errorf("failed to load host key: %s", err)
 		return err
 	}
 

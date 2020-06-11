@@ -332,7 +332,7 @@ func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
 		return nil, err
 	}
 	if task == nil {
-		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database", id)
 	}
 
 	db.sendCreateObjectEvent(task, "tenant:"+task.TenantUUID)
@@ -389,7 +389,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		return nil, err
 	}
 	if task == nil {
-		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database", id)
 	}
 
 	db.sendCreateObjectEvent(task, "tenant:"+job.TenantUUID)
@@ -444,7 +444,7 @@ func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) 
 		return nil, err
 	}
 	if task == nil {
-		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database", id)
 	}
 
 	db.sendCreateObjectEvent(task, "tenant:"+job.TenantUUID)
@@ -504,7 +504,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 		return nil, err
 	}
 	if task == nil {
-		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database", id)
 	}
 
 	db.sendCreateObjectEvent(task, "tenant:"+archive.TenantUUID)
@@ -544,7 +544,7 @@ func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
 		return nil, err
 	}
 	if task == nil {
-		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database", id)
 	}
 
 	db.sendCreateObjectEvent(task, "admins")

@@ -234,7 +234,7 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 		return err
 	}
 	if agent == nil {
-		return fmt.Errorf("failed to retrieve newly-inserted agent [%s]: not found in database.", id)
+		return fmt.Errorf("failed to retrieve newly-inserted agent [%s]: not found in database", id)
 	}
 
 	db.sendCreateObjectEvent(agent, "*")
@@ -266,7 +266,7 @@ func (db *DB) UpdateAgent(agent *Agent) error {
 			return err
 		}
 		if agentUpdate == nil {
-			return fmt.Errorf("failed to retrieve updated agent [%s]: not found in database.", agent.UUID)
+			return fmt.Errorf("failed to retrieve updated agent [%s]: not found in database", agent.UUID)
 		}
 
 		db.sendUpdateObjectEvent(agentUpdate, "*")

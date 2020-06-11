@@ -39,7 +39,7 @@ func (target *Target) Configuration(db *DB, private bool) ([]ConfigItem, error) 
 		return nil, err
 	}
 	if meta == nil {
-		return nil, fmt.Errorf("unable to retrieve target configuration: agent metadata not found in database.")
+		return nil, fmt.Errorf("unable to retrieve target configuration: agent metadata not found in database")
 	}
 
 	return DisplayableConfig("target", meta, target.Config, private), nil
@@ -271,10 +271,10 @@ func (db *DB) UpdateTarget(target *Target) error {
 func (db *DB) UpdateTargetHealth(id string, health bool) error {
 	target, err := db.GetTarget(id)
 	if err != nil {
-		return fmt.Errorf("Error when finding target with uuid `%s' to update health: %s", id, err)
+		return fmt.Errorf("error when finding target with uuid `%s' to update health: %s", id, err)
 	}
 	if target == nil {
-		return fmt.Errorf("No target with uuid `%s' was found to update health", id)
+		return fmt.Errorf("no target with uuid `%s' was found to update health", id)
 	}
 	err = db.Exec(`
         UPDATE targets

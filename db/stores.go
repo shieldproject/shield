@@ -45,7 +45,7 @@ func (store *Store) Configuration(db *DB, private bool) ([]ConfigItem, error) {
 		return nil, err
 	}
 	if meta == nil {
-		return nil, fmt.Errorf("unable to retrieve store configuration: agent metadata not found in database.")
+		return nil, fmt.Errorf("unable to retrieve store configuration: agent metadata not found in database")
 	}
 
 	return DisplayableConfig("store", meta, store.Config, private), nil

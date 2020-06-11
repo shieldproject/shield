@@ -21,12 +21,12 @@ func hhmm24(hours, minutes uint) int {
 func minutely(offset int, minutes int) *Spec {
 	if minutes < 1 {
 		return &Spec{
-			Error: fmt.Errorf("Schedules cannot be created for a higher frequency than once per minute"),
+			Error: fmt.Errorf("schedules cannot be created for a higher frequency than once per minute"),
 		}
 	}
 	if minutes > 1440 {
 		return &Spec{
-			Error: fmt.Errorf("Minutely schedules cannot be created for a lower frequency than 1440 minutes (1 day)"),
+			Error: fmt.Errorf("minutely schedules cannot be created for a lower frequency than 1440 minutes (1 day)"),
 		}
 	}
 	if offset > minutes {
@@ -40,7 +40,7 @@ func minutely(offset int, minutes int) *Spec {
 			m += 12 * 60
 		}
 		return &Spec{
-			Error: fmt.Errorf("A schedule to run every %d minute(s) must start before %d:%02d%s", minutes, m/60, m%60, ampm),
+			Error: fmt.Errorf("a schedule to run every %d minute(s) must start before %d:%02d%s", minutes, m/60, m%60, ampm),
 		}
 	}
 
@@ -65,7 +65,7 @@ func hourly(minutes int, cardinality float32) *Spec {
 				m += 12 * 60
 			}
 			return &Spec{
-				Error: fmt.Errorf("A schedule to run every %0.1f hour(s) must start before %d:%02d%s", cardinality, int(m/60), int(m)%60, ampm),
+				Error: fmt.Errorf("a schedule to run every %0.1f hour(s) must start before %d:%02d%s", cardinality, int(m/60), int(m)%60, ampm),
 			}
 		}
 		return &Spec{
