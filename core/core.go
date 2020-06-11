@@ -47,7 +47,6 @@ type Core struct {
 type SsgUpdateInfo struct {
 	uploadInfo   *ssg.StreamInfo `json:"ssg_upload_info"`
 	downloadInfo *ssg.StreamInfo `json:"ssg_download_info"`
-	deleteInfo   *ssg.StreamInfo `json:"ssg_delete_info"`
 	url          string          `json:"ssg_url"`
 	path         string          `json:"ssg_to"`
 }

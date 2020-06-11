@@ -29,20 +29,11 @@ type SessionFilter struct {
 	IsToken    bool   `qs:"is_token"`
 }
 
-func fixupSessionResponse(p *Session) {
-}
-
-func fixupSessionRequest(p *Session) {
-}
-
 func (c *Client) ListSessions(filter *SessionFilter) ([]*Session, error) {
 	u := qs.Generate(filter).Encode()
 	var out []*Session
 	if err := c.get(fmt.Sprintf("/v2/auth/sessions?%s", u), &out); err != nil {
 		return nil, err
-	}
-	for _, p := range out {
-		fixupSessionResponse(p)
 	}
 	return out, nil
 }
@@ -52,7 +43,6 @@ func (c *Client) GetSession(uuid string) (*Session, error) {
 	if err := c.get(fmt.Sprintf("/v2/auth/sessions/%s", uuid), &out); err != nil {
 		return nil, err
 	}
-	fixupSessionResponse(out)
 	return out, nil
 }
 

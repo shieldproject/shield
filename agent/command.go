@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"regexp"
-	"strings"
 	"sync"
 
 	"github.com/jhunt/go-log"
@@ -113,21 +111,6 @@ func (c *Command) Details() string {
 	default:
 		return fmt.Sprintf("%s op", c.Op)
 	}
-}
-
-func appendEndpointVariables(env []string, prefix, raw string) []string {
-	cooked := make(map[string]interface{})
-	err := json.Unmarshal([]byte(raw), &cooked)
-	if err != nil {
-		return env
-	}
-
-	re := regexp.MustCompile(`[^A-Z0-9]+`)
-	for k, v := range cooked {
-		k = re.ReplaceAllString(strings.ToUpper(k), "_")
-		env = append(env, fmt.Sprintf("%s%s=%v", prefix, k, v))
-	}
-	return env
 }
 
 func (agent *Agent) Execute(c *Command, out chan string) error {

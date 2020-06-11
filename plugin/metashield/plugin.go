@@ -48,11 +48,6 @@ func Run() {
 
 type ShieldPlugin plugin.PluginInfo
 
-type Client struct {
-	url   string
-	token string
-}
-
 func (p ShieldPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }

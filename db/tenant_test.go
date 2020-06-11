@@ -1,20 +1,12 @@
 package db
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 )
-
-var T00 = time.Date(1997, 8, 29, 2, 14, 0, 0, time.UTC)
-
-func att(seconds int) time.Time {
-	return T0.Add(time.Duration(seconds) * time.Second)
-}
 
 var _ = Describe("tenant Management", func() {
 	var (
