@@ -1982,12 +1982,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
           [[ } else if (_.type == "restore") { ]]
             <li class="desc">Manual Restore</li>
             <li class="meta">initiated by [[= h(_.owner) ]] at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
-          [[ } else if (_.type == "purge") { ]]
-            <li class="desc">Purge Expired Archive</li>
-            <li class="meta">...</li>
-          [[ } else if (_.type == "test-store") { ]]
-            <li class="desc">Storage Health Check</li>
-            <li class="meta">initiated by [[= h(_.owner) ]] at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
           [[ } else { ]]
             <li class="desc">[[= h(_.type) ]] Task</li>
           [[ } ]]
@@ -2014,7 +2008,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         also display a big RESTORE button in the task output.
       ]]
 <pre class="task-[[= _.task.status ]][[ if (_.task.ok) { ]] override[[ } ]]"><code><div>
-<button class="close" rel="close">X</button>[[ if (_.task.stopped_at && _.task.type != "test-store" && _.task.type != "agent-status") { ]]
+<button class="close" rel="close">X</button>[[ if (_.task.stopped_at && _.task.type != "agent-status") { ]]
 <button class="annotate" rel="annotate:[[= _.task.uuid ]]">Annotate</button>[[ if (_.restorable) { ]]<button class="restore" rel="restore:[[= _.task.uuid ]]">Restore</button>[[ } ]]
 <form class="annotate"[[ if (Scratch('anno:'+_.task.uuid)) { ]] style="display: block;"[[ } ]]>
 <input type="hidden" name="uuid" value="[[= _.task.uuid ]]" />
