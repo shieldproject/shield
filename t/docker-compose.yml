@@ -12,6 +12,8 @@ services:
     volumes: 
       - '$PWD/t/ssg.yml:/etc/ssg/ssg.yml'
       - '$PWD/t/data/ssg:/snapshots'
+    tmpfs:
+      - /tmp
 
   core:
     depends_on: 

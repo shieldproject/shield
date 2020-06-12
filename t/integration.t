@@ -133,7 +133,7 @@ subtest "test environment data setup" => sub { # {{{
 		'--password' => 'J.A.R.V.I.S.');
 
 	diag "checking that initial database is empty...";
-	for (qw(jobs targets stores auth-tokens)) {
+	for (qw(jobs targets auth-tokens)) {
 		shield($_); result_is([], "we should have no $_");
 	}
 
@@ -167,25 +167,12 @@ subtest "test environment data setup" => sub { # {{{
 		'--agent'   => 'agent:5444',
 		'--plugin'  => 'postgres');
 
-	shield('create-store',
-		'--name'    => 'filesies',
-		'--summary' => 'A WebDAV store',
-		'--agent'   => 'agent:5444',
-		'--plugin'  => 'webdav',
-		'--data'    => 'url=http://webdav:80');
-
-	shield('create-store',
-		'--name'    => 's3',
-		'--summary' => 'Amazon S3 Archival Storage',
-		'--agent'   => 'agent:5444',
-		'--plugin'  => 's3');
-
 	shield('create-job',
 		'--name'     => 'redis-daily',
 		'--summary'  => 'Daily Backups of Redis',
 		'--exact',
 		'--target'   => 'redis-shared',
-		'--store'    => 'filesies',
+		'--bucket'   => 'snapshots',
 		'--schedule' => 'daily at 11:24pm',
 		'--retain'   => '8',
 		'--paused');
@@ -195,7 +182,7 @@ subtest "test environment data setup" => sub { # {{{
 		'--summary'  => 'Backing up SHIELD database, via SHIELD...',
 		'--exact',
 		'--target'   => 'shield',
-		'--store'    => 's3',
+		'--bucket'   => 'ephemeral',
 		'--schedule' => 'tuesdays at 11am',
 		'--retain'   => '100');
 };
@@ -526,7 +513,7 @@ subtest "jobs" => sub { # {{{
 		summary   => 'Daily Backups of Redis',
 		schedule  => 'daily at 11:24pm',
 		keep_days => 8,
-		store     => ignore(),
+		bucket    => ignore(),
 		paused    => bool(1),
 		target    => superhashof({
 		               uuid     => uuid(),
@@ -567,8 +554,7 @@ subtest "jobs" => sub { # {{{
 		shield-itself
 	)));
 
-	shield('store', 's3');
-	shield('jobs', '--store', $RESULT->{uuid});
+	shield('jobs', '--bucket', 'ephemeral');
 	result_is([map { $_->{name} } @$RESULT], bag(qw(
 		shield-itself
 	)));
@@ -600,7 +586,7 @@ subtest "jobs" => sub { # {{{
 		'--summary'  => 'edit me!',
 		'--schedule' => 'daily 4am',
 		'--target'   => 'shield',
-		'--store'    => 'filesies',
+		'--bucket'   => 'snapshots',
 		'--retain'   => '5');
 	shield('job', 'New Job');
 	result_is(superhashof({
@@ -608,8 +594,8 @@ subtest "jobs" => sub { # {{{
 		summary   => 'edit me!',
 		schedule  => 'daily 4am',
 		keep_days => 5,
-		target    => superhashof({ name => 'shield'   }),
-		store     => superhashof({ name => 'filesies' }),
+		target    => superhashof({ name => 'shield' }),
+		bucket    => 'snapshots',
 	}));
 
 	shield('update-job', 'New Job',
@@ -621,8 +607,8 @@ subtest "jobs" => sub { # {{{
 		summary   => 'New Summary',
 		schedule  => 'daily 4am',
 		keep_days => 5,
-		target    => superhashof({ name => 'shield'   }),
-		store     => superhashof({ name => 'filesies' }),
+		target    => superhashof({ name => 'shield' }),
+		bucket    => 'snapshots',
 	}));
 
 	shield('update-job', 'Updated Job',
@@ -634,8 +620,8 @@ subtest "jobs" => sub { # {{{
 		summary   => 'New Summary',
 		schedule  => 'daily 3:30am',
 		keep_days => 8,
-		target    => superhashof({ name => 'shield'   }),
-		store     => superhashof({ name => 'filesies' }),
+		target    => superhashof({ name => 'shield' }),
+		bucket    => 'snapshots',
 	}));
 };
 # }}}

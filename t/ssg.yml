@@ -5,10 +5,21 @@ controlTokens: [integration-control]
 monitorTokens: [integration-monitor]
 buckets:
   - key: snapshots
-    name: Cloud Storage
+    name: Snapshots
+    description:
+      All your Linode Object Storage needs, in a datacenter near you!
     compression: none
     encryption: none
     provider:
       kind: fs
       fs:
         root: /snapshots
+
+  - key: ephemeral
+    name: Ephemeral
+    compression: none
+    encryption: none
+    provider:
+      kind: fs
+      fs:
+        root: /tmp
