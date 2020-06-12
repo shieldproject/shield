@@ -16,7 +16,7 @@ USAGE: @G{shield} update-job --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}
   --target        The name or UUID of the target data system that
                   you want SHIELD to back up.
 
-  --store         The name or UUID of the cloud storage system to
+  --bucket        The name or key of the cloud storage bucket to
                   store backup archives in.
 
   --schedule      A @W{timespec} schedule description (see below),

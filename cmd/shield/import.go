@@ -13,23 +13,6 @@ type ImportManifest struct {
 	CA                 string `yaml:"ca"`
 	InsecureSkipVerify bool   `yaml:"insecure_skip_verify"`
 
-	Global struct {
-		Storage []struct {
-			Name    string `yaml:"name"`
-			Summary string `yaml:"summary"`
-			Agent   string `yaml:"agent"`
-			Plugin  string `yaml:"plugin"`
-
-			Config map[string]interface{} `yaml:"config"`
-		} `yaml:"storage,omitempty"`
-
-		Policies []struct {
-			Name    string `yaml:"name"`
-			Summary string `yaml:"summary"`
-			Days    int    `yaml:"days"`
-		} `yaml:"policies,omitempty"`
-	} `yaml:"global,omitempty"`
-
 	Users []struct {
 		Name       string `yaml:"name"`
 		Username   string `yaml:"username"`
@@ -50,21 +33,6 @@ type ImportTenant struct {
 
 	Members []ImportMembership `yaml:"members"`
 
-	Storage []struct {
-		Name    string `yaml:"name"`
-		Summary string `yaml:"summary"`
-		Agent   string `yaml:"agent"`
-		Plugin  string `yaml:"plugin"`
-
-		Config map[string]interface{} `yaml:"config"`
-	} `yaml:"storage,omitempty"`
-
-	Policies []struct {
-		Name    string `yaml:"name"`
-		Summary string `yaml:"summary"`
-		Days    int    `yaml:"days"`
-	} `yaml:"policies,omitempty"`
-
 	Systems []struct {
 		Name    string `yaml:"name"`
 		Summary string `yaml:"summary"`
@@ -77,7 +45,7 @@ type ImportTenant struct {
 			Name     string `yaml:"name"`
 			When     string `yaml:"when"`
 			Retain   string `yaml:"retain"`
-			Storage  string `yaml:"storage"`
+			Bucket   string `yaml:"bucket"`
 			FixedKey bool   `yaml:"fixed_key"`
 			Paused   bool   `yaml:"paused"`
 		} `yaml:"jobs,omitempty"`
@@ -115,27 +83,6 @@ func (m *ImportManifest) Normalize() error {
 			}
 		}
 
-		for j, storage := range tenant.Storage {
-			if storage.Name == "" {
-				return fmt.Errorf("Tenant '%s', storage system #%d is missing its `name' attribute", tenant.Name, j+1)
-			}
-			if storage.Agent == "" {
-				return fmt.Errorf("Tenant '%s', storage system '%s' is missing its `agent' attribute", tenant.Name, storage.Name)
-			}
-			if storage.Plugin == "" {
-				return fmt.Errorf("Tenant '%s', storage system '%s' is missing its `plugin' attribute", tenant.Name, storage.Name)
-			}
-		}
-
-		for j, policy := range tenant.Policies {
-			if policy.Name == "" {
-				return fmt.Errorf("Tenant '%s', retention policy #%d is missing its `name' attribute", tenant.Name, j+1)
-			}
-			if policy.Days == 0 {
-				return fmt.Errorf("Tenant '%s', retention policy '%s' is missing its `days' attribute", tenant.Name, policy.Name)
-			}
-		}
-
 		for j, system := range tenant.Systems {
 			if system.Name == "" {
 				return fmt.Errorf("Tenant '%s', data system #%d is missing its `name' attribute", tenant.Name, j+1)
@@ -160,8 +107,8 @@ func (m *ImportManifest) Normalize() error {
 				if job.Retain == "" {
 					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `retain' attribute", tenant.Name, system.Name, job.Name)
 				}
-				if job.Storage == "" {
-					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `storage' attribute", tenant.Name, system.Name, job.Name)
+				if job.Bucket == "" {
+					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `bucket' attribute", tenant.Name, system.Name, job.Name)
 				}
 			}
 		}
@@ -265,34 +212,6 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 		}
 	}
 
-	fmt.Printf("\n@G{Importing Shared Storage...}\n")
-	for _, storage := range m.Global.Storage {
-		s, _ := c.FindGlobalStore(storage.Name, false)
-		if s == nil {
-			fmt.Printf("creating cloud storage system @M{%s}, using the @Y{%s} plugin\n", storage.Name, storage.Plugin)
-			_, err = c.CreateGlobalStore(&shield.Store{
-				Name:    storage.Name,
-				Summary: storage.Summary,
-				Agent:   storage.Agent,
-				Plugin:  storage.Plugin,
-				Config:  storage.Config,
-			})
-			if err != nil {
-				return fmt.Errorf("failed to create storage system '%s': %s", storage.Name, err)
-			}
-		} else {
-			fmt.Printf("updating cloud storage system @M{%s}, using the @Y{%s} plugin\n", storage.Name, storage.Plugin)
-			s.Summary = storage.Summary
-			s.Agent = storage.Agent
-			s.Plugin = storage.Plugin
-			s.Config = storage.Config
-			_, err := c.UpdateGlobalStore(s)
-			if err != nil {
-				return fmt.Errorf("failed to update storage system '%s': %s", storage.Name, err)
-			}
-		}
-	}
-
 	fmt.Printf("\n@G{Importing Tenants...}\n")
 	for _, tenant := range m.Tenants {
 		fmt.Printf("importing tenant @C{%s}...\n", tenant.Name)
@@ -325,34 +244,6 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 			}
 		}
 
-		fmt.Printf("@C{%s}> @G{importing cloud storage systems...}\n", tenant.Name)
-		for _, storage := range tenant.Storage {
-			s, _ := c.FindStore(t, storage.Name, false)
-			if s == nil {
-				fmt.Printf("@C{%s}> creating cloud storage system @M{%s}, using the @Y{%s} plugin\n", tenant.Name, storage.Name, storage.Plugin)
-				_, err = c.CreateStore(t, &shield.Store{
-					Name:    storage.Name,
-					Summary: storage.Summary,
-					Agent:   storage.Agent,
-					Plugin:  storage.Plugin,
-					Config:  storage.Config,
-				})
-				if err != nil {
-					return fmt.Errorf("failed to create storage system '%s' for tenant '%s': %s", storage.Name, tenant.Name, err)
-				}
-			} else {
-				fmt.Printf("@C{%s}> updating cloud storage system @M{%s}, using the @Y{%s} plugin\n", tenant.Name, storage.Name, storage.Plugin)
-				s.Summary = storage.Summary
-				s.Agent = storage.Agent
-				s.Plugin = storage.Plugin
-				s.Config = storage.Config
-				_, err := c.UpdateStore(t, s)
-				if err != nil {
-					return fmt.Errorf("failed to update storage system '%s' on tenant '%s': %s", storage.Name, tenant.Name, err)
-				}
-			}
-		}
-
 		fmt.Printf("@C{%s}> @G{importing data systems...}\n", tenant.Name)
 		for _, system := range tenant.Systems {
 			sys, _ := c.FindTarget(t, system.Name, false)
@@ -381,23 +272,23 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 			}
 
 			for _, job := range system.Jobs {
-				store, err := c.FindUsableStore(t, job.Storage, false)
+				bucket, err := c.FindBucket(job.Bucket, false)
 				if err != nil {
-					return fmt.Errorf("unable to find storage system '%s' for '%s' job on tenant '%s': %s", job.Storage, job.Name, tenant.Name, err)
+					return fmt.Errorf("unable to find storage bucket '%s' for '%s' job on tenant '%s': %s", job.Bucket, job.Name, tenant.Name, err)
 				}
 
 				ll, err := c.ListJobs(t, &shield.JobFilter{
 					Fuzzy:  false,
 					Name:   job.Name,
 					Target: sys.UUID,
-					Store:  store.UUID,
+					Bucket: bucket.Key,
 				})
 				if err != nil || len(ll) == 0 {
 					fmt.Printf("@C{%s} :: @B{%s}> creating @M{%s} job, running at @W{%s}\n", tenant.Name, system.Name, job.Name, job.When)
 					_, err = c.CreateJob(t, &shield.Job{
 						Name:       job.Name,
 						TargetUUID: sys.UUID,
-						StoreUUID:  store.UUID,
+						Bucket:     bucket.Key,
 						Schedule:   job.When,
 						Retain:     job.Retain,
 						FixedKey:   job.FixedKey,
@@ -410,7 +301,7 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 					return fmt.Errorf("failed to configure job '%s' of data system '%s' for tenant '%s': too many matching jobs", job.Name, system.Name, tenant.Name)
 				} else {
 					fmt.Printf("@C{%s} :: @B{%s}> updating @M{%s} job, running at @W{%s}\n", tenant.Name, system.Name, job.Name, job.When)
-					ll[0].StoreUUID = store.UUID
+					ll[0].Bucket = job.Bucket
 					ll[0].Schedule = job.When
 					ll[0].Retain = job.Retain
 					_, err := c.UpdateJob(t, ll[0])

@@ -15,8 +15,8 @@ USAGE: @G{shield} jobs --tenant @Y{TENANT} [OPTIONS]
   --target        Only show backup jobs for the given target data
                   system (given by name or UUID).
 
-  --store         Only show backup jobs for the given cloud storage
-                  system (given by name or UUID).
+  --bucket        Only show backup jobs for the given cloud storage
+                  system (given by name or key).
 
   --paused        Only show jobs that are not scheduled (@W{paused}),
   --unpaused      or that are (@W{unpaused}).  These two options are
@@ -25,8 +25,8 @@ USAGE: @G{shield} jobs --tenant @Y{TENANT} [OPTIONS]
 @B{Examples:}
 
   # What Azure-bound jobs aren't running automatically?
-  @W{shield jobs}      \
-     @Y{--store} Azure \
+  @W{shield jobs}       \
+     @Y{--bucket} Azure \
      @Y{--paused}
 
   # How are we backing up UAADB?

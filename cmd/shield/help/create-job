@@ -18,7 +18,7 @@ USAGE: @G{shield} create-job --tenant @Y{TENANT} [OPTIONS]
                   you want SHIELD to back up.
                   This field is @W{required}.
 
-  --store         The name or UUID of the cloud storage system to
+  --bucket        The name or key of the cloud storage bucket to
                   store backup archives in.
                   This field is @W{required}.
 
@@ -48,7 +48,7 @@ USAGE: @G{shield} create-job --tenant @Y{TENANT} [OPTIONS]
       @Y{--batch}                       \
       @Y{--name}      Daily             \
       @Y{--target}    "Important Files" \
-      @Y{--store}     "Amazon S3"       \
+      @Y{--bucket}    "remote1"         \
       @Y{--schedule}  "daily 4am"       \
       @Y{--retain}    14d
 

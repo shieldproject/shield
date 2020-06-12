@@ -1,0 +1,10 @@
+USAGE: @G{shield} bucket @Y{KEY}
+
+  Show a single Cloud Storage Bucket
+
+  SHIELD needs a place to store all of the backup archives it is
+  going to generate, and Cloud Storage is where it's at.  Each
+  Cloud Storage Bucket provides the configuration details needed
+  to write to and read from some external storage endpoint, be it
+  Amazon S3, Google Cloud Storage, or a local WebDav instance.
+

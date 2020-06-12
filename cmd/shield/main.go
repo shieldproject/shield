@@ -160,63 +160,14 @@ var opts struct {
 	} `cli:"update-target"`
 
 	/* }}} */
-	/* STORES {{{ */
-	Stores struct {
-		Used       bool   `cli:"--used"`
-		Unused     bool   `cli:"--unused"`
-		WithPlugin string `cli:"--with-plugin"`
-	} `cli:"stores"`
-	Store       struct{} `cli:"store"`
-	DeleteStore struct{} `cli:"delete-store"`
-	CreateStore struct {
-		Name      string   `cli:"-n, --name"`
-		Summary   string   `cli:"-s, --summary"`
-		Agent     string   `cli:"-a, --agent"`
-		Plugin    string   `cli:"-p, --plugin"`
-		Threshold string   `cli:"--threshold"`
-		Data      []string `cli:"-d, --data"`
-	} `cli:"create-store"`
-	UpdateStore struct {
-		Name      string   `cli:"-n, --name"`
-		Summary   string   `cli:"-s, --summary"`
-		Agent     string   `cli:"-a, --agent"`
-		Plugin    string   `cli:"-p, --plugin"`
-		Threshold string   `cli:"--threshold"`
-		ClearData bool     `cli:"--clear-data"`
-		Data      []string `cli:"-d, --data"`
-	} `cli:"update-store"`
-
-	/* }}} */
-	/* GLOBAL STORES {{{ */
-	GlobalStores struct {
-		Used       bool   `cli:"--used"`
-		Unused     bool   `cli:"--unused"`
-		WithPlugin string `cli:"--with-plugin"`
-	} `cli:"global-stores"`
-	GlobalStore       struct{} `cli:"global-store"`
-	DeleteGlobalStore struct{} `cli:"delete-global-store"`
-	CreateGlobalStore struct {
-		Name      string   `cli:"-n, --name"`
-		Summary   string   `cli:"-s, --summary"`
-		Agent     string   `cli:"-a, --agent"`
-		Plugin    string   `cli:"-p, --plugin"`
-		Threshold string   `cli:"--threshold"`
-		Data      []string `cli:"-d, --data"`
-	} `cli:"create-global-store"`
-	UpdateGlobalStore struct {
-		Name      string   `cli:"-n, --name"`
-		Summary   string   `cli:"-s, --summary"`
-		Agent     string   `cli:"-a, --agent"`
-		Plugin    string   `cli:"-p, --plugin"`
-		ClearData bool     `cli:"--clear-data"`
-		Threshold string   `cli:"--threshold"`
-		Data      []string `cli:"-d, --data"`
-	} `cli:"update-global-store"`
+	/* BUCKETS {{{ */
+	Buckets struct{} `cli:"buckets"`
+	Bucket  struct{} `cli:"bucket"`
 
 	/* }}} */
 	/* JOBS {{{ */
 	Jobs struct {
-		Store    string `cli:"--store"`
+		Bucket   string `cli:"--bucket"`
 		Target   string `cli:"--target"`
 		Paused   bool   `cli:"--paused"`
 		Unpaused bool   `cli:"--unpaused"`
@@ -230,7 +181,7 @@ var opts struct {
 		Name     string `cli:"-n, --name"`
 		Summary  string `cli:"-s, --summary"`
 		Target   string `cli:"--target"`
-		Store    string `cli:"--store"`
+		Bucket   string `cli:"--bucket"`
 		Schedule string `cli:"--schedule"`
 		Retain   string `cli:"--retain"`
 		Paused   bool   `cli:"--paused"`
@@ -240,7 +191,7 @@ var opts struct {
 		Name       string `cli:"-n, --name"`
 		Summary    string `cli:"-s, --summary"`
 		Target     string `cli:"--target"`
-		Store      string `cli:"--store"`
+		Bucket     string `cli:"--bucket"`
 		Schedule   string `cli:"--schedule"`
 		Retain     string `cli:"--retain"`
 		FixedKey   bool   `cli:"--fixed-key"`
@@ -251,7 +202,6 @@ var opts struct {
 	/* ARCHIVES {{{ */
 	Archives struct {
 		Target string `cli:"--target"`
-		Store  string `cli:"--store"`
 		Limit  int    `cli:"-l, --limit"`
 	} `cli:"archives"`
 	Archive        struct{} `cli:"archive"`
@@ -273,7 +223,6 @@ var opts struct {
 		Inactive bool   `cli:"--inactive"`
 		All      bool   `cli:"-a, --all"`
 		Target   string `cli:"--target"`
-		Store    string `cli:"--store"`
 		Type     string `cli:"--type"`
 		Limit    int    `cli:"-l, --limit"`
 		Before   string `cli:"--before"`
@@ -533,12 +482,6 @@ func main() {
 			printc("  unlock                   Unlock a SHIELD Core (i.e. after a reboot).\n")
 			printc("  rekey                    Change a SHIELD Core master (unlock) password.\n")
 			blank()
-			printc("  global-stores            List shared cloud storage systems.\n")
-			printc("  global-store             Display details for a single shared cloud storage system.\n")
-			printc("  create-global-store      Configure a new shared cloud storage system.\n")
-			printc("  update-global-store      Reconfigure a shared cloud storage system.\n")
-			printc("  delete-global-store      Decomission an unused shared cloud storage system.\n")
-			blank()
 			printc("  users                    List all of the local user accounts.\n")
 			printc("  user                     Display the details for a single local user account.\n")
 			printc("  create-user              Create a new local user account.\n")
@@ -568,13 +511,10 @@ func main() {
 			printc("  update-target            Reconfigure a target data system.\n")
 			printc("  delete-target            Decomission an unused target data system.\n")
 		}
-		if show("store", "stores", "storage") {
-			header("Cloud Storage Systems")
-			printc("  stores                   List all cloud storage systems.\n")
-			printc("  store                    Display the details for a single cloud storage system.\n")
-			printc("  create-store             Configure a new cloud storage system.\n")
-			printc("  update-store             Reconfigure a cloud storage system.\n")
-			printc("  delete-store             Decomission an unused cloud storage system.\n")
+		if show("bucket", "buckets", "storage") {
+			header("Cloud Storage Buckets")
+			printc("  buckets                  List all cloud storage buckets.\n")
+			printc("  bucket                   Display the details for a single cloud storage bucket.\n")
 		}
 		if show("job", "jobs") {
 			header("Scheduled Backup Jobs")
@@ -722,31 +662,10 @@ users:
     sysrole:  ~          # juser has no system-level privileges
                          # (but they can still be invited to tenants)
 
-global:
-  # These cloud storage systems will be usable by all tenants,
-  # but the specific configuration will be hidden from anyone
-  # lacking system-level (sysrole) privileges.
-  #
-  storage:
-    - name:    Global Storage
-      summary: Shared global cloud storage, for use by anyone.
-      agent:   '10.0.0.6:5444'
-      plugin:  webdav
-      config:                           # this configuration depends entirely
-        url: http://webdav/global       # on the store plugin used (here, webdav)
-
 tenants:
   - name: A Tenant
     members:
       - { user: juser@local, role: admin }
-
-    storage:
-      - name:    Local Storage
-        summary: Dedicated cloud storage, just for this tenant.
-        agent:   '10.0.0.6:5444'
-        plugin:  webdav
-        config:
-          url: http://webdav/a-tenant
 
     systems:
       - name:    A System
@@ -760,13 +679,13 @@ tenants:
           - name:     Daily
             when:     daily 4:10am
             paused:   no
-            storage:  Local Storage
+            bucket:   local
             retain:   4d
 
           - name:     Weekly
             when:     sundays at 2:45am
             paused:   yes
-            storage:  Local Storage
+            bucket:   local
             retain:   28d
 `)
 			return
@@ -1213,11 +1132,11 @@ tenants:
 		none := fmt.Sprintf("@K{(none)}")
 		oops := fmt.Sprintf("@R{(oops)}")
 
-		tbl := table.NewTable("#", "Op", "Status", "Task", "Tenant", "System", "Store", "Job", "Archive", "Agent")
+		tbl := table.NewTable("#", "Op", "Status", "Task", "Tenant", "System", "Job", "Archive", "Agent")
 		for _, worker := range ps.Workers {
 			if worker.Idle {
 				tbl.Row(worker, worker.ID, none, fmt.Sprintf("@C{idle}"),
-					none, none, none, none, none, none)
+					none, none, none, none, none)
 
 			} else {
 				op := oops
@@ -1243,11 +1162,6 @@ tenants:
 					}
 				}
 
-				store := none
-				if worker.Store != nil {
-					store = fmt.Sprintf("@W{%s}\n(%s)", worker.Store.Name, uuid8(worker.Store.UUID))
-				}
-
 				system := none
 				if worker.System != nil {
 					system = fmt.Sprintf("@W{%s}\n(%s)", worker.System.Name, uuid8(worker.System.UUID))
@@ -1268,7 +1182,7 @@ tenants:
 					agent = fmt.Sprintf("@Y{%s}", worker.Agent)
 				}
 
-				tbl.Row(worker, worker.ID, op, status, task, tenant, system, store, job, archive, agent)
+				tbl.Row(worker, worker.ID, op, status, task, tenant, system, job, archive, agent)
 			}
 		}
 		fmt.Printf("@M{Scheduler Threads}\n\n")
@@ -1277,7 +1191,7 @@ tenants:
 		fmt.Printf("\n\n")
 		fmt.Printf("@M{Task Backlog}\n\n")
 		if len(ps.Backlog) > 0 {
-			tbl = table.NewTable("Priority", "#", "Op", "Task", "System", "Store", "Job", "Archive", "Agent")
+			tbl = table.NewTable("Priority", "#", "Op", "Task", "System", "Job", "Archive", "Agent")
 			for _, t := range ps.Backlog {
 				op := oops
 				if t.Op != "" {
@@ -1294,11 +1208,6 @@ tenants:
 					system = fmt.Sprintf("@W{%s}\n(%s)", t.System.Name, uuid8(t.System.UUID))
 				}
 
-				store := none
-				if t.Store != nil {
-					store = fmt.Sprintf("@W{%s}\n(%s)", t.Store.Name, uuid8(t.Store.UUID))
-				}
-
 				job := none
 				if t.Job != nil {
 					job = fmt.Sprintf("@W{%s}\n(%s)", t.Job.Name, uuid8(t.Job.UUID))
@@ -1313,7 +1222,7 @@ tenants:
 				if t.Agent != "" {
 					agent = fmt.Sprintf("@Y{%s}", t.Agent)
 				}
-				tbl.Row(t, t.Priority, t.Position, op, task, system, store, job, archive, agent)
+				tbl.Row(t, t.Priority, t.Position, op, task, system, job, archive, agent)
 			}
 			tbl.Output(os.Stdout)
 
@@ -1778,418 +1687,44 @@ tenants:
 
 	/* }}} */
 
-	case "stores": /* {{{ */
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		required(!(opts.Stores.Used && opts.Stores.Unused),
-			"The --used and --unused options are mutually exclusive.")
-		required(len(args) <= 1, "Too many arguments.")
+	case "buckets": /* {{{ */
+		required(len(args) == 0, "Too many arguments.")
 
-		filter := &shield.StoreFilter{
-			Plugin: opts.Stores.WithPlugin,
-			Fuzzy:  !opts.Exact,
-		}
-		if len(args) == 1 {
-			filter.Name = args[0]
-			filter.UUID = args[0]
-		}
-		if opts.Stores.Used || opts.Stores.Unused {
-			x := opts.Stores.Used
-			filter.Used = &x
-		}
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		stores, err := c.ListStores(tenant, filter)
+		buckets, err := c.ListBuckets()
 		bail(err)
 
 		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(stores))
+			fmt.Printf("%s\n", asJSON(buckets))
 			break
 		}
 
-		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Healthy?")
-		for _, store := range stores {
-			health := fmt.Sprintf("@G{yes}")
-			if !store.Healthy {
-				health = fmt.Sprintf("@R{no}")
-			}
-			tbl.Row(store, uuid8full(store.UUID, opts.Long), store.Name, wrap(store.Summary, 35), store.Plugin, store.Agent, health)
+		tbl := table.NewTable("Key", "Name", "Description", "Compression", "Encryption")
+		for _, bucket := range buckets {
+			tbl.Row(bucket, bucket.Key, bucket.Name, wrap(bucket.Description, 35), bucket.Compression, bucket.Encryption)
 		}
 		tbl.Output(os.Stdout)
 
 	/* }}} */
-	case "store": /* {{{ */
+	case "bucket": /* {{{ */
 		if len(args) != 1 {
-			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
+			fail(2, "Usage: shield %s NAME-or-KEY\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		store, err := c.FindStore(tenant, args[0], !opts.Exact)
+		bucket, err := c.FindBucket(args[0], !opts.Exact)
 		bail(err)
 
 		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(store))
-			break
-		}
-
-		health := fmt.Sprintf("@G{yes}")
-		if !store.Healthy {
-			health = fmt.Sprintf("@R{no}")
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", store.UUID)
-		r.Add("Name", store.Name)
-		r.Add("Healthy?", health)
-		r.Add("Summary", store.Summary)
-		r.Add("SHIELD Agent", store.Agent)
-		r.Add("Storage Plugin", store.Plugin)
-		r.Break()
-		r.Add("Configuration", asJSON(store.Config))
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "create-store": /* {{{ */
-		required(opts.Tenant != "", "Missing required --tenant option.")
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		conf, err := dataConfig(opts.CreateStore.Data)
-		bail(err)
-
-		if !opts.Batch {
-			if opts.CreateStore.Name == "" {
-				opts.CreateStore.Name = prompt("@C{Store Name}: ")
-			}
-			if opts.CreateStore.Summary == "" {
-				opts.CreateStore.Summary = prompt("@C{Description}: ")
-			}
-			if opts.CreateStore.Agent == "" {
-				opts.CreateStore.Agent = prompt("@C{SHIELD Agent (IP:port)}: ")
-			}
-			if opts.CreateStore.Plugin == "" {
-				opts.CreateStore.Plugin = prompt("@C{Backup Plugin}: ")
-			}
-			if opts.CreateStore.Threshold == "" {
-				opts.CreateStore.Threshold = prompt("@C{Threshold}: ")
-			}
-		}
-
-		thold, err := parseBytes(opts.CreateStore.Threshold)
-		bail(err)
-
-		store, err := c.CreateStore(tenant, &shield.Store{
-			Name:      opts.CreateStore.Name,
-			Summary:   opts.CreateStore.Summary,
-			Agent:     opts.CreateStore.Agent,
-			Plugin:    opts.CreateStore.Plugin,
-			Threshold: thold,
-			Config:    conf,
-		})
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(store))
+			fmt.Printf("%s\n", asJSON(bucket))
 			break
 		}
 
 		r := tui.NewReport()
-		r.Add("UUID", store.UUID)
-		r.Add("Name", store.Name)
-		r.Add("Summary", store.Summary)
-		r.Add("SHIELD Agent", store.Agent)
-		r.Add("Backup Plugin", store.Plugin)
-		r.Add("Threshold", formatBytes(store.Threshold))
+		r.Add("Key", bucket.Key)
+		r.Add("Name", bucket.Name)
+		r.Add("Description", bucket.Description)
+		r.Add("Compression", bucket.Compression)
+		r.Add("Encryption", bucket.Encryption)
 		r.Output(os.Stdout)
-
-	/* }}} */
-	case "update-store": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
-		}
-		required(opts.Tenant != "", "Missing required --tenant option.")
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		store, err := c.FindStore(tenant, args[0], true)
-		bail(err)
-
-		conf, err := dataConfig(opts.UpdateStore.Data)
-		bail(err)
-
-		if opts.UpdateStore.Name != "" {
-			store.Name = opts.UpdateStore.Name
-		}
-		if opts.UpdateStore.Summary != "" {
-			store.Summary = opts.UpdateStore.Summary
-		}
-		if opts.UpdateStore.Agent != "" {
-			store.Agent = opts.UpdateStore.Agent
-		}
-		if opts.UpdateStore.Plugin != "" && store.Plugin != opts.UpdateStore.Plugin {
-			opts.UpdateStore.ClearData = true
-			store.Plugin = opts.UpdateStore.Plugin
-		}
-		if opts.UpdateStore.Threshold != "" {
-			thold, err := parseBytes(opts.UpdateStore.Threshold)
-			fmt.Printf("threshold is '%s' -> %d\n", opts.UpdateStore.Threshold, thold)
-			bail(err)
-			store.Threshold = thold
-		}
-		if store.Config == nil {
-			store.Config = make(map[string]interface{})
-		}
-		if opts.UpdateStore.ClearData {
-			store.Config = conf
-		} else {
-			for k, v := range conf {
-				store.Config[k] = v
-			}
-		}
-
-		_, err = c.UpdateStore(tenant, store)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(store))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", store.UUID)
-		r.Add("Name", store.Name)
-		r.Add("Summary", store.Summary)
-		r.Add("SHIELD Agent", store.Agent)
-		r.Add("Backup Plugin", store.Plugin)
-		r.Add("Threshold", formatBytes(store.Threshold))
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "delete-store": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
-		}
-
-		required(opts.Tenant != "", "Missing required --tenant option.")
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		store, err := c.FindStore(tenant, args[0], true)
-		bail(err)
-
-		if !confirm(opts.Yes, "Delete store @Y{%s} in tenant @Y{%s}?", store.Name, tenant.Name) {
-			break
-		}
-		r, err := c.DeleteStore(tenant, store)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(r))
-			break
-		}
-		fmt.Printf("%s\n", r.OK)
-
-	/* }}} */
-
-	case "global-stores": /* {{{ */
-		required(!(opts.GlobalStores.Used && opts.GlobalStores.Unused),
-			"The --used and --unused options are mutually exclusive.")
-		required(len(args) <= 1, "Too many arguments.")
-
-		filter := &shield.StoreFilter{
-			Plugin: opts.Stores.WithPlugin,
-			Fuzzy:  !opts.Exact,
-		}
-		if len(args) == 1 {
-			filter.Name = args[0]
-			filter.UUID = args[0]
-		}
-		if opts.GlobalStores.Used || opts.GlobalStores.Unused {
-			x := opts.GlobalStores.Used
-			filter.Used = &x
-		}
-
-		stores, err := c.ListGlobalStores(filter)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(stores))
-			break
-		}
-
-		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Healthy?")
-		for _, store := range stores {
-			health := fmt.Sprintf("@G{yes}")
-			if !store.Healthy {
-				health = fmt.Sprintf("@R{no}")
-			}
-			tbl.Row(store, uuid8full(store.UUID, opts.Long), store.Name, wrap(store.Summary, 35), store.Plugin, store.Agent, health)
-		}
-		tbl.Output(os.Stdout)
-
-	/* }}} */
-	case "global-store": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
-		}
-
-		store, err := c.FindGlobalStore(args[0], !opts.Exact)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(store))
-			break
-		}
-
-		health := fmt.Sprintf("@G{yes}")
-		if !store.Healthy {
-			health = fmt.Sprintf("@R{no}")
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", store.UUID)
-		r.Add("Name", store.Name)
-		r.Add("Healthy?", health)
-		r.Add("Summary", store.Summary)
-		r.Add("SHIELD Agent", store.Agent)
-		r.Add("Store Plugin", store.Plugin)
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "create-global-store": /* {{{ */
-		conf, err := dataConfig(opts.CreateGlobalStore.Data)
-		bail(err)
-
-		if !opts.Batch {
-			if opts.CreateGlobalStore.Name == "" {
-				opts.CreateGlobalStore.Name = prompt("@C{Store Name}: ")
-			}
-			if opts.CreateGlobalStore.Summary == "" {
-				opts.CreateGlobalStore.Summary = prompt("@C{Description}: ")
-			}
-			if opts.CreateGlobalStore.Agent == "" {
-				opts.CreateGlobalStore.Agent = prompt("@C{SHIELD Agent (IP:port)}: ")
-			}
-			if opts.CreateGlobalStore.Plugin == "" {
-				opts.CreateGlobalStore.Plugin = prompt("@C{Backup Plugin}: ")
-			}
-			if opts.CreateGlobalStore.Threshold == "" {
-				opts.CreateGlobalStore.Threshold = prompt("@C{Threshold}: ")
-			}
-		}
-
-		thold, err := parseBytes(opts.CreateStore.Threshold)
-		bail(err)
-
-		store, err := c.CreateGlobalStore(&shield.Store{
-			Name:      opts.CreateGlobalStore.Name,
-			Summary:   opts.CreateGlobalStore.Summary,
-			Agent:     opts.CreateGlobalStore.Agent,
-			Plugin:    opts.CreateGlobalStore.Plugin,
-			Threshold: thold,
-			Config:    conf,
-		})
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(store))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", store.UUID)
-		r.Add("Name", store.Name)
-		r.Add("Summary", store.Summary)
-		r.Add("SHIELD Agent", store.Agent)
-		r.Add("Backup Plugin", store.Plugin)
-		r.Add("Threshold", formatBytes(store.Threshold))
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "update-global-store": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
-		}
-
-		store, err := c.FindGlobalStore(args[0], true)
-		bail(err)
-
-		conf, err := dataConfig(opts.UpdateGlobalStore.Data)
-		bail(err)
-
-		if opts.UpdateGlobalStore.Name != "" {
-			store.Name = opts.UpdateGlobalStore.Name
-		}
-		if opts.UpdateGlobalStore.Summary != "" {
-			store.Summary = opts.UpdateGlobalStore.Summary
-		}
-		if opts.UpdateGlobalStore.Agent != "" {
-			store.Agent = opts.UpdateGlobalStore.Agent
-		}
-		if opts.UpdateGlobalStore.Plugin != "" && store.Plugin != opts.UpdateGlobalStore.Plugin {
-			opts.UpdateGlobalStore.ClearData = true
-			store.Plugin = opts.UpdateGlobalStore.Plugin
-		}
-		if opts.UpdateGlobalStore.Threshold != "" {
-			thold, err := parseBytes(opts.UpdateGlobalStore.Threshold)
-			bail(err)
-			store.Threshold = thold
-		}
-		if store.Config == nil {
-			store.Config = make(map[string]interface{})
-		}
-		if opts.UpdateGlobalStore.ClearData {
-			store.Config = conf
-		} else {
-			for k, v := range conf {
-				store.Config[k] = v
-			}
-		}
-
-		_, err = c.UpdateGlobalStore(store)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(store))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", store.UUID)
-		r.Add("Name", store.Name)
-		r.Add("Summary", store.Summary)
-		r.Add("SHIELD Agent", store.Agent)
-		r.Add("Backup Plugin", store.Plugin)
-		r.Add("Threshold", formatBytes(store.Threshold))
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "delete-global-store": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
-		}
-
-		store, err := c.FindGlobalStore(args[0], true)
-		bail(err)
-
-		if !confirm(opts.Yes, "Delete @R{global} store @Y{%s}?", store.Name) {
-			break
-		}
-		r, err := c.DeleteGlobalStore(store)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(r))
-			break
-		}
-		fmt.Printf("%s\n", r.OK)
 
 	/* }}} */
 
@@ -2201,7 +1736,7 @@ tenants:
 
 		filter := &shield.JobFilter{
 			Fuzzy:  !opts.Exact,
-			Store:  opts.Jobs.Store,
+			Bucket: opts.Jobs.Bucket,
 			Target: opts.Jobs.Target,
 		}
 		if opts.Jobs.Paused || opts.Jobs.Unpaused {
@@ -2223,9 +1758,9 @@ tenants:
 			break
 		}
 
-		tbl := table.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Retention", "SHIELD Agent", "Target", "Store", "Fixed-Key")
+		tbl := table.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Retention", "SHIELD Agent", "Target", "Bucket", "Fixed-Key")
 		for _, job := range jobs {
-			tbl.Row(job, uuid8full(job.UUID, opts.Long), job.Name, wrap(job.Summary, 35), job.Schedule, job.Status(), fmt.Sprintf("%dd (%d archives)", job.KeepDays, job.KeepN), job.Agent, job.Target.Name, job.Store.Name, job.FixedKey)
+			tbl.Row(job, uuid8full(job.UUID, opts.Long), job.Name, wrap(job.Summary, 35), job.Schedule, job.Status(), fmt.Sprintf("%dd (%d archives)", job.KeepDays, job.KeepN), job.Agent, job.Target.Name, job.Bucket, job.FixedKey)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2262,8 +1797,7 @@ tenants:
 		r.Add("SHIELD Agent", job.Agent)
 		r.Break()
 
-		r.Add("Cloud Storage", job.Store.Name)
-		r.Add("Storage Plugin", job.Store.Plugin)
+		r.Add("Cloud Storage", job.Bucket)
 		r.Break()
 
 		r.Add("Fixed-Key", strconv.FormatBool(job.FixedKey))
@@ -2298,16 +1832,16 @@ tenants:
 					break
 				}
 			}
-			for opts.CreateJob.Store == "" {
+			for opts.CreateJob.Bucket == "" {
 				id := prompt("@C{Cloud Storage}: ")
 				if len(id) > 0 && id[0] == '?' {
-					SearchStores(c, tenant, id[1:])
+					SearchBuckets(c, id[1:])
 					continue
 				}
-				if store, err := c.FindUsableStore(tenant, id, !opts.Exact); err != nil {
+				if bucket, err := c.FindBucket(id, !opts.Exact); err != nil {
 					fmt.Fprintf(os.Stderr, "@Y{%s}\n", err)
 				} else {
-					opts.CreateJob.Store = store.UUID
+					opts.CreateJob.Bucket = bucket.Key
 					break
 				}
 			}
@@ -2330,11 +1864,11 @@ tenants:
 					opts.CreateJob.Target = target.UUID
 				}
 			}
-			if id := opts.CreateJob.Store; id != "" {
-				if store, err := c.FindUsableStore(tenant, id, !opts.Exact); err != nil {
+			if id := opts.CreateJob.Bucket; id != "" {
+				if bucket, err := c.FindBucket(id, !opts.Exact); err != nil {
 					bail(err)
 				} else {
-					opts.CreateJob.Store = store.UUID
+					opts.CreateJob.Bucket = bucket.Key
 				}
 			}
 		}
@@ -2343,7 +1877,7 @@ tenants:
 			Name:       opts.CreateJob.Name,
 			Summary:    opts.CreateJob.Summary,
 			TargetUUID: opts.CreateJob.Target,
-			StoreUUID:  opts.CreateJob.Store,
+			Bucket:     opts.CreateJob.Bucket,
 			Schedule:   opts.CreateJob.Schedule,
 			Retain:     opts.CreateJob.Retain,
 			Paused:     opts.CreateJob.Paused,
@@ -2388,11 +1922,11 @@ tenants:
 				job.TargetUUID = target.UUID
 			}
 		}
-		if id := opts.UpdateJob.Store; id != "" {
-			if store, err := c.FindUsableStore(tenant, id, !opts.Exact); err != nil {
+		if id := opts.UpdateJob.Bucket; id != "" {
+			if bucket, err := c.FindBucket(id, !opts.Exact); err != nil {
 				bail(err)
 			} else {
-				job.StoreUUID = store.UUID
+				job.Bucket = bucket.Key
 			}
 		}
 		if opts.UpdateJob.Schedule != "" {
@@ -2544,15 +2078,9 @@ tenants:
 			bail(err)
 			opts.Archives.Target = t.UUID
 		}
-		if opts.Archives.Store != "" {
-			s, err := c.FindStore(tenant, opts.Archives.Store, !opts.Exact)
-			bail(err)
-			opts.Archives.Store = s.UUID
-		}
 
 		filter := &shield.ArchiveFilter{
 			Target: opts.Archives.Target,
-			Store:  opts.Archives.Store,
 			Limit:  &opts.Archives.Limit,
 			Fuzzy:  !opts.Exact,
 		}
@@ -2732,19 +2260,6 @@ tenants:
 				bail(err)
 				opts.Tasks.Target = t.UUID
 			}
-
-			if opts.Tasks.Store != "" {
-				s, err := c.FindStore(tenant, opts.Tasks.Store, !opts.Exact)
-				bail(err)
-				opts.Tasks.Store = s.UUID
-			}
-
-		} else {
-			if opts.Tasks.Store != "" {
-				s, err := c.FindGlobalStore(opts.Tasks.Store, !opts.Exact)
-				bail(err)
-				opts.Tasks.Store = s.UUID
-			}
 		}
 
 		var timeBefore int64
@@ -2758,7 +2273,6 @@ tenants:
 			Status: opts.Tasks.Status,
 			Limit:  &opts.Tasks.Limit,
 			Target: opts.Tasks.Target,
-			Store:  opts.Tasks.Store,
 			Type:   opts.Tasks.Type,
 			Before: timeBefore,
 		}

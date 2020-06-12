@@ -16,8 +16,5 @@ USAGE: @G{shield} archives --tenant @Y{TENANT}
       --target   Show archives for the given target, specified either by
                  name or UUID.
 
-      --store    Show archives housed in the given cloud storage system,
-                 specified either by name or UUID.
-
   -l, --limit    Only show the given number of archives.
 

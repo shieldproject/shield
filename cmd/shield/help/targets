@@ -13,7 +13,7 @@ USAGE: @G{shield} targets --tenant @Y{TENANT} [OPTIONS]
   You may filter the results with the following command-line flags.
 
   --used          Only show data systems that are either @W{used}
-  --unused        (referenced by a job configurtion) or @W{unused}.
+  --unused        (referenced by a job configuration) or @W{unused}.
                   These options are mutually exclusive.
 
   --with-plugin   Only show data systems that are using the given

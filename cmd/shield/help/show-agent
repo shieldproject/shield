@@ -4,5 +4,5 @@ USAGE: @G{shield} show-agent @Y{NAME-OR-UUID}
 
   Agents perform all backup / restore / operations on behalf
   of the SHIELD Core.  Visible SHIELD Agents can be used by
-  tenants when configuring data and storage systems.
+  tenants when configuring data systems.
 
