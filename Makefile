@@ -17,8 +17,8 @@ format:
 test: go-tests api-tests
 go-tests: shield
 	go list ./... | grep -v vendor/ | PATH=$$PWD:$$PWD/bin:$$PWD/test/bin:$$PATH xargs go test -race
-api-tests: shieldd shield-schema shield-agent
-	./t/api
+api-tests:
+	prove -v
 
 # Running Tests for race conditions
 race:

@@ -12,7 +12,18 @@ export SHIELD_LEGACY_AGENTS_PRIVATE_KEY=$(cat /etc/shield/ssh.key)
 export SHIELD_WEB_ROOT=/shield/ui
 export SHIELD_DATA_DIR=/var/shield
 
-sleep 2
+n=${SHIELD_TRY_DATABASE_FOR:-0}
+if [[ $n -gt 0 ]]; then
+  echo "» waiting up to ${n}s for shield database to become available…"
+  n=$(( n * 10 ))
+  while [[ $n != 0 ]]; do
+    if /shield/bin/shield-schema --database "$SHIELD_DATABASE" --dry-run; then
+      break
+    fi
+    sleep 0.1
+    n=$((n - 1))
+  done
+fi
 
 /shield/bin/shield-schema --database "$SHIELD_DATABASE"
 exec /shield/bin/shieldd "$@"

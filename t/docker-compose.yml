@@ -22,6 +22,7 @@ services:
     ports: ['9009:80']
     command: ['/shield/init/core']
     environment:
+      SHIELD_TRY_DATABASE_FOR: 30
       SHIELD_API_BIND: core:80
       SHIELD_DATABASE: "postgres://postgres:password@db/shield?sslmode=disable"
       SHIELD_LEGACY_AGENTS_REGISTRATION_TOKEN: yo-yo-im-an-agent

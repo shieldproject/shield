@@ -45,12 +45,10 @@ type Core struct {
 }
 
 type Config struct {
-	Debug          bool     `yaml:"debug"          env:"SHIELD_DEBUG"`
-	DataDir        string   `yaml:"data-dir"       env:"SHIELD_DATA_DIR"`
-	Database       string   `yaml:"database"       env:"SHIELD_DATABASE"`
-	WebRoot        string   `yaml:"web-root"       env:"SHIELD_WEB_ROOT"`
-	PluginPaths    []string `yaml:"plugin_paths"`
-	PluginPathsEnv string   `yaml:"-"              env:"SHIELD_PLUGIN_PATHS"`
+	Debug    bool   `yaml:"debug"          env:"SHIELD_DEBUG"`
+	DataDir  string `yaml:"data-dir"       env:"SHIELD_DATA_DIR"`
+	Database string `yaml:"database"       env:"SHIELD_DATABASE"`
+	WebRoot  string `yaml:"web-root"       env:"SHIELD_WEB_ROOT"`
 
 	Scheduler struct {
 		FastLoop duration `yaml:"fast-loop" env:"SHIELD_SCHEDULER_FAST_LOOP"`
@@ -144,7 +142,6 @@ var (
 func init() {
 	DefaultConfig.DataDir = "/shield/data"
 	DefaultConfig.WebRoot = "/shield/ui"
-	DefaultConfig.PluginPathsEnv = "/shield/plugins"
 
 	DefaultConfig.Scheduler.FastLoop = 1
 	DefaultConfig.Scheduler.SlowLoop = 300
@@ -251,22 +248,6 @@ func Configure(file string, config Config) (*Core, error) {
 		return nil, fmt.Errorf("web root directory '%s' is invalid (%s)", c.Config.WebRoot, err)
 	} else if !st.Mode().IsDir() {
 		return nil, fmt.Errorf("web root directory '%s' is invalid (not a directory)", c.Config.WebRoot)
-	}
-
-	if len(c.Config.PluginPaths) == 0 && c.Config.PluginPathsEnv != "" {
-		p := strings.Split(c.Config.PluginPathsEnv, ":")
-		p = append(p, c.Config.PluginPaths...)
-		c.Config.PluginPaths = p
-	}
-	for _, path := range c.Config.PluginPaths {
-		if path == "" {
-			return nil, fmt.Errorf("plugin directory '%s' is invalid (must be a valid path)", path)
-		}
-		if st, err := os.Stat(path); err != nil {
-			return nil, fmt.Errorf("plugin directory '%s' is invalid (%s)", path, err)
-		} else if !st.Mode().IsDir() {
-			return nil, fmt.Errorf("plugin directory '%s' is invalid (not a directory)", path)
-		}
 	}
 
 	if !c.Config.LegacyAgents.Enabled {

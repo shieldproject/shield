@@ -24,6 +24,7 @@ func main() {
 		Debug    bool   `cli:"-D, --debug"`
 		Database string `cli:"-d, --database"`
 		Revision int    `cli:"-r, --revision"`
+		DryRun   bool   `cli:"-n, --dry-run"`
 	}
 
 	_, args, err := cli.Parse(&opts)
@@ -80,6 +81,15 @@ func main() {
 		log.Errorf("failed to connect to database at %s: %s",
 			opts.Database, err)
 		os.Exit(1)
+	}
+
+	if opts.DryRun {
+		cur, err := database.SchemaVersion()
+		if err != nil {
+			os.Exit(1)
+		}
+		log.Infof("schema version %d\n", cur)
+		os.Exit(0)
 	}
 
 	if opts.Revision > db.CurrentSchema {

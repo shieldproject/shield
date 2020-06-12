@@ -67,6 +67,7 @@ cmd/shield-umc/main
 oauth.conf
 oauth.key
 oauth.key.pub
+t/tmp
 
 # ignore files created by the ssg
 /t/data/ssg

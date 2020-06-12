@@ -76,15 +76,6 @@ func (c Core) Main() {
 
 func (c *Core) PrintConfiguration() {
 	log.Infof("CONFIG | web root:          '%s'", c.Config.WebRoot)
-	if len(c.Config.PluginPaths) == 0 {
-		log.Infof("CONFIG | plugin paths:      (none)")
-	} else {
-		log.Infof("CONFIG | plugin paths:")
-		for _, path := range c.Config.PluginPaths {
-			log.Infof("CONFIG |  - '%s'", path)
-		}
-	}
-
 	log.Infof("CONFIG | scheduler loop:    fast=%ds slow=%ds", c.Config.Scheduler.FastLoop, c.Config.Scheduler.SlowLoop)
 	log.Infof("CONFIG | scheduler threads: %d", c.Config.Scheduler.Threads)
 	log.Infof("CONFIG | scheduler timeout: %ds", c.Config.Scheduler.Timeout)
