@@ -20,7 +20,7 @@ type DB struct {
 	Driver     string
 	DSN        string
 
-	bus       *bus.Bus
+	bus *bus.Bus
 }
 
 // Connect to the backend database

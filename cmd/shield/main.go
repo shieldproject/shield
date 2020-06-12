@@ -166,7 +166,7 @@ var opts struct {
 		Unused     bool   `cli:"--unused"`
 		WithPlugin string `cli:"--with-plugin"`
 	} `cli:"stores"`
-	Store struct {} `cli:"store"`
+	Store       struct{} `cli:"store"`
 	DeleteStore struct{} `cli:"delete-store"`
 	CreateStore struct {
 		Name      string   `cli:"-n, --name"`
@@ -193,7 +193,7 @@ var opts struct {
 		Unused     bool   `cli:"--unused"`
 		WithPlugin string `cli:"--with-plugin"`
 	} `cli:"global-stores"`
-	GlobalStore struct {} `cli:"global-store"`
+	GlobalStore       struct{} `cli:"global-store"`
 	DeleteGlobalStore struct{} `cli:"delete-global-store"`
 	CreateGlobalStore struct {
 		Name      string   `cli:"-n, --name"`

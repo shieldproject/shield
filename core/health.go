@@ -21,8 +21,8 @@ type JobHealth struct {
 }
 type Health struct {
 	Health struct {
-		Storage bool   `json:"storage_ok"`
-		Jobs    bool   `json:"jobs_ok"`
+		Storage bool `json:"storage_ok"`
+		Jobs    bool `json:"jobs_ok"`
 	} `json:"health"`
 
 	Storage []StorageHealth `json:"storage"`
