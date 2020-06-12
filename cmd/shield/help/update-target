@@ -30,11 +30,6 @@ USAGE: @G{shield} update-target --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}
                     keys will be added, and overridden keys will be
                     updated.
 
-  -C, --compression
-                    The type of compression to use when backing up this
-                    target. Valid values are `bzip2' and `none'. Defaults
-                    to `bzip2'.
-
   -d, --data        Configuration data for the target plugin, in the
                     format @Y{--data} @G{key_name}=@C{value}.  Note that you may
                     be required to quote this to avoid tokenization of

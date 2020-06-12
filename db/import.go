@@ -74,7 +74,6 @@ func (db *DB) importArchives(n uint, in *json.Decoder) error {
 		Size           *int   `json:"size"`
 		Job            string `json:"jobs"`
 		EncryptionType string `json:"encryption_type"`
-		Compression    string `json:"compression"`
 		EncryptionKey  string `json:"encryption_key"`
 		EncryptionIV   string `json:"encryption_iv"`
 		Error          string `json:"error"`
@@ -95,14 +94,14 @@ func (db *DB) importArchives(n uint, in *json.Decoder) error {
 		  INSERT INTO archives
 		    (uuid, tenant_uuid, target_uuid,
 		     store_key, taken_at, expires_at, notes, purge_reason,
-		     status, size, job, encryption_type, compression)
+		     status, size, job, encryption_type)
 		  VALUES
 		    (?, ?, ?, ?,
 		     ?, ?, ?, ?, ?,
-		     ?, ?, ?, ?, ?)`,
+		     ?, ?, ?, ?)`,
 			v.UUID, v.TenantUUID, v.TargetUUID,
 			v.StoreKey, v.TakenAt, v.ExpiresAt, v.Notes, v.PurgeReason,
-			v.Status, v.Size, v.Job, v.EncryptionType, v.Compression)
+			v.Status, v.Size, v.Job, v.EncryptionType)
 		if err != nil {
 			return err
 		}
@@ -226,16 +225,15 @@ func (db *DB) importMemberships(n uint, in *json.Decoder) error {
 
 func (db *DB) importTargets(n uint, in *json.Decoder) error {
 	type target struct {
-		UUID        string `json:"uuid"`
-		TenantUUID  string `json:"tenant_uuid"`
-		Name        string `json:"name"`
-		Summary     string `json:"summary"`
-		Plugin      string `json:"plugin"`
-		Endpoint    string `json:"endpoint"`
-		Agent       string `json:"agent"`
-		Compression string `json:"compression"`
-		Healthy     bool   `json:"healthy"`
-		Error       string `json:"error"`
+		UUID       string `json:"uuid"`
+		TenantUUID string `json:"tenant_uuid"`
+		Name       string `json:"name"`
+		Summary    string `json:"summary"`
+		Plugin     string `json:"plugin"`
+		Endpoint   string `json:"endpoint"`
+		Agent      string `json:"agent"`
+		Healthy    bool   `json:"healthy"`
+		Error      string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
@@ -252,12 +250,12 @@ func (db *DB) importTargets(n uint, in *json.Decoder) error {
 		err := db.Exec(`
 		  INSERT INTO targets
 		    (uuid, tenant_uuid, name, summary,
-		     plugin, endpoint, agent, compression, healthy)
+		     plugin, endpoint, agent, healthy)
 		  VALUES
 		    (?, ?, ?, ?,
-		     ?, ?, ?, ?, ?)`,
+		     ?, ?, ?, ?)`,
 			v.UUID, v.TenantUUID, v.Name, v.Summary,
-			v.Plugin, v.Endpoint, v.Agent, v.Compression, v.Healthy)
+			v.Plugin, v.Endpoint, v.Agent, v.Healthy)
 		if err != nil {
 			return err
 		}
@@ -291,7 +289,6 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		Clear          string  `json:"clear"`
 		Error          string  `json:"error"`
 		EncryptionType string  `json:"encryption_type"`
-		Compression    string  `json:"compression"`
 	}
 
 	for ; n > 0; n-- {
@@ -318,7 +315,7 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
                 (uuid, owner, op,
                 tenant_uuid, job_uuid, archive_uuid, target_uuid,
                 status, requested_at, started_at, stopped_at, timeout_at,
-                log, attempts, agent, fixed_key, compression,
+                log, attempts, agent, fixed_key,
                 target_plugin, target_endpoint,
                 restore_key,
                 ok, notes, clear)
@@ -326,14 +323,14 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
                 (?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?,
+                ?, ?, ?, ?,
                 ?, ?,
                 ?,
                 ?, ?, ?)`,
 				v.UUID, v.Owner, v.Op,
 				v.TenantUUID, v.JobUUID, v.ArchiveUUID, v.TargetUUID,
 				v.Status, v.RequestedAt, v.StartedAt, v.StoppedAt, v.TimeoutAt,
-				v.Log, v.Attempts, v.Agent, v.FixedKey, v.Compression,
+				v.Log, v.Attempts, v.Agent, v.FixedKey,
 				v.TargetPlugin, v.TargetEndpoint,
 				v.RestoreKey,
 				v.OK, v.Notes, v.Clear)

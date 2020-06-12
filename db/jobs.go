@@ -24,11 +24,10 @@ type Job struct {
 	FixedKey bool   `json:"fixed_key" mbus:"fixed_key"`
 
 	Target struct {
-		UUID        string `json:"uuid"`
-		Name        string `json:"name"`
-		Agent       string `json:"agent"`
-		Plugin      string `json:"plugin"`
-		Compression string `json:"compression"`
+		UUID   string `json:"uuid"`
+		Name   string `json:"name"`
+		Agent  string `json:"agent"`
+		Plugin string `json:"plugin"`
 
 		Endpoint string                 `json:"endpoint,omitempty"`
 		Config   map[string]interface{} `json:"config,omitempty"`
@@ -125,7 +124,7 @@ func (f *JobFilter) Query() (string, []interface{}) {
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.bucket,
 	          j.tenant_uuid, j.fixed_key, j.healthy, j.keep_n, j.keep_days,
-	          t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression,
+	          t.uuid, t.name, t.plugin, t.endpoint, t.agent,
 	          k.started_at, k.status
 
 	     FROM jobs j
@@ -160,7 +159,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 			&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &j.Bucket,
 			&j.TenantUUID, &j.FixedKey, &j.Healthy, &j.KeepN, &j.KeepDays,
 			&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
-			&j.Agent, &j.Target.Compression, &last, &status); err != nil {
+			&j.Agent, &last, &status); err != nil {
 			return l, err
 		}
 		if last != nil {

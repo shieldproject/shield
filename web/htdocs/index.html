@@ -1178,17 +1178,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                       </div>
                     </div>
 
-                    <div class="field">
-                      <div class="x3"><label for="target.compression">Archive Compression</label></div>
-                      <div class="x9">
-                        <select name="target.compression">
-                          <option value="bzip2">bzip2</option>
-                          <option value="none">No Compression</option>
-                        </select>
-                        <p class="help">What type of compression should SHIELD use to reduce the size of backup archives?  <em>bzip2</em> results in smaller archives, but may substantially increase time-to-backup (especially for large data sets).</p>
-                      </div>
-                    </div>
-
                     <div class="field required" data-field="target.plugin" data-type="selection">
                       <div class="x3"><label for="target.plugin">Plugin</label></div>
                       <div class="x9">
@@ -1632,10 +1621,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               <a href="#!/systems/system:uuid:[[= target.uuid ]]">
               <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= h(target.name) ]]</h3>
-              <ul class="details">
-                <li>[[ if (target.compression == "none") { ]]backups will <strong>not</strong> be compressed.
-                    [[ } else { ]]backups will be compressed via <tt>[[= h(target.compression) ]]</tt>[[ } ]]</li>
-              </ul>
               [[ $.each(AEGIS.jobs({ system: target.uuid }), function (j, job) {
                    var bucket = AEGIS.bucket(job.bucket);
               ]]
@@ -1691,9 +1676,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               <dl>
                 <dt>Backup Archives</dt>
                 <dd>[[= h(n) ]]</dd>
-
-                <dt>Compression</dt>
-                <dd>[[= h(target.compression) ]]</dd>
 
                 <dt>Storage Used</dt>
                 <dd>[[= bytes(used) ]]</dd>
@@ -1894,17 +1876,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                       <div class="x9">
                         <textarea name="summary">[[= h(target.summary) ]]</textarea>
                           <p class="help">Pick a memorable or descriptive name for this data system, so that other operators can determine when to use it.</p>
-                      </div>
-                    </div>
-
-                    <div class="field">
-                      <div class="x3"><label for="compression">Archive Compression</label></div>
-                      <div class="x9">
-                        <select name="compression">
-                          <option value="bzip2"[[ if (target.compression == 'bzip2') { ]] selected[[ } ]]>bzip2</option>
-                          <option value="none"[[ if (target.compression == 'none') { ]] selected[[ } ]]>No Compression</option>
-                        </select>
-                        <p class="help">What type of compression should SHIELD use to reduce the size of backup archives?  <em>bzip2</em> results in smaller archives, but may substantially increase time-to-backup (especially for large data sets).</p>
                       </div>
                     </div>
 

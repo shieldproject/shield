@@ -45,13 +45,12 @@ type v2SystemTask struct {
 	TargetUUID  string `json:"target_uuid"`
 }
 type v2SystemJob struct {
-	UUID        string `json:"uuid"`
-	Schedule    string `json:"schedule"`
-	Compression string `json:"compression"`
-	From        string `json:"from"`
-	To          string `json:"to"`
-	OK          bool   `json:"ok"`
-	Bucket      string `json:"bucket"`
+	UUID     string `json:"uuid"`
+	Schedule string `json:"schedule"`
+	From     string `json:"from"`
+	To       string `json:"to"`
+	OK       bool   `json:"ok"`
+	Bucket   string `json:"bucket"`
 
 	Keep struct {
 		N    int `json:"n"`
@@ -59,11 +58,10 @@ type v2SystemJob struct {
 	} `json:"keep"`
 }
 type v2System struct {
-	UUID        string `json:"uuid"`
-	Name        string `json:"name"`
-	Notes       string `json:"notes"`
-	OK          bool   `json:"ok"`
-	Compression string `json:"compression"`
+	UUID  string `json:"uuid"`
+	Name  string `json:"name"`
+	Notes string `json:"notes"`
+	OK    bool   `json:"ok"`
 
 	Jobs  []v2SystemJob  `json:"jobs"`
 	Tasks []v2SystemTask `json:"tasks"`
@@ -1239,12 +1237,11 @@ func (c *Core) v2API() *route.Router {
 
 		var in struct {
 			Target struct {
-				UUID        string `json:"uuid"`
-				Name        string `json:"name"`
-				Summary     string `json:"summary"`
-				Plugin      string `json:"plugin"`
-				Agent       string `json:"agent"`
-				Compression string `json:"compression"`
+				UUID    string `json:"uuid"`
+				Name    string `json:"name"`
+				Summary string `json:"summary"`
+				Plugin  string `json:"plugin"`
+				Agent   string `json:"agent"`
 
 				Config map[string]interface{} `json:"config"`
 			} `json:"target"`
@@ -1284,10 +1281,6 @@ func (c *Core) v2API() *route.Router {
 		}
 		in.Job.KeepN = sched.KeepN(in.Job.KeepDays)
 
-		if in.Target.Compression == "" {
-			in.Target.Compression = DefaultCompressionType
-		}
-
 		var target *db.Target
 		if in.Target.UUID != "" {
 			target, err = c.db.GetTarget(in.Target.UUID)
@@ -1302,14 +1295,13 @@ func (c *Core) v2API() *route.Router {
 
 		} else {
 			target, err = c.db.CreateTarget(&db.Target{
-				TenantUUID:  r.Args[1],
-				Name:        in.Target.Name,
-				Summary:     in.Target.Summary,
-				Plugin:      in.Target.Plugin,
-				Config:      in.Target.Config,
-				Agent:       in.Target.Agent,
-				Compression: in.Target.Compression,
-				Healthy:     true,
+				TenantUUID: r.Args[1],
+				Name:       in.Target.Name,
+				Summary:    in.Target.Summary,
+				Plugin:     in.Target.Plugin,
+				Config:     in.Target.Config,
+				Agent:      in.Target.Agent,
+				Healthy:    true,
 			})
 			if target == nil || err != nil {
 				r.Fail(route.Oops(err, "Unable to create new data target"))
@@ -2007,11 +1999,10 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		var in struct {
-			Name        string `json:"name"`
-			Summary     string `json:"summary"`
-			Compression string `json:"compression"`
-			Plugin      string `json:"plugin"`
-			Agent       string `json:"agent"`
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			Plugin  string `json:"plugin"`
+			Agent   string `json:"agent"`
 
 			Config   map[string]interface{} `json:"config"`
 			endpoint string
@@ -2034,34 +2025,19 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		if in.Compression == "" {
-			in.Compression = DefaultCompressionType
-		}
-
-		if !ValidCompressionType(in.Compression) {
-			r.Fail(route.Bad(err, "Invalid compression type '%s'", in.Compression))
-			return
-		}
-
 		if r.ParamIs("test", "t") {
 			r.Success("validation suceeded (request made in ?test=t mode)")
 			return
 		}
 
-		if !ValidCompressionType(in.Compression) {
-			r.Fail(route.Bad(err, "Invalid compression type '%s'", in.Compression))
-			return
-		}
-
 		target, err := c.db.CreateTarget(&db.Target{
-			TenantUUID:  r.Args[1],
-			Name:        in.Name,
-			Summary:     in.Summary,
-			Plugin:      in.Plugin,
-			Config:      in.Config,
-			Agent:       in.Agent,
-			Compression: in.Compression,
-			Healthy:     true,
+			TenantUUID: r.Args[1],
+			Name:       in.Name,
+			Summary:    in.Summary,
+			Plugin:     in.Plugin,
+			Config:     in.Config,
+			Agent:      in.Agent,
+			Healthy:    true,
 		})
 		if target == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new data target"))
@@ -2107,12 +2083,11 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		var in struct {
-			Name        string `json:"name"`
-			Summary     string `json:"summary"`
-			Compression string `json:"compression"`
-			Plugin      string `json:"plugin"`
-			Endpoint    string `json:"endpoint"`
-			Agent       string `json:"agent"`
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Plugin   string `json:"plugin"`
+			Endpoint string `json:"endpoint"`
+			Agent    string `json:"agent"`
 
 			Config map[string]interface{} `json:"config"`
 		}
@@ -2141,13 +2116,6 @@ func (c *Core) v2API() *route.Router {
 		}
 		if in.Agent != "" {
 			target.Agent = in.Agent
-		}
-		if in.Compression != "" {
-			if !ValidCompressionType(in.Compression) {
-				r.Fail(route.Bad(err, "Invalid compression type '%s'", in.Compression))
-				return
-			}
-			target.Compression = in.Compression
 		}
 
 		if err := c.db.UpdateTarget(target); err != nil {
@@ -2969,7 +2937,6 @@ func (c *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 	dst.Name = target.Name
 	dst.Notes = target.Summary
 	dst.OK = true
-	dst.Compression = target.Compression
 
 	jobs, err := c.db.GetAllJobs(&db.JobFilter{ForTarget: target.UUID})
 	if err != nil {

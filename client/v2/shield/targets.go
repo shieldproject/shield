@@ -13,7 +13,6 @@ type Target struct {
 	Summary     string `json:"summary"`
 	Plugin      string `json:"plugin"`
 	Agent       string `json:"agent"`
-	Compression string `json:"compression"`
 
 	Config map[string]interface{} `json:"config"`
 }

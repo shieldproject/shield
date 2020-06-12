@@ -148,9 +148,8 @@ func (w *Worker) Execute(chore Chore) {
 
 		log.Infof("%s: parsing output of %s operation, '%s'", chore, task.Op, output)
 		var v struct {
-			Key         string `json:"key"`
-			Size        int64  `json:"archive_size"`
-			Compression string `json:"compression"`
+			Key  string `json:"key"`
+			Size int64  `json:"archive_size"`
 		}
 		err := json.Unmarshal([]byte(output), &v)
 		if err != nil {
@@ -161,19 +160,12 @@ func (w *Worker) Execute(chore Chore) {
 			panic(fmt.Errorf("%s: no restore key detected in %s operation output", chore, task.Op))
 		}
 
-		if v.Compression == "" {
-			/* older shield-pipes will always bzip2; and if they aren't
-			   reporting their compression type, it's gotta be bzip2 */
-			v.Compression = "bzip2"
-		}
-
 		w.db.UpdateTaskLog(task.UUID, fmt.Sprintf("BACKUP: restore key  = %s\n", v.Key))
 		w.db.UpdateTaskLog(task.UUID, fmt.Sprintf("BACKUP: archive size = %d bytes\n", v.Size))
-		w.db.UpdateTaskLog(task.UUID, fmt.Sprintf("BACKUP: compression  = %s\n", v.Compression))
 
 		log.Infof("%s: restore key for this %s operation is '%s'", chore, task.Op, v.Key)
 		_, err = w.db.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(),
-			chore.Encryption, v.Compression, v.Size, task.TenantUUID)
+			chore.Encryption, v.Size, task.TenantUUID)
 		if err != nil {
 			panic(fmt.Errorf("failed to create task archive database record '%s': %s", task.ArchiveUUID, err))
 		}

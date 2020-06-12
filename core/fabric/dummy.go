@@ -31,14 +31,11 @@ func (f DummyFabric) Backup(task *db.Task) scheduler.Chore {
 			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY>   target plugin:   '%s'", task.TargetPlugin)
 			chore.Errorf("DUMMY>   target endpoint: '%s'", task.TargetEndpoint)
-			chore.Errorf("DUMMY>")
-			chore.Errorf("DUMMY>   compression:     '%s'", task.Compression) // FIXME
 			f.Sleep()
 			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY> backup operation complete.")
-			chore.Infof(`{"key":"%s","archive_size":1337,"compression":"%s"}`,
-				time.Now().Format("2006/01/02/15/04/05/2006-01-02T1504.archive"),
-				task.Compression)
+			chore.Infof(`{"key":"%s","archive_size":1337}`,
+				time.Now().Format("2006/01/02/15/04/05/2006-01-02T1504.archive"))
 			chore.UnixExit(0)
 		})
 }
@@ -53,8 +50,6 @@ func (f DummyFabric) Restore(task *db.Task) scheduler.Chore {
 			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY>   target plugin:   '%s'", task.TargetPlugin)
 			chore.Errorf("DUMMY>   target endpoint: '%s'", task.TargetEndpoint)
-			chore.Errorf("DUMMY>")
-			chore.Errorf("DUMMY>   compression:     '%s'", task.Compression) // FIXME
 			f.Sleep()
 			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY> restore operation complete.")

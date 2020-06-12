@@ -33,8 +33,6 @@ type Command struct {
 
 	TaskUUID string `json:"task_uuid,omitempty"`
 
-	Compression string `json:"compression,omitempty"` // FIXME
-
 	Stream struct {
 		URL   string `json:"url"`
 		ID    string `json:"id"`
@@ -53,8 +51,6 @@ func (f LegacyFabric) Backup(task *db.Task) scheduler.Chore {
 		TargetEndpoint: task.TargetEndpoint,
 
 		TaskUUID: task.UUID,
-
-		Compression: task.Compression, // FIXME
 	}
 
 	err := json.Unmarshal([]byte(task.Stream), &cmd.Stream)
@@ -76,8 +72,6 @@ func (f LegacyFabric) Restore(task *db.Task) scheduler.Chore {
 		TargetEndpoint: task.TargetEndpoint,
 
 		TaskUUID: task.UUID,
-
-		Compression: task.Compression, // FIXME
 	}
 
 	err := json.Unmarshal([]byte(task.Stream), &cmd.Stream)
