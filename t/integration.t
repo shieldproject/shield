@@ -15,56 +15,10 @@ $ENV{PUBLIC_PORT} = 9009;
 
 my $UA = LWP::UserAgent->new(agent => 'shield-test/'.strftime("%Y%m%dT%H%M%S", gmtime())."-$$");
 my $BASE_URL = "http://127.0.0.1:$ENV{PUBLIC_PORT}";
-my $TOKEN;
 
 sub maybe_json {
 	my ($raw) = @_;
 	return eval { return decode_json($raw) } or undef;
-}
-
-my ($req, $res, $SUCCESS, $STATUS, $RESPONSE);
-sub GET {
-  my ($url) = @_;
-  $url =~ s|^/||;
-
-  $req = HTTP::Request->new(GET => "$BASE_URL/$url")
-    or die "failed to make [GET /$url] request: $!\n";
-  $req->header('Accept' => 'application/json');
-
-  diag $req->as_string if $ENV{DEBUG_HTTP};
-  $res = $UA->request($req);
-  diag $res->as_string if $ENV{DEBUG_HTTP};
-  ($SUCCESS, $STATUS, $RESPONSE) = ($res->is_success, $res->code, maybe_json($res->decoded_content));
-}
-
-sub POST {
-  my ($url, $payload) = @_;
-  $url =~ s|^/||;
-
-  $req = HTTP::Request->new(POST => "$BASE_URL/$url")
-    or die "failed to make [POST /$url] request: $!\n";
-  $req->header('Accept'       => 'application/json');
-  $req->header('Content-Type' => 'application/json') if $payload;
-  $req->content(encode_json($payload))               if $payload;
-
-  diag $req->as_string if $ENV{DEBUG_HTTP};
-  $res = $UA->request($req);
-  diag $res->as_string if $ENV{DEBUG_HTTP};
-  ($SUCCESS, $STATUS, $RESPONSE) = ($res->is_success, $res->code, maybe_json($res->decoded_content));
-}
-
-sub DELETE {
-  my ($url) = @_;
-  $url =~ s|^/||;
-
-  $req = HTTP::Request->new(DELETE => "$BASE_URL/$url")
-    or die "failed to make [DELETE /$url] request: $!\n";
-  $req->header('Accept'       => 'application/json');
-
-  diag $req->as_string if $ENV{DEBUG_HTTP};
-  $res = $UA->request($req);
-  diag $res->as_string if $ENV{DEBUG_HTTP};
-  ($SUCCESS, $STATUS) = ($res->is_success, $res->code);
 }
 
 diag "setting up docker-compose integration environment...\n";

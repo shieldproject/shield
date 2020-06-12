@@ -10,7 +10,11 @@ if [[ -z "${SHIELD_NO_BUILD:-}" ]]; then
   docker-compose -p shield_integration_tests -f t/docker-compose.yml build
 fi
 echo "» (re)starting INTEGRATION TEST docker compose infrastructure…"
-docker-compose -p shield_integration_tests -f t/docker-compose.yml down -v
+if [[ -z "${SHIELD_NO_CLEAR:-}" ]]; then
+  docker-compose -p shield_integration_tests -f t/docker-compose.yml down -v
+else
+  docker-compose -p shield_integration_tests -f t/docker-compose.yml down
+fi
 docker-compose -p shield_integration_tests -f t/docker-compose.yml up -d
 echo "» waiting for http://127.0.0.1:$PUBLIC_PORT/ to come online…"
 n=300
