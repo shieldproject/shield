@@ -203,7 +203,7 @@ func (p FSPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEnd
 		return err
 	}
 
-	archive := tar.NewWriter(out)
+	var archive *tar.Writer
 	copyBuf := make([]byte, 32*1024)
 	n := 0
 	walker := func(path string, info os.FileInfo, err error) error {
@@ -251,6 +251,10 @@ func (p FSPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEnd
 			return err
 		}
 
+		if archive == nil {
+			archive = tar.NewWriter(out)
+		}
+
 		header.Name = baseRelative
 		if err := archive.WriteHeader(header); err != nil {
 			return err
@@ -280,7 +284,10 @@ func (p FSPlugin) Backup(out io.Writer, log io.Writer, endpoint plugin.ShieldEnd
 	}
 	fmt.Fprintf(log, "done; found %d files / directories to archive...\n\n", n)
 
-	return archive.Close()
+	if archive != nil {
+		return archive.Close()
+	}
+	return nil
 }
 
 func (p FSPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) error {
