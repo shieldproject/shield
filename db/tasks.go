@@ -11,10 +11,9 @@ import (
 )
 
 const (
-	BackupOperation        = "backup"
-	RestoreOperation       = "restore"
-	ShieldRestoreOperation = "shield-restore"
-	AgentStatusOperation   = "agent-status"
+	BackupOperation      = "backup"
+	RestoreOperation     = "restore"
+	AgentStatusOperation = "agent-status"
 
 	PendingStatus   = "pending"
 	ScheduledStatus = "scheduled"

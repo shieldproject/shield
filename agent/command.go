@@ -68,7 +68,7 @@ func ParseCommand(b []byte) (*Command, error) {
 			return nil, fmt.Errorf("missing required 'stream.path' value in payload")
 		}
 
-	case "restore", "shield-restore":
+	case "restore":
 		if cmd.TargetPlugin == "" {
 			return nil, fmt.Errorf("missing required 'target_plugin' value in payload")
 		}
