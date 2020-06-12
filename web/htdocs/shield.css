@@ -639,14 +639,14 @@ footer p {
   margin: 2% 0 0 2%;
   float: left;
 }
-.store .summary {
+.bucket .summary {
   width: 100%;
   margin: 1em;
   float: none;
   font-style: italic;
 }
 table.lean td.name > .tag,
-.store h2 .tag {
+.bucket h2 .tag {
   background-color: #0071bcaa;
   color: #fff;
   border-radius: 4px;
@@ -728,6 +728,11 @@ table.lean td.name > .tag,
 .card .notes strong {
   font-weight: bold;
 }
+.card .notes p:first-child { margin-top: 0; }
+.card .notes p:last-child { margin-bottom: 0; }
+.card ul { padding: 1em; }
+.card ul li { font-size: 10pt; }
+.card ul li strong { font-weight: bold; }
 
 .card .notes .no-data {
   font-size: inherit;

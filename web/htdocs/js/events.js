@@ -476,7 +476,6 @@
               var uuid = $w.find(prefix+' tr.selected').extract(type+'-uuid');
               switch (type) {
               case 'target': return AEGIS.system(uuid);
-              case 'store':  return AEGIS.store(uuid);
               default:       return { uuid: uuid };
               }
             }
@@ -485,13 +484,9 @@
 
           var data = {
             target: build_or_buy('[data-step=2]', 'target'),
-            store:  build_or_buy('[data-step=3]', 'store'),
+            bucket: AEGIS.bucket($w.find('[data-step=3] tr.selected').extract('bucket')),
             job:    $w.find('[data-step=4] form').serializeObject().job
           };
-
-          if (data.store.threshold) {
-            data.store.threshold = readableToBytes(data.store.threshold);
-          }
 
           data.job.schedule = $w.find('[data-step=4] form').timespec();
           if (!data.job.keep_days) {
@@ -512,6 +507,9 @@
 
         var $form = $(event.target).closest('.wizard2');
         var data  = $form.data('submission');
+        data.job.bucket = data.bucket.key;
+        delete data.bucket;
+
         $form.submitting(true);
         api({
           type: 'POST',

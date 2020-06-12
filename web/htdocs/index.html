@@ -43,7 +43,7 @@
         <div class="nav sticky" id="sticky-nav">
           <nav>
             <li><a href="#!/systems">Data Systems</a></li>
-            <li class="current"><a href="#!/stores">Cloud Storage</a></li>
+            [[ if (AEGIS.buckets().length > 1) { ]]<li class="current"><a href="#!/buckets">Cloud Storage</a></li>[[ } ]]
             [[ if (AEGIS.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
           </nav>
         </div>
@@ -51,7 +51,7 @@
         <div class="nav">
           <nav>
             <li><a href="#!/systems">Data Systems</a></li>
-            <li class="current"><a href="#!/stores">Cloud Storage</a></li>
+            [[ if (AEGIS.buckets().length > 1) { ]]<li class="current"><a href="#!/buckets">Cloud Storage</a></li>[[ } ]]
             [[ if (AEGIS.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
           </nav>
         </div>
@@ -439,21 +439,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                       jobs:    "ok"
                     };
 
-                    $.each(AEGIS.stores({ global: true }),
-                           function (_, store) {
-                             if (!store.healthy) {
-                               health.storage = "failing";
-                             }
-                           });
-
                     if (AEGIS.current) {
-                      $.each(AEGIS.stores({ tenant: AEGIS.current.uuid }),
-                             function (_, store) {
-                               if (!store.healthy) {
-                                 health.storage = "failing";
-                               }
-                             });
-
                       $.each(AEGIS.jobs({ tenant: AEGIS.current.uuid }),
                              function (_, job) {
                                if (!job.healthy) {
@@ -768,26 +754,26 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   <thead>
                     <tr>
                       <th class="sortable">Name</th>
-                      <th class="sortable">Type</th>
+                      <th class="sortable">Compression</th>
+                      <th class="sortable">Encryption</th>
                       <th class="sortable">Retention</th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody>
                     [[ $.each(AEGIS.jobs({ system: system.uuid }), function (i, job) {
-                         var store = AEGIS.store(job.store_uuid);
+                         var bucket = AEGIS.bucket(job.bucket);
                     ]]
-                    <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
-                        data-job-uuid="[[= job.uuid ]]">
+                    <tr class="ok" data-job-uuid="[[= job.uuid ]]">
                       <td class="name">
-                        <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-                        [[= h(store.name) ]]
-                        [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
+                        <img src="i/shield-ok.svg">
+                        [[= h(bucket.name) ]]
                       </td>
-                      <td>[[= h(store.plugin) ]]</td>
+                      <td>[[= h(bucket.compression) ]]</td>
+                      <td>[[= h(bucket.compression) ]]</td>
                       <td class="retain">[[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]</td>
                       <td class="notes">
-                        [[= md(store.summary) ]]
+                        [[= md(bucket.summary) ]]
                       </td>
                     </tr>
                     [[ }); ]]
@@ -814,7 +800,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
             <h2><span>Run an Ad Hoc Backup</span>Review Your Selections</h2>
             [[ var system  = AEGIS.system(_.target.uuid);
                var job     = AEGIS.job(_.job.uuid);
-               var store   = AEGIS.store(job.store_uuid);
+               var bucket  = AEGIS.bucket(job.bucket);
             ]]
             <div class="summary-section">[[# {{{ ]]
               <div class="c12 band">
@@ -828,7 +814,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               <div class="c12 band">
                 <div class="x2"><label>Cloud Storage</label></div>
                 <div class="x7">
-                  <p class="selected-elsewhere">[[= h(store.name) ]] ([[= h(store.plugin) ]])
+                  <p class="selected-elsewhere">[[= h(bucket.name) ]]
                   <a class="change-me" href="step:3">change</a></p>
                 </div>
               </div>
@@ -991,7 +977,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 <th class="sortable">UUID</th>
                 <th class="sortable">Date</th>
                 <th class="sortable">Size</th>
-                <th class="sortable">Store</th>
               </tr>
             </thead>
             <tbody>
@@ -1003,8 +988,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   ([[= duration(tdiff(archive.taken_at, new Date())) ]] ago)
                 </td>
                 <td>[[= bytes(archive.size) ]]</td>
-                [[ var store = AEGIS.store(archive.store_uuid); ]]
-                <td>[[= store.name ]] ([[= store.plugin ]])</td>
               </tr>
               [[ }); ]]
             </tbody>
@@ -1062,7 +1045,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               <div class="c12 band">
                 <div class="x2"><label>Cloud Storage</label></div>
                 <div class="x7">
-                  <p class="selected-elsewhere">[[= h(_.store.name) ]] ([[= h(_.store.plugin) ]])</p>
+                  <p class="selected-elsewhere">[[= h(_.bucket.name) ]]</p>
                 </div>
               </div>
 [[ } ]]
@@ -1083,8 +1066,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
       ]]
       [[
         var systems = AEGIS.systems({ tenant: AEGIS.current.uuid });
-        var stores = AEGIS.stores({ tenant: AEGIS.current.uuid,
-                                    global: true });
+        var buckets = AEGIS.buckets();
       ]]
       <div class="gutter blk wizard2 steps5 do-configure">
         <div class="progress">[[# {{{ ]]
@@ -1095,7 +1077,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
             <li><i>2</i><strong>Data System</strong>
               The data you want to back up.</li>
             <li><i>3</i><strong>Cloud Storage</strong>
-              Where you want to store the backup archives.</li>
+              Where you want to keep the backup archives.</li>
             <li><i>4</i><strong>Job Details</strong>
               How often to run backups, how long to keep archives, encryption parameters, etc.</li>
             <li><i>5</i><strong>Review</strong></li>
@@ -1109,7 +1091,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
             <div class="x9 intro">
               <p>This wizard will guide you through the process of configuring a new backup
               job, for SHIELD to run according to a schedule.  A backup job consists of a
-              target data system to back up, a storage system to store the backup archives in,
+              target data system to back up, a storage system to keep the backup archives in,
               a schedule for running the job, and a retention policy.</p>
 
               <p>Before you begin, you may want to assemble credentials and endpoint information
@@ -1229,8 +1211,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
           </div>[[# }}} ]]
         </div>
 
-        <div data-step="3" class="cloud-storage" data-mode="[[= stores.length == 0 ? 'create' : 'choose' ]]">
-          [[ if (stores.length > 0) { ]]
+        <div data-step="3" class="cloud-storage" data-mode="choose">
           <div data-mode="choose">[[# {{{ ]]
             <h2><span>Configure a New Backup Job</span>Choose Cloud Storage</h2>
             <div class="c12 band">
@@ -1239,26 +1220,25 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   <thead>
                     <tr>
                       <th>Name</th>
-                      <th>Type</th>
+                      <th>Compression</th>
+                      <th>Encryption</th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    [[ $.each(stores, function (i, store) { ]]
-                    <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
-                        data-store-uuid="[[= store.uuid ]]">
+                    [[ $.each(buckets, function (i, bucket) { ]]
+                    <tr class="ok" data-bucket="[[= bucket.key ]]">
                       <td class="name">
-                        <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-                        [[= h(store.name) ]]
-                        [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
+                        <img src="i/shield-ok.svg">
+                        [[= h(bucket.name) ]]
                       </td>
-                      <td>[[= h(store.plugin) ]]</td>
+                      <td>[[= h(bucket.compression) ]]</td>
+                      <td>[[= h(bucket.encryption) ]]</td>
                       <td class="notes">
-                        [[= md(store.summary) ]]
+                        [[= md(bucket.description) ]]
                       </td>
                     </tr>
                     [[ }); ]]
-                    <tr><td colspan="3" rel="new">Define a new system...</td></tr>
                   </tbody>
                 </table>
                 <div class="buttons">
@@ -1267,68 +1247,9 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 </div>
               </div>
               <div class="x3 lean">
-                <div class="side-help">Select where you'd like to store your backup archives. You can choose from existing storage systems, or configure a new one.</div>
+                <div class="side-help">Select where you'd like to keep your backups.</div>
               </div>
             </div>
-          </div>[[# }}} ]]
-          [[ } ]]
-          <div data-mode="create">[[# {{{ ]]
-            <form class="new-form1">
-              <h2><span>Configure a New Backup Job</span>Define a New Cloud Storage System</h2>
-              <div class="c12 band">
-                <div class="x9">
-                  <div class="c12">
-                    <div class="field required" data-field="store.name" data-type="string">
-                      <div class="x3"><label for="store.name">Name</label></div>
-                      <div class="x9">
-                        <input type="text" name="store.name"
-                               placeholder="Name Your Storage System">
-                        <span class="errors">
-                          <span data-error="missing">Please name your new cloud storage system.</span>
-                        </span>
-                        <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
-                      </div>
-                    </div>
-
-                    <div class="field">
-                      <div class="x3"><label for="store.summary">Notes</label></div>
-                      <div class="x9">
-                        <textarea name="store.summary"></textarea>
-                        <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
-                      </div>
-                    </div>
-
-                    <div class="field required" data-field="store.threshold" data-type="size">
-                      <div class="x3"><label for="store.threshold">Threshold</label></div>
-                      <div class="x9">
-                        <input type="text" name="store.threshold"
-                               placeholder="i.e. 10G, 500M, etc.">
-                        <span class="errors">
-                          <span data-error="missing">Please provide a threshold of space usage for this cloud storage system.</span>
-                        </span>
-                        <p class="help">A threshold allows SHIELD to determine when storage is getting "too full" for comfort, and notify accordingly.</p>
-                      </div>
-                    </div>
-
-                    <div class="field required" data-field="store.plugin" data-type="selection">
-                      <div class="x3"><label for="store.plugin">Plugin</label></div>
-                      <div class="x9">
-                        <select name="store.plugin">
-                          <option></option>
-                          [[ $.each(AEGIS.plugins('store').list, function (i, plugin) { ]]
-                          <option value="[[= plugin.id ]]">[[= h(plugin.label) ]]</option>
-                          [[ }); ]]
-                        </select>
-                      </div>
-                    </div>
-
-                    <div class="redraw store">
-                    [[ include('do-configure-store-plugin', _); ]]
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </form>
           </div>[[# }}} ]]
         </div>
 
@@ -1467,46 +1388,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         </div>
         [[ } ]]
     <!-- }}} --></script>
-    <script type="text/html" id="template:do-configure-store-plugin"><!-- {{{ -->
-      [[#
-        {do-configure-store-plugin} - Target Plugin Selection (Sub)Form
-
-        This fragment template exists so that we can redraw it when selections
-        are made.
-
-      ]]
-      <div class="field required" data-field="store.agent" data-type="selection">
-        <div class="x3"><label for="store.agent">Agent</label></div>
-        <div class="x9">
-          [[ if (!_.selected_store_plugin) { ]]
-          <p class="awaiting-selection">A list of suitable SHIELD Agents will appear here once you select a store plugin.</p>
-          [[ } else { ]]
-          [[ console.log('selected store plugin %s', _.selected_target_plugin); ]]
-          <select name="store.agent">
-            <option></option>
-            [[ $.each(AEGIS.plugins('store').agents[_.selected_store_plugin], function (i, agent) { ]]
-              <option value="[[= h(agent.address) ]]">[[= h(agent.name) ]] - [[= h(agent.address) ]] (legacy ssh)</option>
-            [[ }); ]]
-          </select>
-          <p class="help">The SHIELD Agent will be responsible for executing store-specific operations, like archive purges and storage health checks.</p>
-          [[ } ]]
-        </div>
-      </div>
-
-      [[ if (_.selected_store_plugin && _.selected_store_agent) { ]]
-        [[ var plugin = AEGIS.agent(_.selected_store_agent).metadata.plugins[_.selected_store_plugin]; ]]
-        <div class="l1 x10"><h3><strong>[[= h(plugin.name) ]]</strong> Properties</h3></div>
-        [[ include('plugin-configuration-form', { prefix: 'store.config.', plugin: plugin }); ]]
-        <div class="x12 buttons">
-          <button rel="prev">◀ Back to <span>Data System</span></button>
-          <button rel="next">Next up: <span>Job Details</span> ▶</button>
-        </div>
-        [[ } else { ]]
-        <div class="x12 buttons">
-          <button rel="prev">◀ Back to <span>Data System</span></button>
-        </div>
-        [[ } ]]
-    <!-- }}} --></script>
     <script type="text/html" id="template:do-configure-review"><!-- {{{ -->
       [[#
         {do-configure-review} - Target Plugin Selection (Sub)Form
@@ -1531,8 +1412,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 <div class="x2"><label>Cloud Storage</label></div>
                 <div class="x7">
                   <p class="selected-elsewhere">
-                  [[ if (!_.store.uuid) { ]]<span class="tag">NEW</span>[[ } ]]
-                  [[= h(_.store.name) ]] ([[= h(_.store.plugin) ]])
+                  [[= h(_.bucket.name) ]]
                   <a class="change-me" href="step:3">change</a></p>
                 </div>
               </div>
@@ -1588,11 +1468,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               <option value="[[= h(agent.address) ]]"[[ if (_.agent == agent.address) { ]] selected[[ } ]]>[[= h(agent.name) ]] - [[= h(agent.address) ]] (legacy ssh)</option>
             [[ }); ]]
           </select>
-          [[ if (_.type == 'store') { ]]
-          <p class="help">The SHIELD Agent will be responsible for executing store-specific operations, like archive purges and storage health checks.</p>
-          [[ } else { ]]
           <p class="help">The SHIELD Agent will be responsible for executing the programs and processes that will back up and restore data for this system.</p>
-          [[ } ]]
           [[ } ]]
         </div>
 
@@ -1761,7 +1637,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                     [[ } else { ]]backups will be compressed via <tt>[[= h(target.compression) ]]</tt>[[ } ]]</li>
               </ul>
               [[ $.each(AEGIS.jobs({ system: target.uuid }), function (j, job) {
-                   var store = AEGIS.store(job.store_uuid);
+                   var bucket = AEGIS.bucket(job.bucket);
               ]]
               <ul class="details">
                 <li><strong>[[= h(job.name) ]]</strong></li>
@@ -1769,9 +1645,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 <li>keep [[= pluralize(job.keep_n, 'backup') ]] ([[= pluralize(job.keep_days, 'day') ]])</li>
               </ul>
               <div class="graph[[ if (!job.healthy) { ]] fail[[ } ]]">
-                <div class="from">[[= h(target ? target.plugin : false) || 'unknown' ]]</div>
-                <div class="bar"></div>
-                <div class="to">[[= h(store ? store.name : false) || 'unknown' ]]</div>
+                <div class="to">[[= h(target ? target.plugin : false) || 'unknown' ]]</div>
               </div>
               [[ }); ]]
               </a>
@@ -1865,7 +1739,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 <th class="sortable">UUID</th>
                 <th class="sortable">Date</th>
                 <th class="sortable">Size</th>
-                <th class="sortable">Store</th>
                 <th>Status</th>
                 <th></th>
               </tr></thead>
@@ -1879,8 +1752,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                     ([[= duration(tdiff(archive.taken_at, new Date())) ]] ago)
                   </td>
                   <td data-sort-as="number" data-sort="[[= archive.size ]]">[[= bytes(archive.size) ]]</td>
-                  [[ var store = AEGIS.store(archive.store_uuid); ]]
-                  <td>[[= store.name ]] ([[= store.plugin ]])</td>
                   <td>[[= archive.status ]]</td>
                   <td><a href="restore:[[= archive.uuid ]]">restore</a></td>
                 </tr>
@@ -1907,7 +1778,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               </thead>
               <tbody>
                 [[ $.each(AEGIS.jobs({ system: target.uuid }), function (i, job) {
-                     var store = AEGIS.store(job.store_uuid);
+                     var bucket = AEGIS.bucket(job.bucket);
                 ]]
                 <tr>
                   <td class="name [[= job.healthy ? 'ok' : 'fail' ]]">
@@ -1920,9 +1791,9 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   <td class="schedule" data-sort="[[= job.keep_n / job.keep_days * 1000 ]]" data-sort-as="number">
                     [[= h(job.schedule) ]][[ if (job.paused) { ]] (paused)[[ } ]]
                   </td>
-                  <td class="name [[= store.healthy ? 'ok' : 'fail' ]]">
-                    <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-                    [[= h(store.name) ]]
+                  <td class="name ok">
+                    <img src="i/shield-ok.svg">
+                    [[= h(bucket.name) ]]
                   </td>
                   <td class="retain" data-sort="[[= job.keep_n ]]" data-sort-as="number">
                     [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
@@ -2186,373 +2057,67 @@ for job <em>[[= _.task.job_uuid ]]</em>
 ]]</em></code></pre>
     <!-- }}} --></script>
 
-    <script type="text/html" id="template:stores"><!-- {{{ -->
+    <script type="text/html" id="template:buckets"><!-- {{{ -->
       [[#
-        {stores} template
+        {buckets} template
 
-        Renders the currently defined (visible) storage endpoints,
-        and in some cases allows for user-management of their configurations.
+        Renders the currently defined (visible) storage gateway buckets.,
       ]]
       [[ var view = localStorage.getItem('view-preference') || 'card-view'; ]]
-      [[ var stores = _.stores ? _.stores : AEGIS.stores({ tenant: AEGIS.current.uuid,
-                                                           global: true }); ]]
+      [[ var buckets = _.buckets ? _.buckets : AEGIS.buckets(); ]]
           <div class="gutter blk switch-me [[= view ]]">
-            [[ if ((_.admin  && AEGIS.is('engineer'))
-                || (!_.admin && AEGIS.is('tenant', 'engineer'))) { ]]
-            <a class="new" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/new">Configure a New Cloud Storage System&raquo;</a>
-            [[ } ]]
-            [[ if (_.admin) { ]]
-              <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
-              <h2><strong>Global</strong> Cloud Storage Systems[[ if (stores.length > 0) { ]]
+            <h2>Cloud Storage Buckets[[ if (buckets.length > 0) { ]]
                 <ul class="switcher">
                   <li><a href="switch:card-view" title="Card-based View"><img src="/i/cards.png" /></a></li>
                   <li><a href="switch:lean-view" title="Lean Table View"><img src="/i/table.png" /></a></li>
                 </ul>
               [[ } ]]</h2>
-              <p class="notice">These are <strong>global</strong> definitions; these storage
-              configurations can be used by any tenant, although they will be unable to see
-              any of the sensitive details.</p>
-            [[ } else { ]]
-            <h2>Cloud Storage Systems[[ if (stores.length > 0) { ]]
-                <ul class="switcher">
-                  <li><a href="switch:card-view" title="Card-based View"><img src="/i/cards.png" /></a></li>
-                  <li><a href="switch:lean-view" title="Lean Table View"><img src="/i/table.png" /></a></li>
-                </ul>
-              [[ } ]]</h2>
-            [[ } ]]
 
-            [[ if (stores.length == 0) { ]]
-            <div class="no-data">No Cloud Storage Systems have been configured yet.</div>
+            [[ if (buckets.length == 0) { ]]
+            <div class="no-data">No Cloud Storage Buckets have been configured yet.</div>
             [[ } else { ]]
             <table class="lean sortable">
               <thead>
                 <tr>
                   <th class="sortable">Name</th>
-                  <th class="sortable">Type</th>
                   <th>Notes</th>
-                  <th></th>
+                  <th class="sortable">Compression</th>
+                  <th class="sortable">Encryption</th>
                 </tr>
               </thead>
               <tbody>
-                [[ $.each(stores, function (i, store) { ]]
-                <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
+                [[ $.each(buckets, function (i, bucket) { ]]
+                <tr class="ok">
                   <td class="name">
-                    <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
-                      <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-                      [[= h(store.name) ]]
-                    </a>
-                    [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
+                    <img src="i/shield-ok.svg">[[= h(bucket.name) ]]
                   </td>
-                  <td class="type">[[= h(store.plugin) ]]</td>
                   <td class="notes">
-                    [[ if (store.summary) { ]]
-                      [[= md(store.summary) ]]
-                    [[ } else { ]]
-                      <div class="no-data">No notes provided.  Too bad.</div>
-                    [[ } ]]
+                    [[= md(bucket.description) ]]
                   </td>
-                  <td><a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">view details</a></td>
+                  <td class="compression">[[= h(bucket.compression) ]]</td>
+                  <td class="encryption">[[= h(bucket.encryption) ]]</td>
                 </tr>
                 [[ }); ]]
               </tbody>
             </table>
 
             <div class="cards">
-            [[ $.each(stores, function (i, store) { ]]
-            <div class="store card [[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
-              [[ if (store.global) { ]]<span class="type">Shared</span>[[ } ]]
-              <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
-              <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-              <h3>[[= h(store.name) ]]</h3>
-              <div class="notes">[[ if (store.summary) { ]]
-                [[= md(store.summary) ]]
-              [[ } else { ]]
-                <div class="no-data">No notes provided.  Too bad.</div>
-              [[ } ]]</div>
-              <div class="graph[[ if (!store.healthy) { ]] fail[[ } ]]">
-                <div class="to">[[= h(store.plugin) ]]</div>
+            [[ $.each(buckets, function (i, bucket) { ]]
+            <div class="store card ok">
+              <img src="i/shield-ok.svg">
+              <h3>[[= h(bucket.name) ]]</h3>
+              <div class="notes">
+                [[= md(bucket.description) ]]
               </div>
+              <ul>
+                <li>compression: <strong>[[= h(bucket.compression) ]]</strong></li>
+                <li>encryption: <strong>[[= h(bucket.encryption) ]]</strong></li>
+              </ul>
               </a>
             </div>
             [[ }); ]]
             </div>
             [[ } ]]
-          </div>
-    <!-- }}} --></script>
-    <script type="text/html" id="template:store"><!-- {{{ -->
-      [[#
-        {store} template
-
-        Renders a single storage endpoint configuration, including its
-        usage information and provide management capabilities.
-      ]]
-      [[
-         var store = AEGIS.store(_.uuid);
-      ]]
-          <div class="gutter blk store view">
-            <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores">&laquo; Back to Cloud Storage Systems</a>
-            <h2>[[= store.name ]][[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]</h2>
-
-            [[ if (_.admin || !store.global) { ]]
-              [[ if ((_.admin && AEGIS.is('engineer'))
-                  || (!_.admin && AEGIS.is(store.tenant_uuid, 'engineer'))) { ]]
-              <a class="edit"   href="#!/[[= _.admin ? 'admin/' : '' ]]stores/edit:uuid:[[= store.uuid ]]">Edit</a>
-              <a class="delete" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/delete:uuid:[[= store.uuid ]]">Delete</a>
-              [[ } ]]
-            [[ } ]]
-
-            <div class="summary">[[= store.summary ]]</div>
-
-            <div class="side-by-side">
-              <h3>Storage Details</h3>
-              <dl>
-                <dt>Backup Archives</dt>
-                <dd>[[= store.archive_count ]]</dd>
-
-                <dt>Storage Used</dt>
-                <dd>[[= bytes(store.storage_used) ]] / [[= bytes(store.threshold) ]]</dd>
-
-                <dt>Daily Delta</dt>
-                <dd>[[= bytes(store.daily_increase) ]]</dd>
-              </dl>
-            </div>
-
-            <div class="side-by-side redraw">
-              <h3>Configuration</h3>
-              [[ if (_.config) { ]]
-                [[ if (_.config == 'denied') { ]]
-                <span class="denied">You are not authorized to view this cloud storage configuration.</span>
-                [[ } else { ]]
-                <dl>
-                  <dt>SHIELD Agent</dt>
-                  <dd>[[= store.agent ]]</dd>
-
-                  <dt>Store Plugin</dt>
-                  <dd>[[= store.plugin ]]</dd>
-
-                  [[   $.each(_.config, function (i, kv) { ]]
-                  <dt>[[= kv.label ]]</dt>
-                  <dd>[[ if (kv.type == "password" || kv.type == "pem-rsa-pk") { ]]<redacted>[[
-                  } ]][[ if (kv.redacted) { ]]<span class="redacted">REDACTED</span>[[
-                  } else if (kv.value)    { ]][[= kv.value ]][[
-                  } else if (kv.default)  { ]]<span class="not-configured">[[= kv.default ]]</span>[[
-                  } else                  { ]]<span class="not-configured">not configured.</span>[[
-                  } ]][[ if (kv.type == "password" || kv.type == "pem-rsa-pk") { ]]</redacted>[[
-                  } ]]</dd>
-                [[   }); ]]
-                </dl>
-                [[ } ]]
-              [[ } else { ]]
-              <span class="deferred">fetching configuration...</span>
-              [[ } ]]
-            </div>
-
-            [[ if (store.archives > 0) { ]]
-            <div class="meter">
-              <svg width="500" height="400" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <style>
-                    rect.outer    { fill: #ccc; }
-                    rect.fill     { fill: #0071bc; }
-                    circle.marker { fill: #333; }
-                    line.marker { stroke: #333; stroke-width: 1px; }
-
-                    text.label      { font-size: 20px; font-family: sans-serif; }
-                    text.size       { font-size: 40px; font-family: sans-serif; }
-                    text.size tspan { font-size: 20px; font-weight: bold; }
-
-                    g.current      .size { fill: #7ac943; }
-                    g.current.warn .size { fill: orange; }
-                    g.threshold    .size { fill: #0071bc; }
-                    g.projected    .size { fill: #ff1d25; }
-                  </style>
-                </defs>
-
-                [[# Base value of 1M, add 20% padding for spacing ]]
-                [[ var total = Math.max(store.used, store.threshold, readableToBytes("1M")) * 1.2; ]]
-                <rect class="outer" x="0" y="200" width="100%" height="36"></rect>
-                <rect class="fill" x="2" y="202" width="[[= 100.0 * store.used / total ]]%" height="32"></rect>
-
-                [[ if (store.threshold > store.used) { ]]
-                [[# "current" marker ]]
-                <g class="current" transform="translate(2)">
-                  <line class="marker" x1="[[= 100.0 * store.used / total ]]%" x2="[[= 100.0 * store.used / total ]]%" y1="198" y2="53"></line>
-                  <circle class="marker" cx="[[= 100.0 * store.used / total ]]%" cy="53" r="3"></circle>
-                  <g transform="translate(6)">
-                    <text x="[[= 100.0 * store.used / total ]]%" y="60" class="label">Current</text>
-                    <text x="[[= 100.0 * store.used / total ]]%" y="100" class="size">[[= bytes(store.used) ]]</text>
-                  </g>
-                </g>
-
-                [[# "threshold" marker ]]
-                <g class="threshold" transform="translate(2)">
-                  <line class="marker" x1="[[= 100.0 * store.threshold / total ]]%" x2="[[= 100.0 * store.threshold / total ]]%" y1="198" y2="133"></line>
-                  <circle class="marker" cx="[[= 100.0 * store.threshold / total ]]%" cy="133" r="3"></circle>
-                  <g transform="translate(6)">
-                    <text x="[[= 100.0 * store.threshold / total ]]%" y="140" class="label">Threshold</text>
-                    <text x="[[= 100.0 * store.threshold / total ]]%" y="180" class="size">[[= bytes(store.threshold) ]]</text>
-                  </g>
-                </g>
-                [[ } else { ]]
-
-                [[# "threshold" marker ]]
-                <g class="threshold" transform="translate(2)">
-                  <line class="marker" x1="[[= 100.0 * store.threshold / total ]]%" x2="[[= 100.0 * store.threshold / total ]]%" y1="198" y2="53"></line>
-                  <circle class="marker" cx="[[= 100.0 * store.threshold / total ]]%" cy="53" r="3"></circle>
-                  <g transform="translate(6)">
-                    <text x="[[= 100.0 * store.threshold / total ]]%" y="60" class="label">Threshold</text>
-                    <text x="[[= 100.0 * store.threshold / total ]]%" y="100" class="size">[[= bytes(store.threshold) ]]</text>
-                  </g>
-                </g>
-
-                [[# "current" marker ]]
-                <g class="current warn" transform="translate(2)">
-                  <line class="marker" x1="[[= 100.0 * store.used / total ]]%" x2="[[= 100.0 * store.used / total ]]%" y1="198" y2="133"></line>
-                  <circle class="marker" cx="[[= 100.0 * store.used / total ]]%" cy="133" r="3"></circle>
-                  <g transform="translate(6)">
-                    <text x="[[= 100.0 * store.used / total ]]%" y="140" class="label">Current</text>
-                    <text x="[[= 100.0 * store.used / total ]]%" y="180" class="size">[[= bytes(store.used) ]]</text>
-                  </g>
-                </g>
-                [[ } ]]
-
-                [[ if (false) { ]]
-                [[# "projected" marker ]]
-                <g class="projected" transform="translate(-3)">
-                  <line class="marker" x1="[[= 100.0 * store.projected / total ]]%" x2="[[= 100.0 * store.projected / total ]]%" y1="238" y2="293"></line>
-                  <circle class="marker" cx="[[= 100.0 * store.projected / total ]]%" cy="293" r="3"></circle>
-                  <g transform="translate(-6)"><text x="[[= 100.0 * store.projected / total ]]%" y="260" class="label" text-anchor="end">Projected</text>
-                    <text x="[[= 100.0 * store.projected / total ]]%" y="300" class="size" text-anchor="end">[[= bytes(store.projected) ]]</text>
-                  </g>
-                </g>
-                [[ } ]]
-              </svg>
-            </div>
-            [[ } ]]
-
-            [[ if (store.global ? AEGIS.is('engineer') : AEGIS.is(store.tenant_uuid, 'operator')) { ]]
-            <h2>Timeline</h2>
-            [[ var timeline = $.sortBy(AEGIS.tasks({ store: store.uuid }), 'requested_at'); ]]
-            <div class="paginate" data-url="/v2/[[ if (!_.admin) { ]]tenants/[[= AEGIS.current.uuid ]]/[[ } ]]tasks?store=[[= store.uuid ]]&before={oldest}" data-oldest="[[= timeline.length > 0 ? timeline[0].requested_at : new Date().getTime() ]]">
-              <div class="timeline results">
-                [[ $.each(timeline.reverse(), function (i, task) { ]]
-                [[ include('timeline-entry', task); ]]
-                [[ }); ]]
-              </div>
-              <div class="loading">Fetching more tasks...</div>
-              <a class="load-more tasks" href="">More Tasks...</a>
-            </div>
-            [[ } ]]
-          </div>
-    <!-- }}} --></script>
-    <script type="text/html" id="template:stores-form"><!-- {{{ -->
-      [[#
-        {stores-form} template
-
-        Renders a form for creating new storage endpoints, and
-        editing existing stores.
-      ]]
-          <div class="gutter blk wizard2">
-            [[ if (_.store) { ]]
-            <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= _.store.uuid ]]">&laquo; Back to "[[= _.store.name ]]" Cloud Storage System</a>
-            [[ } else { ]]
-            <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores">&laquo; Back to Cloud Storage Systems</a>
-            [[ } ]]
-            <h2>[[ if (_.store) { ]]Edit[[ } else { ]]New[[ } ]] Storage System</h2>
-
-            [[ if (false && (!_.agents || _.agents.length == 0)) { ]]
-            <p class="notice failure">There are currently no Agents registered with
-            this SHIELD Core; you will not be able to configure Storage Systems until
-            that changes.</p>
-            [[ } else { ]]
-            <form class="new-form1">
-              <div class="error"></div>
-
-              <div class="c12 band">
-                <div class="x9">
-                  <div class="c12">
-                    <div class="field required" data-field="store.name" data-type="string">
-                      <div class="x3"><label for="store.name">Name</label></div>
-                      <div class="x9">
-                        <input type="text"
-                               name="store.name"
-                               [[ if (_.store && _.store.name) { ]]value="[[= _.store.name ]]"[[ } ]]
-                               placeholder="Name Your Storage System">
-                        <span class="errors">
-                          <span data-error="missing">Please provide a name for this cloud storage system.</span>
-                        </span>
-                        <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
-                      </div>
-                    </div>
-
-                    <div class="field">
-                      <div class="x3"><label for="store.summary">Notes</label></div>
-                      <div class="x9">
-                        <textarea name="store.summary">[[ if (_.store && _.store.summary) { ]][[= h(_.store.summary) ]][[ } ]]</textarea>
-                        <p class="help">Notes can help other operators (including future you!) understand the configuration / role / purpose of this storage system.</p>
-                      </div>
-                    </div>
-
-                    <div class="field required" data-field="store.threshold" data-type="size">
-                      <div class="x3"><label for="store.threshold">Threshold</label></div>
-                      <div class="x9">
-                        <input type="text" name="store.threshold"
-                               [[ if (_.store && _.store.threshold) { ]]value="[[= bytes(_.store.threshold) ]]"[[ } ]]
-                               placeholder="i.e. 10G, 500M, etc.">
-                        <span class="errors">
-                          <span data-error="missing">Please provide a threshold of space usage for this cloud storage system.</span>
-                        </span>
-                        <p class="help">A threshold allows SHIELD to determine when storage is getting "too full" for comfort, and notify accordingly.</p>
-                      </div>
-                    </div>
-
-                    <div class="field required" data-field="store.plugin" data-type="selection">
-                      <div class="x3"><label for="store.plugin">Plugin</label></div>
-                      <div class="x9">
-                        <select name="store.plugin">
-                          <option></option>
-                          [[ $.each(AEGIS.plugins('store').list, function (i, plugin) { ]]
-                          <option value="[[= plugin.id ]]"[[ if (_.store && _.store.plugin == plugin.id) { ]] selected[[ } ]]>[[= h(plugin.label) ]]</option>
-                          [[ }); ]]
-                        </select>
-                      </div>
-                    </div>
-
-                    <div class="redraw store">
-                    [[ include('plugin-form-agent-selector', $.extend({
-                          type:   'store',
-                          agent:  (_.store && _.store.agent  ? _.store.agent  : undefined),
-                          plugin: (_.store && _.store.plugin ? _.store.plugin : undefined),
-                          config: (_.store && _.store.config ? _.store.config : undefined)
-                       }, _)); ]]
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </form>
-            [[ } ]]
-          </div>
-    <!-- }}} --></script>
-    <script type="text/html" id="template:stores-delete"><!-- {{{ -->
-      [[#
-        {stores-delete}
-
-        A modal interaction screen that requires the operator to acknowledge
-        that what they are about to do will result in the destruction of
-        configuration data.
-      ]]
-          <div class="confirm">
-            <h2>Delete The <em>[[= h(_.store.name) ]]</em> Cloud Storage System?</h2>
-
-            <p>You have requested that SHIELD remove the configuration for
-            the cloud storage system "[[= h(_.store.name) ]]".  <em>This is an
-            irreversible action; it cannot be undone.</em></p>
-
-            <p class="q">Are you sure you want to delete <em>[[= h(_.store.name) ]]</em>?</p>
-            <div class="a">
-              <button class="safe" rel="close">No, Keep It</button>
-              <button class="danger" rel="yes">Yes, Delete It</button>
-            </div>
           </div>
     <!-- }}} --></script>
 
@@ -2725,12 +2290,6 @@ for job <em>[[= _.task.job_uuid ]]</em>
               </li>
               [[ } ]]
 
-              <li><a href="#!/admin/stores">Global Storage Systems</a>
-                <p>You may elect to configure some global storage systems, which can be used,
-                but not modified, by all tenants; only SHIELD technicians, engineers, and
-                admins are able to view and edit their configuration.</p>
-              </li>
-
               [[ if (AEGIS.is('admin')) { ]]
               <li><a href="#!/admin/agents">Agents of SHIELD</a>
                 <p>SHIELD performs backup and restore operations through <em>agents</em> that run
@@ -2781,7 +2340,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
             [[ include('agents-table', {
                  heading:  'Agents of SHIELD',
-                 intro:    'The following Agents are available for use by SHIELD users, for configuring their data protection targets and stores.',
+                 intro:    'The following Agents are available for use by SHIELD users, for configuring protected systems.',
                  none:     'No usable Agents have registered with this SHIELD instance yet.',
                  agents:   $.grep(_.agents, function (a) { return !a.hidden }),
                  problems: _.problems
@@ -2789,7 +2348,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ include('agents-table', {
                  class:    'hidden',
                  heading:  'Hidden Agents',
-                 intro:    'The following Agents are registered with this SHIELD, but <em>cannot</em> be used for configuring targets or stores.',
+                 intro:    'The following Agents are registered with this SHIELD, but <em>cannot</em> be used.',
                  agents:   $.grep(_.agents, function (a) { return a.hidden }),
                  problems: _.problems
                }); ]]

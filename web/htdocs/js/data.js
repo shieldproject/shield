@@ -170,26 +170,15 @@
       return target;
     },
 
-    stores: function (q) {
-      /* don't auto-vivify q */
-
-      var stores = [];
-      for (var uuid in this.data.store || {}) {
-        var store = this.data.store[uuid];
-        if (!q) {
-          stores.push(store);
-
-        } else if ('tenant' in q && store.tenant_uuid == q.tenant) {
-          stores.push(store);
-
-        } else if ('global' in q && store.global && q.global) {
-          stores.push(store);
-        }
+    buckets: function () {
+      var buckets = [];
+      for (var key in this.data.bucket || {}) {
+        buckets.push(this.data.bucket[key]);
       }
-      return stores;
+      return buckets;
     },
-    store: function (uuid) {
-      return this.find('store', { uuid: uuid });
+    bucket: function (key) {
+      return this.find('bucket', { uuid: key });
     },
 
     jobs: function (q) {
@@ -221,7 +210,6 @@
         if (('tenant'  in q && task.tenant_uuid != q.tenant)
          || ('system'  in q && task.target_uuid  != q.system)
          || ('job'     in q && task.job_uuid     != q.job)
-         || ('store'   in q && task.store_uuid   != q.store)
          || ('archive' in q && task.archive_uuid != q.archive)) {
           continue;
         }
@@ -267,7 +255,6 @@
           var archive = this.data.archive[uuid];
           if (archive.tenant_uuid != q.tenant
            || ('system'  in q && archive.target_uuid          != q.system)
-           || ('store'   in q && archive.store_uuid           != q.store)
            || ('purged'  in q && (archive.status == "purged") != q.purged)) {
             continue;
           }
@@ -477,9 +464,13 @@
             self.shield = bearings.shield;
             self.user   = bearings.user;
 
-            for (var i = 0; i < bearings.stores.length; i++) {
-              self.insert('store', bearings.stores[i]);
+            self.data.bucket = {};
+            if (bearings.buckets) {
+              bearings.buckets.forEach(bucket => {
+                self.data.bucket[bucket.key] = bucket;
+              });
             }
+
             for (var uuid in bearings.tenants) {
               var tenant = bearings.tenants[uuid];
 
@@ -491,8 +482,6 @@
 
               for (var i = 0; i < tenant.jobs.length; i++) {
                 tenant.jobs[i].tenant_uuid = uuid;
-                tenant.jobs[i].store_uuid = tenant.jobs[i].store.uuid;
-                delete tenant.jobs[i].store;
 
                 tenant.jobs[i].target_uuid = tenant.jobs[i].target.uuid;
                 delete tenant.jobs[i].target;
@@ -503,11 +492,6 @@
               for (var i = 0; i < tenant.targets.length; i++) {
                 tenant.targets[i].tenant_uuid = uuid;
                 self.insert('target', tenant.targets[i]);
-              }
-
-              for (var i = 0; i < tenant.stores.length; i++) {
-                tenant.stores[i].tenant_uuid = uuid;
-                self.insert('store', tenant.stores[i]);
               }
 
               for (var i = 0; i < tenant.agents.length; i++) {
