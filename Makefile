@@ -7,7 +7,7 @@ EDGE         ?= edge
 
 # Everything; this is the default behavior
 all: build test
-build: format shieldd shield shield-agent shield-schema plugins
+build: format shieldd shield shield-agent shield-schema
 
 # go fmt ftw
 format:
@@ -39,16 +39,7 @@ shield: cmd/shield/help.go
 help.all: cmd/shield/main.go
 	grep case $< | grep '{''{{' | cut -d\" -f 2 | sort | xargs -n1 -I@ ./shield @ -h > $@
 
-# Building Plugins
-plugin: plugins
-plugins:
-	@for plugin in $$(cat plugins); do \
-		echo building plugin $$plugin/$$plugin...; \
-		go $(BUILD_TYPE) ./plugin/$$plugin/$$plugin; \
-	done
-
-
-demo: clean shield plugins
+demo: clean shield
 	./demo/build
 	(cd demo && docker-compose up)
 
@@ -68,8 +59,6 @@ fixme:
 dev:
 	./bin/testdev
 
-# Deferred: Naming plugins individually, e.g. make plugin dummy
-
 init:
 	go get github.com/kardianos/govendor
 	go install github.com/kardianos/govendor
@@ -87,9 +76,6 @@ release:
 
 	@echo "Compiling SHIELD Linux Server Distribution..."
 	export GOOS=linux GOARCH=amd64; \
-	for plugin in $$(cat plugins); do \
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"      ./plugin/$$plugin; \
-	done; \
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"    ./cmd/shield-agent; \
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema"  ./cmd/shield-schema; \
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"        ./cmd/shieldd; \
@@ -146,4 +132,4 @@ docker-release:
 	done
 
 
-.PHONY: plugins dev shield shieldd shield-schema shield-agent demo
+.PHONY: dev shield shieldd shield-schema shield-agent demo

@@ -10,14 +10,11 @@ ARG VERSION
 COPY / /go/src/github.com/shieldproject/shield/
 RUN cd /go/src/github.com/shieldproject/shield \
  && make build BUILD_TYPE="build -ldflags='-X main.Version=$VERSION'"
-RUN mkdir -p /dist/bin /dist/plugins \
+RUN mkdir -p /dist/bin \
  && mv /go/src/github.com/shieldproject/shield/shieldd \
        /go/src/github.com/shieldproject/shield/shield-agent \
        /go/src/github.com/shieldproject/shield/shield-schema \
        /dist/bin \
- && for plugin in $(cat /go/src/github.com/shieldproject/shield/plugins); do \
-      cp /go/src/github.com/shieldproject/shield/$plugin /dist/plugins; \
-    done \
  && cp -R /go/src/github.com/shieldproject/shield/web/htdocs /dist/ui
 
 ADD init /dist/init
