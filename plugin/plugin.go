@@ -47,9 +47,9 @@ type Field struct {
 }
 
 type PluginInfo struct {
-	Name     string         `json:"name"`
-	Author   string         `json:"author"`
-	Version  string         `json:"version"`
+	Name    string `json:"name"`
+	Author  string `json:"author"`
+	Version string `json:"version"`
 
 	Fields []Field `json:"fields"`
 }
