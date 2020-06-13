@@ -37,8 +37,3 @@ func (c *Client) GlobalStatus() (*Status, error) {
 	var st *Status
 	return st, c.get("/v2/health", &st)
 }
-
-func (c *Client) TenantStatus(tenant *Tenant) (*Status, error) {
-	var st *Status
-	return st, c.get("/v2/tenants/"+tenant.UUID+"/health", &st)
-}

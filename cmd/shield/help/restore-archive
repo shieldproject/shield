@@ -1,4 +1,4 @@
-USAGE: @G{shield} restore-archive --tenant @Y{TENANT} [OPTIONS] @Y{UUID}
+USAGE: @G{shield} restore-archive [OPTIONS] @Y{UUID}
 
   Restore a Backup Archive.
 

@@ -13,8 +13,6 @@ import (
 	"github.com/shieldproject/shield/core/bus"
 )
 
-var GlobalTenantUUID = uuid.NIL.String()
-
 type DB struct {
 	connection *sqlx.DB
 	Driver     string

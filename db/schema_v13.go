@@ -59,6 +59,31 @@ func (s v13Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`ALTER TABLE archives DROP COLUMN tenant_uuid`)
+	if err != nil {
+		return err
+	}
+	err = db.Exec(`ALTER TABLE jobs DROP COLUMN tenant_uuid`)
+	if err != nil {
+		return err
+	}
+	err = db.Exec(`ALTER TABLE tasks DROP COLUMN tenant_uuid`)
+	if err != nil {
+		return err
+	}
+	err = db.Exec(`ALTER TABLE users DROP COLUMN default_tenant`)
+	if err != nil {
+		return err
+	}
+	err = db.Exec(`DROP TABLE memberships`)
+	if err != nil {
+		return err
+	}
+	err = db.Exec(`DROP TABLE tenants`)
+	if err != nil {
+		return err
+	}
+
 	err = db.Exec(`UPDATE schema_info set version = 13`)
 	if err != nil {
 		return err

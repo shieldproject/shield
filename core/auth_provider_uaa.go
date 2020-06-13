@@ -22,7 +22,6 @@ type UAAAuthProvider struct {
 	SkipVerifyTLS bool   `json:"skip_verify_tls"`
 
 	Mapping []struct {
-		Tenant string `json:"tenant"`
 		Rights []struct {
 			SCIM string `json:"scim"`
 			Role string `json:"role"`
@@ -71,14 +70,6 @@ func (p *UAAAuthProvider) WireUpTo(c *Core) {
 	p.core = c
 }
 
-func (p *UAAAuthProvider) ReferencedTenants() []string {
-	ll := make([]string, 0)
-	for _, m := range p.Mapping {
-		ll = append(ll, m.Tenant)
-	}
-	return ll
-}
-
 func (p *UAAAuthProvider) Initiate(r *route.Request) {
 	r.Redirect(302, p.uaa.AuthorizationURL(uaa.DefaultScopes))
 }
@@ -124,8 +115,8 @@ func (p *UAAAuthProvider) HandleRedirect(r *route.Request) *db.User {
 	}
 
 	p.ClearAssignments()
-	for tenant, role := range p.resolveSCIM(scims) {
-		if !p.Assign(user, tenant, role) {
+	for _, role := range p.resolveSCIM(scims) {
+		if !p.Assign(user, role) {
 			return nil
 		}
 	}
@@ -136,15 +127,15 @@ func (p *UAAAuthProvider) HandleRedirect(r *route.Request) *db.User {
 	return user
 }
 
-func (p UAAAuthProvider) resolveSCIM(scims []string) map[string]string {
-	rights := make(map[string]string)
+func (p UAAAuthProvider) resolveSCIM(scims []string) []string {
+	rights := make([]string, 0)
 
 	for _, mapping := range p.Mapping {
 	Rights:
 		for _, right := range mapping.Rights {
 			for _, scim := range scims {
 				if right.SCIM == "" || scim == right.SCIM {
-					rights[mapping.Tenant] = right.Role
+					rights = append(rights, right.Role)
 					break Rights
 				}
 			}

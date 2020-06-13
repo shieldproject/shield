@@ -1,4 +1,4 @@
-USAGE: @G{shield} unpause-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+USAGE: @G{shield} unpause-job @Y{NAME-OR-UUID}
 
   Unpause a Backup Job.
 

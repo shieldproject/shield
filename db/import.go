@@ -63,7 +63,6 @@ func (db *DB) importAgents(n uint, in *json.Decoder) error {
 func (db *DB) importArchives(n uint, in *json.Decoder) error {
 	type archive struct {
 		UUID        string `json:"uuid"`
-		TenantUUID  string `json:"tenant_uuid"`
 		TargetUUID  string `json:"target_uuid"`
 		StoreKey    string `json:"store_key"`
 		TakenAt     int    `json:"taken_at"`
@@ -89,14 +88,14 @@ func (db *DB) importArchives(n uint, in *json.Decoder) error {
 		log.Infof("IMPORT: inserting archive %s...", v.UUID)
 		err := db.Exec(`
 		  INSERT INTO archives
-		    (uuid, tenant_uuid, target_uuid,
+		    (uuid, target_uuid,
 		     store_key, taken_at, expires_at, notes, purge_reason,
 		     status, size, job)
 		  VALUES
-		    (?, ?, ?, ?,
+		    (?, ?,
 		     ?, ?, ?, ?, ?,
 		     ?, ?, ?)`,
-			v.UUID, v.TenantUUID, v.TargetUUID,
+			v.UUID, v.TargetUUID,
 			v.StoreKey, v.TakenAt, v.ExpiresAt, v.Notes, v.PurgeReason,
 			v.Status, v.Size, v.Job)
 		if err != nil {
@@ -144,7 +143,6 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 	type job struct {
 		UUID       string `json:"uuid"`
 		TargetUUID string `json:"target_uuid"`
-		TenantUUID string `json:"tenant_uuid"`
 		Name       string `json:"name"`
 		Summary    string `json:"summary"`
 		Schedule   string `json:"schedule"`
@@ -171,14 +169,14 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 		log.Infof("IMPORT: inserting job %s...", v.UUID)
 		err := db.Exec(`
 		  INSERT INTO jobs
-		    (uuid, target_uuid, bucket, tenant_uuid,
+		    (uuid, target_uuid, bucket,
 		     name, summary, schedule, keep_n, keep_days,
 		     next_run, priority, paused, healthy)
 		  VALUES
-		    (?, ?, ?, ?,
+		    (?, ?, ?,
 		     ?, ?, ?, ?, ?,
 		     ?, ?, ?, ?)`,
-			v.UUID, v.TargetUUID, v.Bucket, v.TenantUUID,
+			v.UUID, v.TargetUUID, v.Bucket,
 			v.Name, v.Summary, v.Schedule, v.KeepN, v.KeepDays,
 			v.NextRun, v.Priority, v.Paused, v.Healthy)
 		if err != nil {
@@ -188,48 +186,16 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 	return nil
 }
 
-func (db *DB) importMemberships(n uint, in *json.Decoder) error {
-	type membership struct {
-		TenantUUID string `json:"tenant_uuid"`
-		UserUUID   string `json:"user_uuid"`
-		Role       string `json:"role"`
-		Error      string `json:"error"`
-	}
-
-	for ; n > 0; n-- {
-		var v membership
-		if err := in.Decode(&v); err != nil {
-			return err
-		}
-
-		if v.Error != "" {
-			return fmt.Errorf(v.Error)
-		}
-
-		err := db.Exec(`
-		  INSERT INTO memberships
-		    (user_uuid, tenant_uuid, role)
-		  VALUES
-		    (?, ?, ?)`,
-			v.UserUUID, v.TenantUUID, v.Role)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (db *DB) importTargets(n uint, in *json.Decoder) error {
 	type target struct {
-		UUID       string `json:"uuid"`
-		TenantUUID string `json:"tenant_uuid"`
-		Name       string `json:"name"`
-		Summary    string `json:"summary"`
-		Plugin     string `json:"plugin"`
-		Endpoint   string `json:"endpoint"`
-		Agent      string `json:"agent"`
-		Healthy    bool   `json:"healthy"`
-		Error      string `json:"error"`
+		UUID     string `json:"uuid"`
+		Name     string `json:"name"`
+		Summary  string `json:"summary"`
+		Plugin   string `json:"plugin"`
+		Endpoint string `json:"endpoint"`
+		Agent    string `json:"agent"`
+		Healthy  bool   `json:"healthy"`
+		Error    string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
@@ -245,12 +211,12 @@ func (db *DB) importTargets(n uint, in *json.Decoder) error {
 		log.Infof("IMPORT: inserting target %s...", v.UUID)
 		err := db.Exec(`
 		  INSERT INTO targets
-		    (uuid, tenant_uuid, name, summary,
+		    (uuid, name, summary,
 		     plugin, endpoint, agent, healthy)
 		  VALUES
-		    (?, ?, ?, ?,
+		    (?, ?, ?,
 		     ?, ?, ?, ?)`,
-			v.UUID, v.TenantUUID, v.Name, v.Summary,
+			v.UUID, v.Name, v.Summary,
 			v.Plugin, v.Endpoint, v.Agent, v.Healthy)
 		if err != nil {
 			return err
@@ -264,7 +230,6 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		UUID           string  `json:"uuid"`
 		Owner          string  `json:"owner"`
 		Op             string  `json:"op"`
-		TenantUUID     *string `json:"tenant_uuid"`
 		JobUUID        *string `json:"job_uuid"`
 		ArchiveUUID    *string `json:"archive_uuid"`
 		TargetUUID     *string `json:"target_uuid"`
@@ -307,7 +272,7 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 			err := db.Exec(`
             INSERT INTO tasks
                 (uuid, owner, op,
-                tenant_uuid, job_uuid, archive_uuid, target_uuid,
+                job_uuid, archive_uuid, target_uuid,
                 status, requested_at, started_at, stopped_at, timeout_at,
                 log, attempts, agent,
                 target_plugin, target_endpoint,
@@ -315,14 +280,14 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
                 ok, notes, clear)
             VALUES
                 (?, ?, ?,
-                ?, ?, ?, ?,
+                ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?,
                 ?, ?,
                 ?,
                 ?, ?, ?)`,
 				v.UUID, v.Owner, v.Op,
-				v.TenantUUID, v.JobUUID, v.ArchiveUUID, v.TargetUUID,
+				v.JobUUID, v.ArchiveUUID, v.TargetUUID,
 				v.Status, v.RequestedAt, v.StartedAt, v.StoppedAt, v.TimeoutAt,
 				v.Log, v.Attempts, v.Agent,
 				v.TargetPlugin, v.TargetEndpoint,
@@ -338,53 +303,15 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 	return nil
 }
 
-func (db *DB) importTenants(n uint, in *json.Decoder) error {
-	type tenant struct {
-		UUID          string `json:"uuid"`
-		Name          string `json:"name"`
-		DailyIncrease *int   `json:"daily_increase"`
-		StorageUsed   *int   `json:"storage_used"`
-		ArchiveCount  *int   `json:"archive_count"`
-		Error         string `json:"error"`
-	}
-
-	for ; n > 0; n-- {
-		var v tenant
-		if err := in.Decode(&v); err != nil {
-			return err
-		}
-
-		if v.Error != "" {
-			return fmt.Errorf(v.Error)
-		}
-
-		log.Infof("IMPORT: inserting tenant %s...", v.UUID)
-		err := db.Exec(`
-		  INSERT INTO tenants
-		    (uuid, name,
-		     daily_increase, storage_used, archive_count)
-		  VALUES
-		    (?, ?,
-		     ?, ?, ?)`,
-			v.UUID, v.Name,
-			v.DailyIncrease, v.StorageUsed, v.ArchiveCount)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (db *DB) importUsers(n uint, in *json.Decoder) error {
 	type user struct {
-		UUID          string `json:"uuid"`
-		Name          string `json:"name"`
-		Account       string `json:"account"`
-		Backend       string `json:"backend"`
-		PasswordHash  string `json:"password_hash"`
-		SystemRole    string `json:"system_role"`
-		DefaultTenant string `json:"default_tenant"`
-		Error         string `json:"error"`
+		UUID         string `json:"uuid"`
+		Name         string `json:"name"`
+		Account      string `json:"account"`
+		Backend      string `json:"backend"`
+		PasswordHash string `json:"password_hash"`
+		SystemRole   string `json:"system_role"`
+		Error        string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
@@ -401,12 +328,12 @@ func (db *DB) importUsers(n uint, in *json.Decoder) error {
 		err := db.Exec(`
 		  INSERT INTO users
 		    (uuid, name, account, backend,
-		     pwhash, sysrole, default_tenant)
+		     pwhash, sysrole)
 		  VALUES
 		    (?, ?, ?, ?,
-		     ?, ?, ?)`,
+		     ?, ?)`,
 			v.UUID, v.Name, v.Account, v.Backend,
-			v.PasswordHash, v.SystemRole, v.DefaultTenant)
+			v.PasswordHash, v.SystemRole)
 		if err != nil {
 			return err
 		}
@@ -497,11 +424,11 @@ func (db *DB) Import(in *json.Decoder, restoreKey, uuid string) error {
 	}
 
 	err = db.transactionally(func() error {
-		err = db.clear("agents", "archives", "fixups", "jobs", "memberships")
+		err = db.clear("agents", "archives", "fixups", "jobs")
 		if err != nil {
 			return err
 		}
-		err = db.clear("targets", "tasks", "tenants", "users")
+		err = db.clear("targets", "tasks", "users")
 		if err != nil {
 			return err
 		}
@@ -539,11 +466,6 @@ func (db *DB) Import(in *json.Decoder, restoreKey, uuid string) error {
 					return err
 				}
 
-			case "memberships":
-				if err := db.importMemberships(h.N, in); err != nil {
-					return err
-				}
-
 			case "targets":
 				if err := db.importTargets(h.N, in); err != nil {
 					return err
@@ -551,11 +473,6 @@ func (db *DB) Import(in *json.Decoder, restoreKey, uuid string) error {
 
 			case "tasks":
 				if err := db.importTasks(h.N, in); err != nil {
-					return err
-				}
-
-			case "tenants":
-				if err := db.importTenants(h.N, in); err != nil {
 					return err
 				}
 

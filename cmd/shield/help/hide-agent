@@ -4,5 +4,5 @@ USAGE: @G{shield} hide-agent @Y{NAME-OR-UUID}
 
   Agents perform all backup / restore operations on behalf
   of the SHIELD Core.  Hidden SHIELD Agents cannot be used
-  by tenants when configuring data and storage systems.
+  when configuring data systems.
 

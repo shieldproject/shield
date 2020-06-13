@@ -1,4 +1,4 @@
-USAGE: @G{shield} cancel --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+USAGE: @G{shield} cancel @Y{NAME-OR-UUID}
 
   Cancel a running SHIELD Task.
 

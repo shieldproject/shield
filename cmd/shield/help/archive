@@ -1,4 +1,4 @@
-USAGE: @G{shield} archive --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+USAGE: @G{shield} archive @Y{NAME-OR-UUID}
 
   Show a single Backup Archive.
 

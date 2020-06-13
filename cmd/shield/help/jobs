@@ -1,4 +1,4 @@
-USAGE: @G{shield} jobs --tenant @Y{TENANT} [OPTIONS]
+USAGE: @G{shield} jobs [OPTIONS]
 
   List Backup Jobs.
 

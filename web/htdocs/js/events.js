@@ -62,27 +62,6 @@
         event.preventDefault();
         event.stopPropagation();
       }) /* }}} */
-      .on('click', '.top-bar a[href^="switchto:"]', function (event) { /* {{{ */
-        event.preventDefault();
-        var uuid = $(event.target).attr('href').replace(/^switchto:/, '');
-        api({
-          type: 'PATCH',
-          url:  '/v2/auth/user/settings',
-          data: { default_tenant: uuid }
-        });
-        AEGIS.use(uuid);
-
-        $('.top-bar').template('top-bar');
-        $('#side-bar').template('side-bar')
-        $('#viewport').template('layout');
-        $('#hud').template('hud');
-
-        var page = document.location.hash.replace(/^(#!\/[^\/]*).*/, '$1');
-        if (page == "#!/do")      { page = "#!/systems"; }
-        if (page == "#!/tenants") { page = "#!/systems"; }
-        if (page == "#!/admin")   { page = "#!/systems"; }
-        goto(page);
-      }) /* }}} */
 
       /* Selectable Table UI Widget */
       .on('click', '.lean.selectable tbody tr', function (event) { /* {{{ */
@@ -157,7 +136,7 @@
             banner('scheduling ad hoc backup...', 'progress');
             api({
               type: 'POST',
-              url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/run',
+              url:  '/v2/jobs/'+uuid+'/run',
               success: function () {
                 banner('ad hoc backup job scheduled');
               },
@@ -183,7 +162,7 @@
 
         api({
           type: 'POST',
-          url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/pause',
+          url:  '/v2/jobs/'+uuid+'/pause',
           success: function () {
             banner('Paused Scheduled Backup Job "'+job.name+'" ');
           },
@@ -208,7 +187,7 @@
 
         api({
           type: 'POST',
-          url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/unpause',
+          url:  '/v2/jobs/'+uuid+'/unpause',
           success: function () {
             banner('Unpaused Scheduled Backup Job "'+job.name+'" ');
           },
@@ -235,12 +214,12 @@
             uuid: uuid,
             name: job.name,
             schedule: job.schedule,
-            archives: AEGIS.archives({tenant: job.tenant_uuid, job: job.name})
+            archives: AEGIS.archives({ job: job.name})
 
           })).on('click', '[rel=yes]', function(event) {
             api({
               type: 'DELETE',
-              url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid,
+              url:  '/v2/jobs/'+uuid,
               success: function () {
                 banner('Deleted Scheduled Backup Job "'+job.name+'" ');
               },
@@ -342,7 +321,7 @@
 
           api({
             type: 'GET',
-            url:  '/v2/tenants/'+AEGIS.current.uuid+'/tasks/'+uuid,
+            url:  '/v2/tasks/'+uuid,
             error: "Failed to retrieve task information from the SHIELD API.",
             success: function (data) {
               $task.template('task', {
@@ -389,7 +368,7 @@
           $form.submitting(true);
           api({
             type: 'PATCH',
-            url:  '/v2/tenants/'+AEGIS.current.uuid+'/systems/'+uuid,
+            url:  '/v2/systems/'+uuid,
             data: { "annotations": [ann] },
             success: function (data) {
               $form.hide().submitting(false);
@@ -422,7 +401,7 @@
           event.preventDefault();
           api({
             type: 'POST',
-            url:  '/v2/tenants/'+AEGIS.current.uuid+'/archives/'+uuid+'/restore',
+            url:  '/v2/archives/'+uuid+'/restore',
             success: function() {
               banner("restore operation started");
               redraw(false);
@@ -513,7 +492,7 @@
         $form.submitting(true);
         api({
           type: 'POST',
-          url:  '/v2/tenants/'+AEGIS.current.uuid+'/systems',
+          url:  '/v2/systems',
           data: data,
 
           error: "Failed to create system via the SHIELD API.",
@@ -589,7 +568,7 @@
         $form.submitting(true);
         api({
           type: 'POST',
-          url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+data.job.uuid+'/run',
+          url:  '/v2/jobs/'+data.job.uuid+'/run',
           data: {},
 
           error: "Failed to schedule a backup operation via the SHIELD API.",
@@ -648,7 +627,7 @@
         $form.submitting(true);
         api({
           type: 'POST',
-          url:  '/v2/tenants/'+AEGIS.current.uuid+'/archives/'+data.archive.uuid+'/restore',
+          url:  '/v2/archives/'+data.archive.uuid+'/restore',
           data: {},
 
           error: "Failed to schedule a restore operation via the SHIELD API.",

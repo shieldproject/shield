@@ -31,11 +31,11 @@ func fixupTargetResponse(p *Target) {
 func fixupTargetRequest(p *Target) {
 }
 
-func (c *Client) ListTargets(parent *Tenant, filter *TargetFilter) ([]*Target, error) {
+func (c *Client) ListTargets(filter *TargetFilter) ([]*Target, error) {
 	u := qs.Generate(filter).Encode()
 
 	var out []*Target
-	if err := c.get(fmt.Sprintf("/v2/tenants/%s/targets?%s", parent.UUID, u), &out); err != nil {
+	if err := c.get(fmt.Sprintf("/v2/targets?%s", u), &out); err != nil {
 		return nil, err
 	}
 	for _, p := range out {
@@ -44,12 +44,12 @@ func (c *Client) ListTargets(parent *Tenant, filter *TargetFilter) ([]*Target, e
 	return out, nil
 }
 
-func (c *Client) FindTarget(tenant *Tenant, q string, fuzzy bool) (*Target, error) {
+func (c *Client) FindTarget(q string, fuzzy bool) (*Target, error) {
 	if uuid.Parse(q) != nil {
-		return c.GetTarget(tenant, q)
+		return c.GetTarget(q)
 	}
 
-	l, err := c.ListTargets(tenant, &TargetFilter{
+	l, err := c.ListTargets(&TargetFilter{
 		UUID:  q,
 		Name:  q,
 		Fuzzy: fuzzy,
@@ -65,39 +65,39 @@ func (c *Client) FindTarget(tenant *Tenant, q string, fuzzy bool) (*Target, erro
 		return nil, fmt.Errorf("multiple matching targets found")
 	}
 
-	return c.GetTarget(tenant, l[0].UUID)
+	return c.GetTarget(l[0].UUID)
 }
 
-func (c *Client) GetTarget(parent *Tenant, uuid string) (*Target, error) {
+func (c *Client) GetTarget(uuid string) (*Target, error) {
 	var out *Target
-	if err := c.get(fmt.Sprintf("/v2/tenants/%s/targets/%s", parent.UUID, uuid), &out); err != nil {
+	if err := c.get(fmt.Sprintf("/v2/targets/%s", uuid), &out); err != nil {
 		return nil, err
 	}
 	fixupTargetResponse(out)
 	return out, nil
 }
 
-func (c *Client) CreateTarget(parent *Tenant, in *Target) (*Target, error) {
+func (c *Client) CreateTarget(in *Target) (*Target, error) {
 	fixupTargetRequest(in)
 	var out *Target
-	if err := c.post(fmt.Sprintf("/v2/tenants/%s/targets", parent.UUID), in, &out); err != nil {
+	if err := c.post("/v2/targets", in, &out); err != nil {
 		return nil, err
 	}
 	fixupTargetResponse(out)
 	return out, nil
 }
 
-func (c *Client) UpdateTarget(parent *Tenant, in *Target) (*Target, error) {
+func (c *Client) UpdateTarget(in *Target) (*Target, error) {
 	fixupTargetRequest(in)
 	var out *Target
-	if err := c.put(fmt.Sprintf("/v2/tenants/%s/targets/%s", parent.UUID, in.UUID), in, &out); err != nil {
+	if err := c.put(fmt.Sprintf("/v2/targets/%s", in.UUID), in, &out); err != nil {
 		return nil, err
 	}
 	fixupTargetResponse(out)
 	return out, nil
 }
 
-func (c *Client) DeleteTarget(parent *Tenant, in *Target) (Response, error) {
+func (c *Client) DeleteTarget(in *Target) (Response, error) {
 	var out Response
-	return out, c.delete(fmt.Sprintf("/v2/tenants/%s/targets/%s", parent.UUID, in.UUID), &out)
+	return out, c.delete(fmt.Sprintf("/v2/targets/%s", in.UUID), &out)
 }

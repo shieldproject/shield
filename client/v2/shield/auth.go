@@ -62,29 +62,13 @@ type AuthID struct {
 		SysRole string `json:"sysrole"`
 	} `json:"user"`
 
-	Tenants []struct {
-		UUID string `json:"uuid"`
-		Name string `json:"name"`
-		Role string `json:"role"`
-	} `json:"tenants"`
-
-	Tenant struct {
-		UUID string `json:"uuid"`
-		Name string `json:"name"`
-		Role string `json:"role"`
-	} `json:"tenant"`
-
 	Is struct {
 		System struct {
 			Admin    bool `json:"admin"`
 			Manager  bool `json:"manager"`
 			Engineer bool `json:"engineer"`
-		} `json:"system"`
-		Tenants map[string]struct {
-			Admin    bool `json:"admin"`
-			Engineer bool `json:"engineer"`
 			Operator bool `json:"operator"`
-		} `json:"tenant"`
+		} `json:"system"`
 	} `json:"is"`
 }
 

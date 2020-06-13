@@ -30,11 +30,11 @@ func ShowHelp(command string) {
 		fmt.Printf("  By default, all registered agentswill be displayed.\n")
 		fmt.Printf("  You may filter the results with the following command-line flags.\n")
 		fmt.Printf("\n")
-		fmt.Printf("  --visible       Only show agents that are available to tenants\n")
-		fmt.Printf("                  to configure storage and data systems.\n")
+		fmt.Printf("  --visible       Only show agents that are available for\n")
+		fmt.Printf("                  use in configuring new data systems.\n")
 		fmt.Printf("\n")
-		fmt.Printf("  --hidden        Only show agents that are NOT available to\n")
-		fmt.Printf("                  tenants to configure storage and data systems.\n")
+		fmt.Printf("  --hidden        Only show agents that are NOT available\n")
+		fmt.Printf("                  for use configuring new data systems.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  -l, --limit     Only show the given number of agents.\n")
 		fmt.Printf("\n")
@@ -47,7 +47,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "annotate-archive": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} annotate-archive --tenant @Y{TENANT} @Y{UUID} --notes ...\n")
+		fmt.Printf("USAGE: @G{shield} annotate-archive @Y{UUID} --notes ...\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Annotate a Backup Archive with Notes.\n")
 		fmt.Printf("\n")
@@ -122,7 +122,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "archive": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} archive --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} archive @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Show a single Backup Archive.\n")
 		fmt.Printf("\n")
@@ -136,7 +136,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "archives": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} archives --tenant @Y{TENANT}\n")
+		fmt.Printf("USAGE: @G{shield} archives\n")
 		fmt.Printf("\n")
 		fmt.Printf("  List Backup Archives.\n")
 		fmt.Printf("\n")
@@ -175,27 +175,6 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
-	case "banish": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} banish --tenant @Y{TENANT} @Y{USER}\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Banish a local user from a SHIELD Tenant.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
-		fmt.Printf("  set of cloud storage configurations, data systems, and backup jobs.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Once banished, a user will be unable to interact with that tenant until\n")
-		fmt.Printf("  they are extended another invitation, perhaps under a different role.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers},\n")
-		fmt.Printf("        and @R{SHIELD Tenant Managers}.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  This command only operates on one (user,tenant) pairing at a time.\n")
-		fmt.Printf("  For bulk operations, either avail yourself of the SHIELD API, or run\n")
-		fmt.Printf("  the command multiple times.\n")
-		fmt.Printf("\n")
-		fmt.Printf("\n")
-
-	/* }}} */
 	case "bucket": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} bucket @Y{KEY}\n")
 		fmt.Printf("\n")
@@ -229,7 +208,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "cancel": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} cancel --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} cancel @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Cancel a running SHIELD Task.\n")
 		fmt.Printf("\n")
@@ -269,7 +248,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "create-job": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} create-job --tenant @Y{TENANT} [OPTIONS]\n")
+		fmt.Printf("USAGE: @G{shield} create-job [OPTIONS]\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Configure a new Backup Job.\n")
 		fmt.Printf("\n")
@@ -340,7 +319,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "create-target": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} create-target --tenant @Y{TENANT} [OPTIONS]\n")
+		fmt.Printf("USAGE: @G{shield} create-target [OPTIONS]\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Create a new Target Data System.\n")
 		fmt.Printf("\n")
@@ -395,23 +374,6 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
-	case "create-tenant": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} create-tenant [--name @Y{NAME}]\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Create a new SHIELD Tenant.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
-		fmt.Printf("  set of cloud storage configurations, data systems, and backup jobs.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.\n")
-		fmt.Printf("\n")
-		fmt.Printf("@B{Options:}\n")
-		fmt.Printf("\n")
-		fmt.Printf("  --name         The name to assign this new tenant.\n")
-		fmt.Printf("\n")
-		fmt.Printf("\n")
-
-	/* }}} */
 	case "create-user": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} create-user [OPTIONS]\n")
 		fmt.Printf("\n")
@@ -420,10 +382,9 @@ func ShowHelp(command string) {
 		fmt.Printf("  SHIELD supports a several 3rd party authentication providers,\n")
 		fmt.Printf("  including Github and Cloud Foundry UAA, but for sheer simplicity,\n")
 		fmt.Printf("  nothing beats local users.  Local SHIELD users exist inside the\n")
-		fmt.Printf("  SHIELD database, and can be assigned tenant- and system-roles\n")
-		fmt.Printf("  arbitrarily.\n")
+		fmt.Printf("  SHIELD database, and can be assigned and system-roles arbitrarily.\n")
 		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command can only be used by SHIELD site managers.\n")
+		fmt.Printf("  @Y{NOTE:} This command can only be used by SHIELD managers.\n")
 		fmt.Printf("\n")
 		fmt.Printf("@B{Options:}\n")
 		fmt.Printf("\n")
@@ -442,7 +403,7 @@ func ShowHelp(command string) {
 		fmt.Printf("                    This field is @W{required}.\n")
 		fmt.Printf("\n")
 		fmt.Printf("     --system-role  Optionally assign this new user a system role,\n")
-		fmt.Printf("                    one of @M{engineer}, @M{manager}, or @M{admin}.\n")
+		fmt.Printf("                    one of @M{operator}, @M{engineer}, @M{manager}, or @M{admin}.\n")
 		fmt.Printf("\n")
 		fmt.Printf("@B{System Roles:}\n")
 		fmt.Printf("\n")
@@ -456,13 +417,15 @@ func ShowHelp(command string) {
 		fmt.Printf("              to view and manage registered agents, manage user\n")
 		fmt.Printf("              sessions, and more.\n")
 		fmt.Printf("\n")
-		fmt.Printf("    @M{manager}   System Managers are responsible for the creation\n")
-		fmt.Printf("              and management of SHIELD Tenants; they have the\n")
-		fmt.Printf("              ability to invite and banish users to / from any\n")
-		fmt.Printf("              tenant.  They also manage local SHIELD users.\n")
+		fmt.Printf("    @M{manager}   System Managers are responsible for managing\n")
+		fmt.Printf("              local SHIELD users and their access level.\n")
 		fmt.Printf("\n")
-		fmt.Printf("    @M{engineer}  Full access to everything that is shared between\n")
-		fmt.Printf("              tenants, namely cloud storage systems.\n")
+		fmt.Printf("    @M{engineer}  Full access to configure data systems, run jobs,\n")
+		fmt.Printf("              view task logs, etc.\n")
+		fmt.Printf("\n")
+		fmt.Printf("    @M{operator}  Readonly access to view data system configuration,\n")
+		fmt.Printf("              run jobs, view task logs, etc.\n")
+		fmt.Printf("\n")
 		fmt.Printf("\n")
 		fmt.Printf("@B{Example:}\n")
 		fmt.Printf("\n")
@@ -505,7 +468,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "delete-job": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} delete-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} delete-job @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Delete a Backup Job.\n")
 		fmt.Printf("\n")
@@ -541,7 +504,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "delete-target": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} delete-target --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} delete-target @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Delete a Target Data System.\n")
 		fmt.Printf("\n")
@@ -557,23 +520,6 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
-	case "delete-tenant": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} delete-tenant @Y{NAME-OR-UUID}\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Delete a SHIELD Tenant.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
-		fmt.Printf("  set of cloud storage configurations, data systems, and backup jobs.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  When you delete a tenant, all of its private storage systems, data\n")
-		fmt.Printf("  systems, jobs, and archives will be removed from the database.\n")
-		fmt.Printf("  @R{This operation cannot be undone!}\n")
-		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.\n")
-		fmt.Printf("\n")
-		fmt.Printf("\n")
-
-	/* }}} */
 	case "delete-user": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} delete-user @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
@@ -582,10 +528,9 @@ func ShowHelp(command string) {
 		fmt.Printf("  SHIELD supports a several 3rd party authentication providers,\n")
 		fmt.Printf("  including Github and Cloud Foundry UAA, but for sheer simplicity,\n")
 		fmt.Printf("  nothing beats local users.  Local SHIELD users exist inside the\n")
-		fmt.Printf("  SHIELD database, and can be assigned tenant- and system-roles\n")
-		fmt.Printf("  arbitrarily.\n")
+		fmt.Printf("  SHIELD database, and can be assigned system-roles arbitrarily.\n")
 		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command can only be used by SHIELD site managers.\n")
+		fmt.Printf("  @Y{NOTE:} This command can only be used by SHIELD managers.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Deleting a user will remove all of their authenticated sessions,\n")
 		fmt.Printf("  and also remove any auth tokens they may have issued.\n")
@@ -608,20 +553,17 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 		fmt.Printf("    --skip EVENT-TYPE    This option can be given more than once.\n")
 		fmt.Printf("    --skip QUEUE         Event Types are a fixed set of keywords\n")
-		fmt.Printf("                         (listed below).  Queue names are usually\n")
-		fmt.Printf("                         based on tenant UUIDs.\n")
+		fmt.Printf("                         (listed below).  Queue names are defined\n")
+		fmt.Printf("                         internally by SHIELD.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Known event types are:\n")
 		fmt.Printf("\n")
 		fmt.Printf("    @C{error}               An error has occurred.\n")
-		fmt.Printf("    @C{unlock-core}         The SHIELD Core was unlocked.\n")
 		fmt.Printf("    @C{create-object}       A new target, store, etc. was created.\n")
 		fmt.Printf("    @C{update-object}       A target, store, etc. was updated.\n")
 		fmt.Printf("    @C{delete-object}       A target, store, etc. was deleted.\n")
 		fmt.Printf("    @C{task-status-update}  A task changed status.\n")
 		fmt.Printf("    @C{task-log-update}     New task log output appeared.\n")
-		fmt.Printf("    @C{tenant-invite}       A user was invited to a tenant.\n")
-		fmt.Printf("    @C{tenant-banish}       A user was banished from a tenant.\n")
 		fmt.Printf("\n")
 		fmt.Printf("@B{Examples:}\n")
 		fmt.Printf("\n")
@@ -705,7 +647,7 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 		fmt.Printf("  Agents perform all backup / restore operations on behalf\n")
 		fmt.Printf("  of the SHIELD Core.  Hidden SHIELD Agents cannot be used\n")
-		fmt.Printf("  by tenants when configuring data and storage systems.\n")
+		fmt.Printf("  when configuring data systems.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
@@ -716,8 +658,7 @@ func ShowHelp(command string) {
 		fmt.Printf("  Displays information about your currently authenticated session.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  This includes your profile information (display name, username,\n")
-		fmt.Printf("  etc.), as well as what system role you have been assigned, and\n")
-		fmt.Printf("  what tenants (if any) you have been granted membership into.\n")
+		fmt.Printf("  etc.), as well as what system role you have been assigned.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
@@ -728,11 +669,12 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 		fmt.Printf("  Import configuration into SHIELD, in bulk.\n")
 		fmt.Printf("\n")
-		fmt.Printf("  SHIELD has a lot of configuration, between storage systems and\n")
-		fmt.Printf("  target data systems, users and tenants, etc.  While you could\n")
-		fmt.Printf("  conceivably write a script to automate the stand-up of a new\n")
-		fmt.Printf("  SHIELD environment, we've provided a much simpler alternative,\n")
-		fmt.Printf("  vis-a-vis a YAML-based import command!\n")
+		fmt.Printf("  SHIELD has a lot of configuration, from protected systems,\n")
+		fmt.Printf("  to backup schedules, to local users.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  While you could conceivably write a script to automate the\n")
+		fmt.Printf("  stand-up of a new SHIELD environment, we've provided a much\n")
+		fmt.Printf("  simpler alternative, vis-a-vis a YAML-based import command!\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 		fmt.Printf("@B{Options:}\n")
@@ -755,49 +697,8 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
-	case "invite": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} invite [--role @Y{ROLE}] --tenant @Y{TENANT} @Y{USER}\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Invite a local user into a SHIELD Tenant.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
-		fmt.Printf("  set of cloud storage configurations, data systems, and backup jobs.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Local users (accounts defined wholly within SHIELD itself) can be\n")
-		fmt.Printf("  arbitrarily assigned to those tenants, and given one of three roles:\n")
-		fmt.Printf("\n")
-		fmt.Printf("    @M{admin}   Complete access to the tenant, including the ability\n")
-		fmt.Printf("                  to invite new users and banish existing users.\n")
-		fmt.Printf("\n")
-		fmt.Printf("    @M{engineer}  Full control of the configuration of SHIELD within the\n")
-		fmt.Printf("                  tenant.  Engineers have the ability to reconfigure\n")
-		fmt.Printf("                  cloud storage, data systems, and backup jobs.\n")
-		fmt.Printf("\n")
-		fmt.Printf("    @M{operator}  Day-to-day backup-related activities including running\n")
-		fmt.Printf("                  ad hoc backup jobs, performing restores, pausing and\n")
-		fmt.Printf("                  unpausing jobs, etc.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Each more powerful role includes the rights of the roles beneath.\n")
-		fmt.Printf("  For example, a @M{admin} can do everything an @M{engineer} can do,\n")
-		fmt.Printf("  and an @M{engineer} can do everything an @M{operator} can do.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers},\n")
-		fmt.Printf("        and @R{SHIELD Tenant Managers}.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  This command only operates on one (user,tenant) pairing at a time.\n")
-		fmt.Printf("  For bulk operations, either avail yourself of the SHIELD API, or run\n")
-		fmt.Printf("  the command multiple times.\n")
-		fmt.Printf("\n")
-		fmt.Printf("@B{Options:}\n")
-		fmt.Printf("\n")
-		fmt.Printf("  -r, --role     The role to assign the new user.  Must be one of\n")
-		fmt.Printf("                 @M{admin}, @M{engineer}, or @M{operator}.\n")
-		fmt.Printf("\n")
-		fmt.Printf("\n")
-
-	/* }}} */
 	case "job": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} job --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} job @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Show a single Backup Job.\n")
 		fmt.Printf("\n")
@@ -810,7 +711,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "jobs": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} jobs --tenant @Y{TENANT} [OPTIONS]\n")
+		fmt.Printf("USAGE: @G{shield} jobs [OPTIONS]\n")
 		fmt.Printf("\n")
 		fmt.Printf("  List Backup Jobs.\n")
 		fmt.Printf("\n")
@@ -904,7 +805,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "pause-job": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} pause-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} pause-job @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Pause a Backup Job.\n")
 		fmt.Printf("\n")
@@ -932,7 +833,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "purge-archive": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} purge-archive --tenant @Y{TENANT} @Y{UUID}\n")
+		fmt.Printf("USAGE: @G{shield} purge-archive @Y{UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Remove a Backup Archive from Cloud Storage.\n")
 		fmt.Printf("\n")
@@ -965,7 +866,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "restore-archive": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} restore-archive --tenant @Y{TENANT} [OPTIONS] @Y{UUID}\n")
+		fmt.Printf("USAGE: @G{shield} restore-archive [OPTIONS] @Y{UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Restore a Backup Archive.\n")
 		fmt.Printf("\n")
@@ -1010,7 +911,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "run-job": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} run-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} run-job @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Manually Run a Backup Job.\n")
 		fmt.Printf("\n")
@@ -1091,8 +992,8 @@ func ShowHelp(command string) {
 		fmt.Printf("  Hide a single SHIELD Agent.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Agents perform all backup / restore / operations on behalf\n")
-		fmt.Printf("  of the SHIELD Core.  Visible SHIELD Agents can be used by\n")
-		fmt.Printf("  tenants when configuring data systems.\n")
+		fmt.Printf("  of the SHIELD Core.  Visible SHIELD Agents can be used when\n")
+		fmt.Printf("  configuring data systems.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
@@ -1106,7 +1007,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "target": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} target --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} target @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Show a single Target Data System.\n")
 		fmt.Printf("\n")
@@ -1119,7 +1020,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "targets": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} targets --tenant @Y{TENANT} [OPTIONS]\n")
+		fmt.Printf("USAGE: @G{shield} targets [OPTIONS]\n")
 		fmt.Printf("\n")
 		fmt.Printf("  List Target Data Systems.\n")
 		fmt.Printf("\n")
@@ -1155,7 +1056,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "task": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} task --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} task @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Show a single SHIELD Task.\n")
 		fmt.Printf("\n")
@@ -1168,7 +1069,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "tasks": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} tasks --tenant @Y{TENANT}\n")
+		fmt.Printf("USAGE: @G{shield} tasks\n")
 		fmt.Printf("\n")
 		fmt.Printf("  List SHIELD Tasks.\n")
 		fmt.Printf("\n")
@@ -1179,7 +1080,7 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 		fmt.Printf("@B{Options:}\n")
 		fmt.Printf("\n")
-		fmt.Printf("  By default, all active SHIELD tasks for the given tenant are displayed.\n")
+		fmt.Printf("  By default, all active SHIELD tasks are displayed.\n")
 		fmt.Printf("  You may filter the results with the following command-line flags.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  -s, --status   Only show tasks that have the given status.\n")
@@ -1229,37 +1130,6 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
-	case "tenant": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} tenant [--members] @Y{NAME-OR-UUID}\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Show Information for a single SHIELD Tenant.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
-		fmt.Printf("  set of cloud storage configurations, data systems, and backup jobs.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.\n")
-		fmt.Printf("\n")
-		fmt.Printf("@B{Options:}\n")
-		fmt.Printf("\n")
-		fmt.Printf("  --members      List all users who have been granted access to this\n")
-		fmt.Printf("                 Tenant, and identify their role within.\n")
-		fmt.Printf("\n")
-		fmt.Printf("\n")
-
-	/* }}} */
-	case "tenants": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} tenants\n")
-		fmt.Printf("\n")
-		fmt.Printf("  List defined SHIELD Tenants.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
-		fmt.Printf("  set of cloud storage configurations, data systems, and backup jobs.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.\n")
-		fmt.Printf("\n")
-		fmt.Printf("\n")
-
-	/* }}} */
 	case "timespec": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} timespec @Y{\"a timespec string\"}\n")
 		fmt.Printf("\n")
@@ -1274,7 +1144,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "unpause-job": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} unpause-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} unpause-job @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Unpause a Backup Job.\n")
 		fmt.Printf("\n")
@@ -1294,7 +1164,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "update-job": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} update-job --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} update-job @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Reconfigure a new Backup Job.\n")
 		fmt.Printf("\n")
@@ -1350,7 +1220,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "update-target": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} update-target --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} update-target [OPTIONS] @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Update an existing Target Data System\n")
 		fmt.Printf("\n")
@@ -1368,9 +1238,9 @@ func ShowHelp(command string) {
 		fmt.Printf("  -s, --summary     An optional, long-form description for the\n")
 		fmt.Printf("                    storage system.\n")
 		fmt.Printf("\n")
-		fmt.Printf("  -a, --agent     The address (in ip:port format) of the SHIELD\n")
-		fmt.Printf("                  Agent that will be used for running backup and\n")
-		fmt.Printf("                  restore operations.\n")
+		fmt.Printf("  -a, --agent       The address (in ip:port format) of the SHIELD\n")
+		fmt.Printf("                    Agent that will be used for running backup and\n")
+		fmt.Printf("                    restore operations.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  -p, --plugin      The name of the plugin binary to use.  The chosen\n")
 		fmt.Printf("                    plugin must support \"target\" operations, and must\n")
@@ -1406,23 +1276,6 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
-	case "update-tenant": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} update-tenant [--name @Y{NAME}] @Y{NAME-OR-UUID}\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Update an existing SHIELD Tenant.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
-		fmt.Printf("  set of cloud storage configurations, data systems, and backup jobs.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.\n")
-		fmt.Printf("\n")
-		fmt.Printf("@B{Options:}\n")
-		fmt.Printf("\n")
-		fmt.Printf("  --name         The name to assign this tenant, effectively renaming it.\n")
-		fmt.Printf("\n")
-		fmt.Printf("\n")
-
-	/* }}} */
 	case "update-user": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} update-user [OPTIONS] @{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
@@ -1431,10 +1284,9 @@ func ShowHelp(command string) {
 		fmt.Printf("  SHIELD supports a several 3rd party authentication providers,\n")
 		fmt.Printf("  including Github and Cloud Foundry UAA, but for sheer simplicity,\n")
 		fmt.Printf("  nothing beats local users.  Local SHIELD users exist inside the\n")
-		fmt.Printf("  SHIELD database, and can be assigned tenant- and system-roles\n")
-		fmt.Printf("  arbitrarily.\n")
+		fmt.Printf("  SHIELD database, and can be assigned system-roles arbitrarily.\n")
 		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command can only be used by SHIELD site managers.\n")
+		fmt.Printf("  @Y{NOTE:} This command can only be used by SHIELD managers.\n")
 		fmt.Printf("\n")
 		fmt.Printf("@B{Options:}\n")
 		fmt.Printf("\n")
@@ -1460,29 +1312,29 @@ func ShowHelp(command string) {
 		fmt.Printf("              to view and manage registered agents, manage user\n")
 		fmt.Printf("              sessions, and more.\n")
 		fmt.Printf("\n")
-		fmt.Printf("    @M{manager}   System Managers are responsible for the creation\n")
-		fmt.Printf("              and management of SHIELD Tenants; they have the\n")
-		fmt.Printf("              ability to invite and banish users to / from any\n")
-		fmt.Printf("              tenant.  They also manage local SHIELD users.\n")
+		fmt.Printf("    @M{manager}   System Managers are responsible for managing\n")
+		fmt.Printf("              local SHIELD users and their access level.\n")
 		fmt.Printf("\n")
-		fmt.Printf("    @M{engineer}  Full access to everything that is shared between\n")
-		fmt.Printf("              tenants, namely cloud storage systems.\n")
+		fmt.Printf("    @M{engineer}  Full access to configure data systems, run jobs,\n")
+		fmt.Printf("              view task logs, etc.\n")
+		fmt.Printf("\n")
+		fmt.Printf("    @M{operator}  Readonly access to view data system configuration,\n")
+		fmt.Printf("              run jobs, view task logs, etc.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
 	/* }}} */
 	case "user": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} user @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} user @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Show a single Local SHIELD User.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  SHIELD supports a several 3rd party authentication providers,\n")
 		fmt.Printf("  including Github and Cloud Foundry UAA, but for sheer simplicity,\n")
 		fmt.Printf("  nothing beats local users.  Local SHIELD users exist inside the\n")
-		fmt.Printf("  SHIELD database, and can be assigned tenant- and system-roles\n")
-		fmt.Printf("  arbitrarily.\n")
+		fmt.Printf("  SHIELD database, and can be assigned system-roles arbitrarily.\n")
 		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command can only be used by SHIELD site managers.\n")
+		fmt.Printf("  @Y{NOTE:} This command can only be used by SHIELD managers.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
@@ -1495,10 +1347,9 @@ func ShowHelp(command string) {
 		fmt.Printf("  SHIELD supports a several 3rd party authentication providers,\n")
 		fmt.Printf("  including Github and Cloud Foundry UAA, but for sheer simplicity,\n")
 		fmt.Printf("  nothing beats local users.  Local SHIELD users exist inside the\n")
-		fmt.Printf("  SHIELD database, and can be assigned tenant- and system-roles\n")
-		fmt.Printf("  arbitrarily.\n")
+		fmt.Printf("  SHIELD database, and can be assigned system-roles arbitrarily.\n")
 		fmt.Printf("\n")
-		fmt.Printf("  @Y{NOTE:} This command can only be used by SHIELD site managers.\n")
+		fmt.Printf("  @Y{NOTE:} This command can only be used by SHIELD managers.\n")
 		fmt.Printf("\n")
 		fmt.Printf("@B{Options:}\n")
 		fmt.Printf("\n")
@@ -1507,11 +1358,11 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 		fmt.Printf("  --with-system-role  Only show users who have been assigned the\n")
 		fmt.Printf("                      specified system role, one of either @M{admin},\n")
-		fmt.Printf("                      @M{manager}, or @M{engineer}.\n")
+		fmt.Printf("                      @M{manager}, @M{engineer}, or @M{operator}.\n")
 		fmt.Printf("\n")
 		fmt.Printf("@B{Examples:}\n")
 		fmt.Printf("\n")
-		fmt.Printf("  # Who can manage tenants?\n")
+		fmt.Printf("  # Who can manage local accounts?\n")
 		fmt.Printf("  @W{shield users} \\\n")
 		fmt.Printf("     @Y{--with-system-role} @C{manager}\n")
 		fmt.Printf("\n")

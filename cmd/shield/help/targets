@@ -1,4 +1,4 @@
-USAGE: @G{shield} targets --tenant @Y{TENANT} [OPTIONS]
+USAGE: @G{shield} targets [OPTIONS]
 
   List Target Data Systems.
 

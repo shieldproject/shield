@@ -164,7 +164,7 @@ func (w *Worker) Execute(chore Chore) {
 
 		log.Infof("%s: restore key for this %s operation is '%s'", chore, task.Op, v.Key)
 		_, err = w.db.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(),
-			v.Size, task.TenantUUID)
+			v.Size)
 		if err != nil {
 			panic(fmt.Errorf("failed to create task archive database record '%s': %s", task.ArchiveUUID, err))
 		}

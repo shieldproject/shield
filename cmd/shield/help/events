@@ -10,20 +10,17 @@ USAGE: @G{shield} events [--skip @Y{EVENT-or-QUEUE} [--skip ...]]
 
     --skip EVENT-TYPE    This option can be given more than once.
     --skip QUEUE         Event Types are a fixed set of keywords
-                         (listed below).  Queue names are usually
-                         based on tenant UUIDs.
+                         (listed below).  Queue names are defined
+                         internally by SHIELD.
 
   Known event types are:
 
     @C{error}               An error has occurred.
-    @C{unlock-core}         The SHIELD Core was unlocked.
     @C{create-object}       A new target, store, etc. was created.
     @C{update-object}       A target, store, etc. was updated.
     @C{delete-object}       A target, store, etc. was deleted.
     @C{task-status-update}  A task changed status.
     @C{task-log-update}     New task log output appeared.
-    @C{tenant-invite}       A user was invited to a tenant.
-    @C{tenant-banish}       A user was banished from a tenant.
 
 @B{Examples:}
 

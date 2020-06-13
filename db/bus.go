@@ -26,11 +26,6 @@ func datauuid(thing interface{}) string {
 	case *Target:
 		return fmt.Sprintf("target [%s]", what.UUID)
 
-	case Tenant:
-		return fmt.Sprintf("tenant [%s]", what.UUID)
-	case *Tenant:
-		return fmt.Sprintf("tenant [%s]", what.UUID)
-
 	case Task:
 		return fmt.Sprintf("task [%s]", what.UUID)
 	case *Task:
@@ -56,9 +51,6 @@ func datatype(thing interface{}) string {
 
 	case Target, *Target:
 		return "target"
-
-	case Tenant, *Tenant:
-		return "tenant"
 
 	case Task, *Task:
 		return "task"
@@ -119,24 +111,5 @@ func (db *DB) sendTaskLogUpdateEvent(id, msg string, queues ...string) {
 			"uuid": id,
 			"tail": msg,
 		}, queues...)
-	}
-}
-
-func (db *DB) sendTenantInviteEvent(user string, tenant *Tenant, role string) {
-	if db.bus != nil {
-		db.bus.Send(bus.TenantInviteEvent, "", map[string]interface{}{
-			"user_uuid": user,
-			"tenant":    tenant,
-			"role":      role,
-		}, "user:"+user, "tenant:"+tenant.UUID)
-	}
-}
-
-func (db *DB) sendTenantBanishEvent(user, tenant string) {
-	if db.bus != nil {
-		db.bus.Send(bus.TenantBanishEvent, "", map[string]interface{}{
-			"user_uuid":   user,
-			"tenant_uuid": tenant,
-		}, "user:"+user, "tenant:"+tenant)
 	}
 }

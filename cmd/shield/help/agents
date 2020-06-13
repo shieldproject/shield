@@ -10,11 +10,11 @@ USAGE: @G{shield} agents [OPTIONS]
   By default, all registered agentswill be displayed.
   You may filter the results with the following command-line flags.
 
-  --visible       Only show agents that are available to tenants
-                  to configure storage and data systems.
+  --visible       Only show agents that are available for
+                  use in configuring new data systems.
 
-  --hidden        Only show agents that are NOT available to
-                  tenants to configure storage and data systems.
+  --hidden        Only show agents that are NOT available
+                  for use configuring new data systems.
 
   -l, --limit     Only show the given number of agents.
 

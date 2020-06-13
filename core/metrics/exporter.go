@@ -11,7 +11,6 @@ import (
 
 type Exporter struct {
 	Namespace    string
-	TenantCount  int
 	AgentCount   int
 	TargetCount  int
 	JobCount     int
@@ -23,7 +22,6 @@ type Exporter struct {
 	Realm    string
 
 	bus                   *bus.Bus
-	tenantsGauge          prometheus.Gauge
 	agentsGauge           prometheus.Gauge
 	targetsGauge          prometheus.Gauge
 	jobsGauge             prometheus.Gauge
@@ -33,7 +31,6 @@ type Exporter struct {
 }
 
 const (
-	tenantsTotal      = "tenants_total"
 	agentsTotal       = "agents_total"
 	targetsTotal      = "targets_total"
 	jobsTotal         = "jobs_total"
@@ -62,13 +59,6 @@ func New(endpoint *Exporter) *Exporter {
 	if endpoint.Namespace == "" {
 		endpoint.Namespace = "shield"
 	}
-
-	endpoint.tenantsGauge = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: endpoint.Namespace,
-			Name:      tenantsTotal,
-			Help:      "How many Tenants exist",
-		})
 
 	endpoint.agentsGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
@@ -113,7 +103,6 @@ func New(endpoint *Exporter) *Exporter {
 		})
 
 	prometheus.MustRegister(
-		endpoint.tenantsGauge,
 		endpoint.agentsGauge,
 		endpoint.targetsGauge,
 		endpoint.jobsGauge,
@@ -122,7 +111,6 @@ func New(endpoint *Exporter) *Exporter {
 		endpoint.storageUsedBytesGauge,
 	)
 
-	endpoint.tenantsGauge.Set(float64(endpoint.TenantCount))
 	endpoint.agentsGauge.Set(float64(endpoint.AgentCount))
 	endpoint.targetsGauge.Set(float64(endpoint.TargetCount))
 	endpoint.jobsGauge.Set(float64(endpoint.JobCount))
@@ -148,8 +136,6 @@ func (e *Exporter) Handler() http.Handler {
 func (e *Exporter) createObjectCount(typ string, raw interface{}) {
 	data := raw.(map[string]interface{})
 	switch typ {
-	case "tenant":
-		e.tenantsGauge.Inc()
 	case "agent":
 		e.agentsGauge.Inc()
 	case "target":
@@ -181,8 +167,6 @@ func (e *Exporter) updateObjectCount(typ string, raw interface{}) {
 
 func (e *Exporter) deleteObjectCount(typ string) {
 	switch typ {
-	case "tenant":
-		e.tenantsGauge.Dec()
 	case "agent":
 		e.agentsGauge.Dec()
 	case "target":

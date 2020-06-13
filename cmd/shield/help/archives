@@ -1,4 +1,4 @@
-USAGE: @G{shield} archives --tenant @Y{TENANT}
+USAGE: @G{shield} archives
 
   List Backup Archives.
 

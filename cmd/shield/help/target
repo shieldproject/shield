@@ -1,4 +1,4 @@
-USAGE: @G{shield} target --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+USAGE: @G{shield} target @Y{NAME-OR-UUID}
 
   Show a single Target Data System.
 

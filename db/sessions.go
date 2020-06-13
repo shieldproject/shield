@@ -158,7 +158,7 @@ func (db *DB) GetSession(id string) (*Session, error) {
 func (db *DB) GetUserForSession(id string) (*User, error) {
 	r, err := db.query(`
 	        SELECT u.uuid, u.name, u.account, u.backend, u.sysrole,
-	               u.pwhash, u.default_tenant
+	               u.pwhash
 
 	          FROM sessions s
 	    INNER JOIN users u ON u.uuid = s.user_uuid
@@ -175,7 +175,7 @@ func (db *DB) GetUserForSession(id string) (*User, error) {
 	u := &User{}
 	var pwhash sql.NullString
 	if err := r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole,
-		&pwhash, &u.DefaultTenant); err != nil {
+		&pwhash); err != nil {
 		return nil, err
 	}
 	if pwhash.Valid {

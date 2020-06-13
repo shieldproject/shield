@@ -1,4 +1,4 @@
-USAGE: @G{shield} update-job --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}
+USAGE: @G{shield} update-job @Y{NAME-OR-UUID}
 
   Reconfigure a new Backup Job.
 

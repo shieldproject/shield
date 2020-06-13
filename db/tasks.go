@@ -25,7 +25,6 @@ const (
 
 type Task struct {
 	UUID           string         `json:"uuid"            mbus:"uuid"`
-	TenantUUID     string         `json:"tenant_uuid"     mbus:"tenant_uuid"`
 	Owner          string         `json:"owner"           mbus:"owner"`
 	Op             string         `json:"type"            mbus:"op"`
 	JobUUID        string         `json:"job_uuid"        mbus:"job_uuid"`
@@ -64,7 +63,6 @@ type TaskFilter struct {
 	ForOp         string
 	ForAgent      string
 	SkipStopped   bool
-	ForTenant     string
 	ForTarget     string
 	ForStatus     string
 	ForArchive    string
@@ -87,10 +85,6 @@ func effectively(t time.Time) int64 {
 func (f *TaskFilter) Query() (string, []interface{}) {
 	wheres := []string{"t.uuid = t.uuid"}
 	var args []interface{}
-	if f.ForTenant != "" {
-		wheres = append(wheres, "t.tenant_uuid = ?")
-		args = append(args, f.ForTenant)
-	}
 	if f.ForStatus != "" {
 		wheres = append(wheres, "t.status = ?")
 		args = append(args, f.ForStatus)
@@ -177,7 +171,7 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		args = append(args, f.Limit)
 	}
 	return `
-        SELECT t.uuid, t.tenant_uuid, t.owner, t.op,
+        SELECT t.uuid, t.owner, t.op,
                t.job_uuid, t.archive_uuid,
                t.target_uuid, t.target_plugin, t.target_endpoint,
                t.status, t.requested_at, t.started_at, t.stopped_at, t.timeout_at,
@@ -212,7 +206,7 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 			job, archive, target, log  sql.NullString
 		)
 		if err = r.Scan(
-			&t.UUID, &t.TenantUUID, &t.Owner, &t.Op, &job, &archive,
+			&t.UUID, &t.Owner, &t.Op, &job, &archive,
 			&target, &t.TargetPlugin, &t.TargetEndpoint,
 			&t.Status, &t.RequestedAt, &started, &stopped, &deadline,
 			&t.Bucket, &t.Stream, &t.RestoreKey, &t.Attempts, &t.Agent, &log,
@@ -268,7 +262,7 @@ func (db *DB) ReinsertTask(task *Task) error {
 	return db.Exec(`
         INSERT INTO tasks
             (uuid, owner, op,
-             tenant_uuid, job_uuid, archive_uuid, target_uuid,
+             job_uuid, archive_uuid, target_uuid,
              status, requested_at, started_at, stopped_at, timeout_at,
              log, attempts, agent
              target_plugin, target_endpoint,
@@ -276,14 +270,14 @@ func (db *DB) ReinsertTask(task *Task) error {
              ok, notes, clear)
         VALUES
             (?, ?, ?,
-             ?, ?, ?, ?,
+             ?, ?, ?,
              ?, ?, ?, ?, ?,
              ?, ?, ?,
              ?, ?,
              ?, ?, ?,
              ?, ?, ?)`,
 		task.UUID, task.Owner, task.Op,
-		task.TenantUUID, task.JobUUID, task.ArchiveUUID, task.TargetUUID,
+		task.JobUUID, task.ArchiveUUID, task.TargetUUID,
 		task.Status, task.RequestedAt, task.StartedAt, task.StoppedAt, task.TimeoutAt,
 		task.Log, task.Attempts, task.Agent,
 		task.TargetPlugin, task.TargetEndpoint,
@@ -296,11 +290,6 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 	archive := RandomID()
 
 	err := db.exclusively(func() error {
-		/* validate the tenant */
-		if err := db.tenantShouldExist(job.TenantUUID); err != nil {
-			return fmt.Errorf("unable to create backup task: %s", err)
-		}
-
 		/* validate the target */
 		if err := db.targetShouldExist(job.TargetUUID); err != nil {
 			return fmt.Errorf("unable to create backup task: %s", err)
@@ -316,16 +305,16 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
                 (uuid, owner, op, job_uuid, status, log, requested_at,
                  bucket, archive_uuid,
                  target_uuid, target_plugin, target_endpoint, restore_key,
-                 agent, attempts, tenant_uuid)
+                 agent, attempts)
               VALUES
                 (?, ?, ?, ?, ?, ?, ?,
                  ?, ?,
                  ?, ?, ?, ?,
-                 ?, ?, ?)`,
+                 ?, ?)`,
 			id, owner, BackupOperation, job.UUID, PendingStatus, "", time.Now().Unix(),
 			job.Bucket, archive,
 			job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
-			job.Agent, 0, job.TenantUUID)
+			job.Agent, 0)
 	})
 	if err != nil {
 		return nil, err
@@ -339,7 +328,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database", id)
 	}
 
-	db.sendCreateObjectEvent(task, "tenant:"+job.TenantUUID)
+	db.sendCreateObjectEvent(task, "*")
 	return task, nil
 }
 
@@ -348,11 +337,6 @@ func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) 
 	now := time.Now().Unix()
 
 	err := db.exclusively(func() error {
-		/* validate the tenant */
-		if err := db.tenantShouldExist(job.TenantUUID); err != nil {
-			return fmt.Errorf("unable to create (skipped) backup task: %s", err)
-		}
-
 		/* validate the target */
 		if err := db.targetShouldExist(job.TargetUUID); err != nil {
 			return fmt.Errorf("unable to create (skipped) backup task: %s", err)
@@ -363,16 +347,16 @@ func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) 
                 (uuid, owner, op, job_uuid, status, log,
                  requested_at, started_at, stopped_at, ok,
                  target_uuid, target_plugin, target_endpoint, restore_key,
-                 agent, attempts, tenant_uuid)
+                 agent, attempts)
               VALUES
                 (?, ?, ?, ?, ?, ?,
                  ?, ?, ?, ?,
                  ?, ?, ?, ?,
-                 ?, ?, ?)`,
+                 ?, ?)`,
 			id, owner, BackupOperation, job.UUID, CanceledStatus, msg,
 			now, now, now, 0,
 			job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
-			job.Agent, 0, job.TenantUUID)
+			job.Agent, 0)
 	})
 	if err != nil {
 		return nil, err
@@ -386,7 +370,7 @@ func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) 
 		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database", id)
 	}
 
-	db.sendCreateObjectEvent(task, "tenant:"+job.TenantUUID)
+	db.sendCreateObjectEvent(task, "*")
 	return task, nil
 }
 
@@ -403,11 +387,6 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 			return fmt.Errorf("unable to create restore task: %s", err)
 		}
 
-		/* validate the tenant */
-		if err := db.tenantShouldExist(archive.TenantUUID); err != nil {
-			return fmt.Errorf("unable to create restore task: %s", err)
-		}
-
 		/* validate the target */
 		if err := db.targetShouldExist(target.UUID); err != nil {
 			return fmt.Errorf("unable to create restore task: %s", err)
@@ -417,14 +396,14 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 			`INSERT INTO tasks
                 (uuid, owner, op, archive_uuid, status, log, requested_at,
                  target_uuid, target_plugin, target_endpoint,
-                 restore_key, agent, attempts, tenant_uuid)
+                 restore_key, agent, attempts)
               VALUES
                 (?, ?, ?, ?, ?, ?, ?,
                  ?, ?, ?,
-                 ?, ?, ?, ?)`,
+                 ?, ?, ?)`,
 			id, owner, RestoreOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
 			target.UUID, target.Plugin, endpoint,
-			archive.StoreKey, target.Agent, 0, archive.TenantUUID)
+			archive.StoreKey, target.Agent, 0)
 	})
 	if err != nil {
 		return nil, err
@@ -438,7 +417,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database", id)
 	}
 
-	db.sendCreateObjectEvent(task, "tenant:"+archive.TenantUUID)
+	db.sendCreateObjectEvent(task, "*")
 	return task, nil
 }
 
@@ -458,12 +437,12 @@ func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
 	id := RandomID()
 	err = db.Exec(`
        INSERT INTO tasks (uuid, op, status, log, requested_at,
-                          tenant_uuid, agent, attempts, owner)
-    
+                          agent, attempts, owner)
+
                   VALUES (?, ?, ?, ?, ?,
-                          ?, ?, ?, ?)`,
+                          ?, ?, ?)`,
 		id, AgentStatusOperation, PendingStatus, "", time.Now().Unix(),
-		GlobalTenantUUID, agent.Address, 0, owner,
+		agent.Address, 0, owner,
 	)
 
 	if err != nil {
@@ -502,24 +481,6 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 	return false, nil
 }
 
-func (db *DB) taskQueue(id string) string {
-	r, err := db.query(`SELECT tenant_uuid FROM tasks WHERE uuid = ?`, id)
-	if err != nil {
-		return ""
-	}
-	defer r.Close()
-
-	if !r.Next() {
-		return ""
-	}
-
-	var uuid string
-	if err = r.Scan(&uuid); err != nil {
-		return ""
-	}
-	return fmt.Sprintf("tenant:%s", uuid)
-}
-
 func (db *DB) StartTask(id string, at time.Time) error {
 	err := db.Exec(
 		`UPDATE tasks SET status = ?, started_at = ? WHERE uuid = ?`,
@@ -537,7 +498,7 @@ func (db *DB) StartTask(id string, at time.Time) error {
 		return fmt.Errorf("task '%s' not found", id)
 	}
 
-	db.sendTaskStatusUpdateEvent(task, "tenant:"+task.TenantUUID)
+	db.sendTaskStatusUpdateEvent(task, "*")
 	return nil
 }
 
@@ -557,7 +518,7 @@ func (db *DB) ScheduledTask(id string) error {
 		return fmt.Errorf("task '%s' not found", id)
 	}
 
-	db.sendTaskStatusUpdateEvent(task, "tenant:"+task.TenantUUID)
+	db.sendTaskStatusUpdateEvent(task, "*")
 	return nil
 }
 
@@ -577,13 +538,7 @@ func (db *DB) updateTaskStatus(id, status string, at int64, ok int) error {
 		return fmt.Errorf("task '%s' not found", id)
 	}
 
-	queues := []string{}
-	if task.TenantUUID == GlobalTenantUUID {
-		queues = append(queues, "admins")
-	} else {
-		queues = append(queues, "tenant:"+task.TenantUUID)
-	}
-	db.sendTaskStatusUpdateEvent(task, queues...)
+	db.sendTaskStatusUpdateEvent(task, "*")
 	return nil
 }
 
@@ -644,7 +599,7 @@ func (db *DB) UpdateTaskLog(id string, more string) error {
 		return err
 	}
 
-	db.sendTaskLogUpdateEvent(id, more, db.taskQueue(id))
+	db.sendTaskLogUpdateEvent(id, more, "*")
 	return nil
 }
 
@@ -670,7 +625,7 @@ func (db *DB) getTaskArchiveRetention(id string) (int, error) {
 	return n, nil
 }
 
-func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, archive_size int64, tenant_uuid string) (string, error) {
+func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, archive_size int64) (string, error) {
 	if key == "" {
 		return "", fmt.Errorf("cannot create an archive without a store_key")
 	}
@@ -683,18 +638,17 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, archiv
 
 	// insert an archive with all proper references, expiration, etc.
 	archive, err := db.createArchiveFromTask(id, Archive{
-		UUID:       archive_id,
-		StoreKey:   key,
-		TakenAt:    effectively(at),
-		ExpiresAt:  at.Add(time.Duration(n*24) * time.Hour).Unix(),
-		Size:       archive_size,
-		TenantUUID: tenant_uuid,
+		UUID:      archive_id,
+		StoreKey:  key,
+		TakenAt:   effectively(at),
+		ExpiresAt: at.Add(time.Duration(n*24) * time.Hour).Unix(),
+		Size:      archive_size,
 	})
 	if err != nil {
 		log.Errorf("failed to insert archive with UUID %s into database: %s", archive.UUID, err)
 		return "", err
 	}
-	db.sendCreateObjectEvent(archive, "tenant:"+archive.TenantUUID)
+	db.sendCreateObjectEvent(archive, "*")
 
 	// and finally, associate task -> archive
 	return archive_id, db.Exec(

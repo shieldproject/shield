@@ -8,8 +8,8 @@ import (
 	"github.com/shieldproject/shield/client/v2/shield"
 )
 
-func SearchTargets(c *shield.Client, tenant *shield.Tenant, q string) {
-	l, err := c.ListTargets(tenant, &shield.TargetFilter{
+func SearchTargets(c *shield.Client, q string) {
+	l, err := c.ListTargets(&shield.TargetFilter{
 		Name:  q,
 		Fuzzy: true,
 	})

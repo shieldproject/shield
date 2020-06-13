@@ -1,4 +1,4 @@
-USAGE: @G{shield} create-job --tenant @Y{TENANT} [OPTIONS]
+USAGE: @G{shield} create-job [OPTIONS]
 
   Configure a new Backup Job.
 

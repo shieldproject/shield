@@ -1,4 +1,4 @@
-USAGE: @G{shield} create-target --tenant @Y{TENANT} [OPTIONS]
+USAGE: @G{shield} create-target [OPTIONS]
 
   Create a new Target Data System.
 

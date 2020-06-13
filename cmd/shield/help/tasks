@@ -1,4 +1,4 @@
-USAGE: @G{shield} tasks --tenant @Y{TENANT}
+USAGE: @G{shield} tasks
 
   List SHIELD Tasks.
 
@@ -9,7 +9,7 @@ USAGE: @G{shield} tasks --tenant @Y{TENANT}
 
 @B{Options:}
 
-  By default, all active SHIELD tasks for the given tenant are displayed.
+  By default, all active SHIELD tasks are displayed.
   You may filter the results with the following command-line flags.
 
   -s, --status   Only show tasks that have the given status.

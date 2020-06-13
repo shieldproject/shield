@@ -1,4 +1,4 @@
-USAGE: @G{shield} job --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+USAGE: @G{shield} job @Y{NAME-OR-UUID}
 
   Show a single Backup Job.
 

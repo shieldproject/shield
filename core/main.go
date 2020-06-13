@@ -32,7 +32,6 @@ func (c Core) Main() {
 	/* startup cleanup tasks */
 	c.CreateFailsafeUser()
 	c.ExpireInteractiveSessions()
-	c.PrecreateTenants()
 	c.CleanupLeftoverTasks()
 
 	/* prepare for operation */
@@ -68,7 +67,6 @@ func (c Core) Main() {
 			c.ScheduleAgentStatusCheckTasks(nil)
 			c.TruncateOldTaskLogs()
 			c.DeleteOldPurgedArchives()
-			c.CleanupOrphanedObjects()
 			c.PurgeExpiredAPISessions()
 		}
 	}
@@ -137,9 +135,6 @@ func (c *Core) ConnectToDatabase() {
 }
 
 func (c *Core) InitializePrometheus() error {
-	tenants, err := c.db.GetAllTenants(nil)
-	c.MaybeTerminate(err)
-
 	agents, err := c.db.GetAllAgents(nil)
 	c.MaybeTerminate(err)
 
@@ -163,7 +158,6 @@ func (c *Core) InitializePrometheus() error {
 		Realm:     c.Config.Prometheus.Realm,
 		Namespace: c.Config.Prometheus.Namespace,
 
-		TenantCount:  len(tenants),
 		AgentCount:   len(agents),
 		TargetCount:  len(targets),
 		JobCount:     len(jobs),
@@ -206,42 +200,12 @@ func (c *Core) CreateFailsafeUser() {
 	user.SetPassword(c.Config.API.Failsafe.Password)
 	_, err = c.db.CreateUser(user)
 	c.MaybeTerminate(err)
-
-	tenants, err := c.db.GetAllTenants(&db.TenantFilter{
-		Name:       "Default Tenant",
-		ExactMatch: true,
-	})
-	if err == nil && len(tenants) == 1 {
-		log.Debugf("adding failsafe account to 'Default Tenant' as an admin")
-		tenant := tenants[0]
-		err = c.db.AddUserToTenant(user.UUID, tenant.UUID, "admin")
-		c.MaybeTerminate(err)
-	}
 }
 
 func (c *Core) ExpireInteractiveSessions() {
 	if c.Config.API.Session.ClearOnBoot {
 		log.Infof("INITIALIZING: expiring all interactive sessions...")
 		c.db.ClearExpiredSessions(time.Now())
-	}
-}
-
-func (c *Core) PrecreateTenants() {
-	log.Infof("INITIALIZING: populating SHIELD tenants referenced in auth providers...")
-
-	tenants := make(map[string]bool)
-	for _, auth := range c.providers {
-		for _, tenant := range auth.ReferencedTenants() {
-			if tenant != "SYSTEM" {
-				tenants[tenant] = true
-			}
-		}
-	}
-
-	for tenant := range tenants {
-		if _, err := c.db.EnsureTenant(tenant); err != nil {
-			c.Terminate(fmt.Errorf("unable to pre-create tenant '%s' (referenced in authentication providers): %s", tenant, err))
-		}
 	}
 }
 
@@ -619,14 +583,6 @@ func (c *Core) DeleteOldPurgedArchives() {
 
 	if err := c.db.CleanupArchives((int)(when)); err != nil {
 		log.Errorf("Failed to deleted archives purged more then %s ago: %s", when, err)
-	}
-}
-
-func (c *Core) CleanupOrphanedObjects() {
-	log.Infof("UPKEEP: cleaning up orphaned objects leftover from tenant removal...")
-
-	if err := c.db.CleanTargets(); err != nil {
-		log.Errorf("Failed to clean up orphaned targets: %s", err)
 	}
 }
 

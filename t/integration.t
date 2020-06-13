@@ -81,74 +81,32 @@ $ENV{SHIELD_CORE} = 'integration-tests';
 system("./shield api integration-tests $BASE_URL");
 system("./shield login --username admin --password password");
 
-shield('create-tenant', '--name' => 'Stark Enterprises');
-$ENV{SHIELD_TENANT} = "Stark Enterprises";
-
 subtest "test environment data setup" => sub { # {{{
 	shield('create-user',
 		'--name'        => 'Tony Stark',
 		'--username'    => 'tony',
-		'--password'    => 'J.A.R.V.I.S.',
+		'--password'    => 'geek',
 		'--system-role' => 'admin');
-
-	shield('invite',
-		'--tenant' => 'Stark Enterprises',
-		'--role'   => 'admin',
-		'tony');
-
-	shield('create-user',
-		'--name'     => 'J.A.R.V.I.S.',
-		'--username' => 'jarvis',
-		'--password' => 'T.O.N.Y.');
-
-	shield('invite',
-		'--tenant' => 'Stark Enterprises',
-		'--role'   => 'operator',
-		'jarvis');
-
-	shield('create-tenant', '--name' => 'Wayne Industries');
-
-	shield('create-user',
-		'--name'     => 'Bruce Wayne',
-		'--username' => 'bruce',
-		'--password' => 'by-day');
-
-	shield('invite',
-		'--tenant' => 'Wayne Industries',
-		'--role'   => 'operator',
-		'bruce');
 
 	shield('create-user',
 		'--name'     => 'Batman',
 		'--username' => 'batman',
-		'--password' => 'by-knight');
-
-	shield('invite',
-		'--tenant' => 'Wayne Industries',
-		'--role'   => 'admin',
-		'batman');
+		'--password' => 'iron man sucks');
 
 	shield('login',
 		'--username' => 'tony',
-		'--password' => 'J.A.R.V.I.S.');
+		'--password' => 'geek');
 
 	diag "checking that initial database is empty...";
 	for (qw(jobs targets auth-tokens)) {
 		shield($_); result_is([], "we should have no $_");
 	}
 
-	shield('tenants');
-	result_is([map { $_->{name} } @$RESULT], bag(
-		'Default Tenant',
-		'Wayne Industries',
-		'Stark Enterprises',
-	), "we should have only the tenants we have created");
-
 	shield('users');
 	result_is([map { $_->{account} } @$RESULT], bag(qw(
 		admin
-		tony jarvis
-		bruce batman
+		tony
+		batman
 	)), "we should have only the users we have created");
 
 
@@ -205,88 +163,7 @@ subtest "auth tokens" => sub { # {{{
 	result_is([], 'no more auth tokens');
 };
 # }}}
-subtest "tenants" => sub { # {{{
-	shield('tenant', 'Stark Enterprises');
-	result_is(superhashof({
-		uuid       => uuid(),
-		name       => 'Stark Enterprises',
-	}));
-
-	shield('tenants');
-	result_is([map { $_->{name} } @$RESULT], bag(
-		'Default Tenant',
-		'Stark Enterprises',
-		'Wayne Industries',
-	));
-
-	shield('tenants', 'Stark');
-	result_is([map { $_->{name} } @$RESULT], bag(
-		'Stark Enterprises',
-	), 'partial tenant name search should work');
-
-	shield('create-tenant', '--name', 'My New Tenant');
-	shield('tenant', 'My New Tenant');
-	result_is(superhashof({
-		uuid => uuid(),
-		name => 'My New Tenant'
-	}));
-
-	shield('update-tenant', 'My New Tenant',
-		'--name' => 'My Updated Tenant');
-	shield('tenant', 'My Updated Tenant');
-	result_is(superhashof({
-		uuid => uuid(),
-		name => 'My Updated Tenant',
-		members => undef,
-	}));
-
-	shield('invite',
-		'--tenant' => 'My Updated Tenant',
-		'--role'   => 'operator',
-		'tony', 'jarvis');
-
-	shield('tenant', 'My Updated Tenant');
-	result_is([map { "$_->{account} / $_->{role}" } @{ $RESULT->{members} }],
-		[ 'tony / operator',
-		  'jarvis / operator' ]);
-
-	shield('invite',
-		'--tenant' => 'My Updated Tenant',
-		'--role'   => 'engineer',
-		'jarvis');
-
-	shield('tenant', 'My Updated Tenant');
-	result_is([map { "$_->{account} / $_->{role}" } @{ $RESULT->{members} }],
-		[ 'tony / operator',
-		  'jarvis / engineer' ]);
-
-	shield('banish',
-		'--tenant' => 'My Updated Tenant',
-		'tony');
-
-	shield('tenant', 'My Updated Tenant');
-	result_is([map { "$_->{account} / $_->{role}" } @{ $RESULT->{members} }],
-		[ 'jarvis / engineer' ]);
-
-	# banish tony again, for good measure
-	shield('banish',
-		'--tenant' => 'My Updated Tenant',
-		'tony');
-
-	shield('tenant', 'My Updated Tenant');
-	result_is([map { "$_->{account} / $_->{role}" } @{ $RESULT->{members} }],
-		[ 'jarvis / engineer' ]);
-};
-# }}}
 subtest "users" => sub { # {{{
-	shield('user', 'jarvis');
-	result_is(superhashof({
-		uuid       => uuid(),
-		name       => 'J.A.R.V.I.S.',
-		account    => 'jarvis',
-		sysrole    => '',
-	}));
-
 	shield('user', 'tony');
 	result_is(superhashof({
 		uuid       => uuid(),
@@ -298,8 +175,8 @@ subtest "users" => sub { # {{{
 	shield('users');
 	result_is([map { $_->{account} } @$RESULT], bag(qw/
 		admin
-		tony jarvis
-		bruce batman
+		tony
+		batman
 	/));
 	result_is([grep { $_->{account} eq 'tony' } @$RESULT], [superhashof({
 		uuid    => uuid(),
@@ -311,7 +188,6 @@ subtest "users" => sub { # {{{
 	shield('users', '--fuzzy', 'a');
 	result_is([map { $_->{account} } @$RESULT], bag(qw/
 		admin
-		jarvis
 		batman
 	/));
 

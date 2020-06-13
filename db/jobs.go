@@ -10,7 +10,6 @@ import (
 )
 
 type Job struct {
-	TenantUUID string `json:"-" mbus:"tenant_uuid"`
 	TargetUUID string `json:"-" mbus:"target_uuid"`
 
 	UUID     string `json:"uuid"      mbus:"uuid"`
@@ -51,7 +50,6 @@ type JobFilter struct {
 
 	SearchName string
 
-	ForTenant  string
 	ForTarget  string
 	ForBucket  string
 	ExactMatch bool
@@ -88,10 +86,6 @@ func (f *JobFilter) Query() (string, []interface{}) {
 		wheres = []string{strings.Join(wheres, " OR ")}
 	}
 
-	if f.ForTenant != "" {
-		wheres = append(wheres, "j.tenant_uuid = ?")
-		args = append(args, f.ForTenant)
-	}
 	if f.ForTarget != "" {
 		wheres = append(wheres, "j.target_uuid = ?")
 		args = append(args, f.ForTarget)
@@ -122,7 +116,7 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	        )
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.bucket,
-	          j.tenant_uuid, j.healthy, j.keep_n, j.keep_days,
+	          j.healthy, j.keep_n, j.keep_days,
 	          t.uuid, t.name, t.plugin, t.endpoint, t.agent,
 	          k.started_at, k.status
 
@@ -156,7 +150,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		)
 		if err = r.Scan(
 			&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &j.Bucket,
-			&j.TenantUUID, &j.Healthy, &j.KeepN, &j.KeepDays,
+			&j.Healthy, &j.KeepN, &j.KeepDays,
 			&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
 			&j.Agent, &last, &status); err != nil {
 			return l, err
@@ -203,7 +197,7 @@ func (db *DB) PauseOrUnpauseJob(id string, pause bool) (bool, error) {
 		return true, fmt.Errorf("unable to update job [%s]: not found in database", id)
 	}
 
-	db.sendUpdateObjectEvent(job, "tenant:"+job.TenantUUID)
+	db.sendUpdateObjectEvent(job, "*")
 	return true, nil
 }
 
@@ -220,24 +214,19 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 	job.Healthy = true
 
 	err := db.exclusively(func() error {
-		/* validate the tenant */
-		if err := db.tenantShouldExist(job.TenantUUID); err != nil {
-			return fmt.Errorf("unable to create job: %s", err)
-		}
-
 		/* validate the target */
 		if err := db.targetShouldExist(job.TargetUUID); err != nil {
 			return fmt.Errorf("unable to create job: %s", err)
 		}
 
 		return db.Exec(`
-		   INSERT INTO jobs (uuid, tenant_uuid,
+		   INSERT INTO jobs (uuid,
 		                     name, summary, schedule, keep_n, keep_days, paused,
 		                     target_uuid, bucket, healthy)
-		             VALUES (?, ?,
+		             VALUES (?,
 		                     ?, ?, ?, ?, ?, ?,
 		                     ?, ?, ?)`,
-			job.UUID, job.TenantUUID,
+			job.UUID,
 			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays, job.Paused,
 			job.TargetUUID, job.Bucket, job.Healthy)
 	})
@@ -253,7 +242,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 		return nil, fmt.Errorf("failed to retrieve newly-inserted job [%s]: not found in database", job.UUID)
 	}
 
-	db.sendCreateObjectEvent(job, "tenant:"+job.TenantUUID)
+	db.sendCreateObjectEvent(job, "*")
 	return job, nil
 }
 
@@ -292,7 +281,7 @@ func (db *DB) UpdateJob(job *Job) error {
 		return fmt.Errorf("unable to retrieve job %s after update", job.UUID)
 	}
 
-	db.sendUpdateObjectEvent(update, "tenant:"+update.TenantUUID)
+	db.sendUpdateObjectEvent(update, "*")
 	return nil
 }
 
@@ -314,7 +303,7 @@ func (db *DB) UpdateJobHealth(id string, status bool) error {
 		return err
 	}
 
-	db.sendHealthUpdateEvent(job, "tenant:"+job.TenantUUID)
+	db.sendHealthUpdateEvent(job, "*")
 	return nil
 }
 
@@ -334,7 +323,7 @@ func (db *DB) DeleteJob(id string) (bool, error) {
 		return false, err
 	}
 
-	db.sendDeleteObjectEvent(job, "tenant:"+job.TenantUUID)
+	db.sendDeleteObjectEvent(job, "*")
 
 	jobs, err := db.GetAllJobs(&JobFilter{ForTarget: job.TargetUUID})
 	if err != nil {

@@ -1,4 +1,4 @@
-USAGE: @G{shield} delete-target --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+USAGE: @G{shield} delete-target @Y{NAME-OR-UUID}
 
   Delete a Target Data System.
 

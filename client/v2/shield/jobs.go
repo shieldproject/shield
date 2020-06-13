@@ -50,10 +50,10 @@ type JobFilter struct {
 func fixupJobResponse(p *Job) {
 }
 
-func (c *Client) ListJobs(parent *Tenant, filter *JobFilter) ([]*Job, error) {
+func (c *Client) ListJobs(filter *JobFilter) ([]*Job, error) {
 	u := qs.Generate(filter).Encode()
 	var out []*Job
-	if err := c.get(fmt.Sprintf("/v2/tenants/%s/jobs?%s", parent.UUID, u), &out); err != nil {
+	if err := c.get(fmt.Sprintf("/v2/jobs?%s", u), &out); err != nil {
 		return nil, err
 	}
 	for _, p := range out {
@@ -62,12 +62,12 @@ func (c *Client) ListJobs(parent *Tenant, filter *JobFilter) ([]*Job, error) {
 	return out, nil
 }
 
-func (c *Client) FindJob(tenant *Tenant, q string, fuzzy bool) (*Job, error) {
+func (c *Client) FindJob(q string, fuzzy bool) (*Job, error) {
 	if uuid.Parse(q) != nil {
-		return c.GetJob(tenant, q)
+		return c.GetJob(q)
 	}
 
-	l, err := c.ListJobs(tenant, &JobFilter{
+	l, err := c.ListJobs(&JobFilter{
 		UUID:  q,
 		Name:  q,
 		Fuzzy: fuzzy,
@@ -83,23 +83,19 @@ func (c *Client) FindJob(tenant *Tenant, q string, fuzzy bool) (*Job, error) {
 		return nil, fmt.Errorf("multiple matching jobs found")
 	}
 
-	return c.GetJob(tenant, l[0].UUID)
+	return c.GetJob(l[0].UUID)
 }
 
-func (c *Client) GetJob(parent *Tenant, uuid string) (*Job, error) {
-	if parent == nil {
-		return nil, nil
-	}
-
+func (c *Client) GetJob(uuid string) (*Job, error) {
 	var out *Job
-	if err := c.get(fmt.Sprintf("/v2/tenants/%s/jobs/%s", parent.UUID, uuid), &out); err != nil {
+	if err := c.get(fmt.Sprintf("/v2/jobs/%s", uuid), &out); err != nil {
 		return nil, err
 	}
 	fixupJobResponse(out)
 	return out, nil
 }
 
-func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
+func (c *Client) CreateJob(job *Job) (*Job, error) {
 	var out *Job
 
 	in := struct {
@@ -121,14 +117,14 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 		Bucket:   job.Bucket,
 		FixedKey: job.FixedKey,
 	}
-	if err := c.post(fmt.Sprintf("/v2/tenants/%s/jobs", parent.UUID), in, &out); err != nil {
+	if err := c.post("/v2/jobs", in, &out); err != nil {
 		return nil, err
 	}
 	fixupJobResponse(out)
 	return out, nil
 }
 
-func (c *Client) UpdateJob(parent *Tenant, job *Job) (*Job, error) {
+func (c *Client) UpdateJob(job *Job) (*Job, error) {
 	in := struct {
 		Name     string `json:"name,omitempty"`
 		Summary  string `json:"summary,omitempty"`
@@ -146,30 +142,30 @@ func (c *Client) UpdateJob(parent *Tenant, job *Job) (*Job, error) {
 		Bucket:   job.Bucket,
 		FixedKey: job.FixedKey,
 	}
-	if err := c.put(fmt.Sprintf("/v2/tenants/%s/jobs/%s", parent.UUID, job.UUID), in, nil); err != nil {
+	if err := c.put(fmt.Sprintf("/v2/jobs/%s", job.UUID), in, nil); err != nil {
 		return nil, err
 	}
-	return c.GetJob(parent, job.UUID)
+	return c.GetJob(job.UUID)
 }
 
-func (c *Client) DeleteJob(parent *Tenant, in *Job) (Response, error) {
+func (c *Client) DeleteJob(in *Job) (Response, error) {
 	var out Response
-	return out, c.delete(fmt.Sprintf("/v2/tenants/%s/jobs/%s", parent.UUID, in.UUID), &out)
+	return out, c.delete(fmt.Sprintf("/v2/jobs/%s", in.UUID), &out)
 }
 
-func (c *Client) PauseJob(parent *Tenant, job *Job) (Response, error) {
+func (c *Client) PauseJob(job *Job) (Response, error) {
 	var out Response
-	return out, c.post(fmt.Sprintf("/v2/tenants/%s/jobs/%s/pause", parent.UUID, job.UUID), nil, &out)
+	return out, c.post(fmt.Sprintf("/v2/jobs/%s/pause", job.UUID), nil, &out)
 }
 
-func (c *Client) UnpauseJob(parent *Tenant, job *Job) (Response, error) {
+func (c *Client) UnpauseJob(job *Job) (Response, error) {
 	var out Response
-	return out, c.post(fmt.Sprintf("/v2/tenants/%s/jobs/%s/unpause", parent.UUID, job.UUID), nil, &out)
+	return out, c.post(fmt.Sprintf("/v2/jobs/%s/unpause", job.UUID), nil, &out)
 }
 
-func (c *Client) RunJob(parent *Tenant, job *Job) (Response, error) {
+func (c *Client) RunJob(job *Job) (Response, error) {
 	var out Response
-	return out, c.post(fmt.Sprintf("/v2/tenants/%s/jobs/%s/run", parent.UUID, job.UUID), nil, &out)
+	return out, c.post(fmt.Sprintf("/v2/jobs/%s/run", job.UUID), nil, &out)
 }
 
 func (j Job) Status() string {

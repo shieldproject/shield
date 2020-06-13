@@ -27,7 +27,6 @@ type GithubAuthProvider struct {
 	GithubEnterprise bool   `json:"github_enterprise"`
 	Mapping          []struct {
 		Github string `json:"github"`
-		Tenant string `json:"tenant"`
 		Rights []struct {
 			Team string `json:"team"`
 			Role string `json:"role"`
@@ -71,14 +70,6 @@ func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
 
 func (p *GithubAuthProvider) WireUpTo(c *Core) {
 	p.core = c
-}
-
-func (p *GithubAuthProvider) ReferencedTenants() []string {
-	ll := make([]string, 0)
-	for _, m := range p.Mapping {
-		ll = append(ll, m.Tenant)
-	}
-	return ll
 }
 
 func (p *GithubAuthProvider) Initiate(r *route.Request) {
@@ -164,7 +155,7 @@ Mapping:
 			if candidate.Github == org {
 				for _, match := range candidate.Rights {
 					if match.Team == "" {
-						if !p.Assign(user, candidate.Tenant, match.Role) {
+						if !p.Assign(user, match.Role) {
 							return nil
 						}
 						continue Mapping
@@ -172,7 +163,7 @@ Mapping:
 
 					for _, team := range teams {
 						if match.Team == team {
-							if !p.Assign(user, candidate.Tenant, match.Role) {
+							if !p.Assign(user, match.Role) {
 								return nil
 							}
 							continue Mapping

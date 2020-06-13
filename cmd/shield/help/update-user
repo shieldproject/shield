@@ -5,10 +5,9 @@ USAGE: @G{shield} update-user [OPTIONS] @{NAME-OR-UUID}
   SHIELD supports a several 3rd party authentication providers,
   including Github and Cloud Foundry UAA, but for sheer simplicity,
   nothing beats local users.  Local SHIELD users exist inside the
-  SHIELD database, and can be assigned tenant- and system-roles
-  arbitrarily.
+  SHIELD database, and can be assigned system-roles arbitrarily.
 
-  @Y{NOTE:} This command can only be used by SHIELD site managers.
+  @Y{NOTE:} This command can only be used by SHIELD managers.
 
 @B{Options:}
 
@@ -34,11 +33,12 @@ USAGE: @G{shield} update-user [OPTIONS] @{NAME-OR-UUID}
               to view and manage registered agents, manage user
               sessions, and more.
 
-    @M{manager}   System Managers are responsible for the creation
-              and management of SHIELD Tenants; they have the
-              ability to invite and banish users to / from any
-              tenant.  They also manage local SHIELD users.
+    @M{manager}   System Managers are responsible for managing
+              local SHIELD users and their access level.
 
-    @M{engineer}  Full access to everything that is shared between
-              tenants, namely cloud storage systems.
+    @M{engineer}  Full access to configure data systems, run jobs,
+              view task logs, etc.
+
+    @M{operator}  Readonly access to view data system configuration,
+              run jobs, view task logs, etc.
 

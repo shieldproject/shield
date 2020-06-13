@@ -21,8 +21,6 @@ type User struct {
 
 	Role string `json:"role,omitempty"`
 
-	DefaultTenant string `json:"default_tenant"`
-
 	pwhash string
 }
 
@@ -106,8 +104,7 @@ func (f *UserFilter) Query() (string, []interface{}) {
 	}
 
 	return `
-	    SELECT u.uuid, u.name, u.account, u.backend, sysrole, pwhash,
-	           u.default_tenant
+	    SELECT u.uuid, u.name, u.account, u.backend, sysrole, pwhash
 	      FROM users u
 	     WHERE ` + strings.Join(wheres, " AND ") + `
 	` + limit, args
@@ -129,7 +126,7 @@ func (db *DB) GetAllUsers(filter *UserFilter) ([]*User, error) {
 
 	for r.Next() {
 		u := &User{}
-		if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash, &u.DefaultTenant); err != nil {
+		if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash); err != nil {
 			return l, err
 		}
 		l = append(l, u)
@@ -140,8 +137,7 @@ func (db *DB) GetAllUsers(filter *UserFilter) ([]*User, error) {
 
 func (db *DB) GetUserByID(id string) (*User, error) {
 	r, err := db.query(`
-	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash,
-	           u.default_tenant
+	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash
 	      FROM users u
 	     WHERE u.uuid = ?`, id)
 	if err != nil {
@@ -154,7 +150,7 @@ func (db *DB) GetUserByID(id string) (*User, error) {
 	}
 
 	u := &User{}
-	if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash, &u.DefaultTenant); err != nil {
+	if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash); err != nil {
 		return nil, err
 	}
 	return u, nil
@@ -162,8 +158,7 @@ func (db *DB) GetUserByID(id string) (*User, error) {
 
 func (db *DB) GetUser(account string, backend string) (*User, error) {
 	r, err := db.query(`
-	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash,
-	           u.default_tenant
+	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash
 	      FROM users u
 	     WHERE u.account = ? AND backend = ?`, account, backend)
 	if err != nil {
@@ -176,7 +171,7 @@ func (db *DB) GetUser(account string, backend string) (*User, error) {
 	}
 
 	u := &User{}
-	if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash, &u.DefaultTenant); err != nil {
+	if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash); err != nil {
 		return nil, err
 	}
 	return u, nil
@@ -199,14 +194,6 @@ func (db *DB) UpdateUser(user *User) error {
 	      SET name = ?, account = ?, backend = ?, sysrole = ?, pwhash = ?
 	    WHERE uuid = ?
 	`, user.Name, user.Account, user.Backend, user.SysRole, user.pwhash, user.UUID)
-}
-
-func (db *DB) UpdateUserSettings(user *User) error {
-	return db.Exec(`
-	   UPDATE users
-	      SET default_tenant = ?
-	    WHERE uuid = ?
-	`, user.DefaultTenant, user.UUID)
 }
 
 func (db *DB) DeleteUser(user *User) error {

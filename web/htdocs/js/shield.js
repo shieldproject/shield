@@ -114,41 +114,20 @@ function dispatch(page) {
 
   case "#!/do/backup": /* {{{ */
     Scratch.track('redrawable', false);
-    if (!AEGIS.current) {
-      $('#main').template('you-have-no-tenants');
-      break;
-    }
-    if (!AEGIS.is('tenant', 'operator')) {
-      $('#main').template('access-denied', { level: 'tenant', need: 'operator' });
-      break;
-    }
     $('#main').template('do-backup');
     $('#main .do-backup').trigger('wizard:step', { to: 1 });
     break; /* #!/do/backup */
     // }}}
   case "#!/do/restore": /* {{{ */
     Scratch.track('redrawable', false);
-    if (!AEGIS.current) {
-      $('#main').template('you-have-no-tenants');
-      break;
-    }
-    if (!AEGIS.is('tenant', 'operator')) {
-      $('#main').template('access-denied', { level: 'tenant', need: 'operator' });
-      break;
-    }
-
     $('#main').template('do-restore');
     $('#main .do-restore').trigger('wizard:step', { to: 1 });
     break; /* #!/do/restore */
     // }}}
   case "#!/do/configure": /* {{{ */
     Scratch.track('redrawable', false);
-    if (!AEGIS.current) {
-      $('#main').template('you-have-no-tenants');
-      break;
-    }
-    if (!AEGIS.is('tenant', 'engineer')) {
-      $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
+    if (!AEGIS.is('engineer')) {
+      $('#main').template('access-denied', { need: 'engineer' });
       break;
     }
 
@@ -184,23 +163,15 @@ function dispatch(page) {
     // }}}
 
   case "#!/systems": /* {{{ */
-    if (!AEGIS.current) {
-      $('#main').template('you-have-no-tenants');
-      break;
-    }
     $('#main').template('systems');
     break; /* #!/systems */
     // }}}
   case '#!/systems/system': /* {{{ */
-    if (!AEGIS.current) {
-      $('#main').template('you-have-no-tenants');
-      break;
-    }
     $('#main').template('system', args);
     $('#main .paginate .load-more').trigger('click');
     api({
       type:     'GET',
-      url:      '/v2/tenants/'+AEGIS.current.uuid+'/systems/'+args.uuid+'/config'
+      url:      '/v2/systems/'+args.uuid+'/config'
     }, true).then(function (config) {
       args.config = config;
       $('#main').template('system', args);
@@ -209,8 +180,8 @@ function dispatch(page) {
     // }}}
   case '#!/systems/edit': /* {{{ */
     Scratch.track('redrawable', false);
-    if (!AEGIS.is('tenant', 'engineer')) {
-      $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
+    if (!AEGIS.is('engineer')) {
+      $('#main').template('access-denied', { need: 'engineer' });
       break;
     }
     $('#main').html($($.template('targets-form', args))
@@ -225,7 +196,7 @@ function dispatch(page) {
         $form.submitting(true);
         api({
           type: 'PUT',
-          url:  '/v2/tenants/'+AEGIS.current.uuid+'/targets/'+args.uuid,
+          url:  '/v2/targets/'+args.uuid,
           data: data,
           success: function () {
             goto("#!/systems/system:uuid:"+args.uuid);
@@ -241,108 +212,8 @@ function dispatch(page) {
     // }}}
 
   case '#!/buckets': /* {{{ */
-    if (!AEGIS.current) {
-      $('#main').template('you-have-no-tenants');
-      break;
-    }
     $('#main').template('buckets');
     break; /* #!/buckets */
-    // }}}
-
-  case '#!/tenants/edit': /* {{{ */
-    if (!AEGIS.current) {
-        $('#main').template('you-have-no-tenants');
-        break;
-    }
-    if (!AEGIS.is(args.uuid, 'admin')) {
-        $('#main').template('access-denied', { level: 'tenant', need: 'admin' });
-        break;
-    }
-    api({
-      type: 'GET',
-      url:  '/v2/tenants/'+args.uuid,
-      error: "Failed to retrieve tenant information from the SHIELD API.",
-      success: function (data) {
-        var members = {};
-        $.each(data.members, function (i, user) {
-          members[user.uuid] = user;
-        });
-        $('#main').html($($.template('tenants-form', { tenant: data, admin: false }))
-          .userlookup('input[name=invite]', {
-            filter: function (users) {
-              var lst = [];
-              $.each(users, function (i, user) {
-                if (!(user.uuid in members)) {
-                  lst.push(user);
-                }
-              });
-              return lst;
-            },
-            onclick: function (user) {
-              user.role = 'operator';
-              $('#main table tbody').append($.template('tenants-form-invitee', { user: user }));
-              members[user.uuid] = user;
-
-              api({
-                type: 'POST',
-                url:  '/v2/tenants/'+args.uuid+'/invite',
-                data: {users:[user]},
-                error: "Unable to save tenant role assignment.",
-                success: function () {
-                  banner('User "'+user.account+'" is now '+{
-                      admin    : 'an administrator',
-                      engineer : 'an engineer',
-                      operator : 'an operator'
-                    }[user.role]+' on this tenant.');
-                }
-              });
-            }
-          })
-          .roles('.role', function (e, role) {
-            var data = {
-              uuid    : e.extract('uuid'),
-              account : e.extract('account'),
-              role    : role
-            };
-            api({
-              type: 'POST',
-              url:  '/v2/tenants/'+args.uuid+'/invite',
-              data: {users:[data]},
-              error: "Unable to save tenant role assignment.",
-              success: function () {
-                banner('User "'+data.account+'" is now '+{
-                    admin    : 'an administrator',
-                    engineer : 'an engineer',
-                    operator : 'an operator'
-                  }[data.role]+' on this tenant.');
-              }
-            });
-          })
-          .autofocus()
-          .on('click', 'a[href="banish:user"]', function (event) {
-            event.preventDefault();
-
-            var e = $(event.target);
-            var data = {
-              uuid    : e.extract('uuid'),
-              account : e.extract('account')
-            };
-            delete members[data.uuid];
-            api({
-              type: 'POST',
-              url:  '/v2/tenants/'+args.uuid+'/banish',
-              data: {users:[data]},
-              error: "Unable to save tenant role assignment.",
-              success: function () {
-                banner('User "'+data.account+'" is no longer associated with this tenant.');
-              }
-            })
-            $(event.target).closest('tr').remove();
-          }));
-      }
-    });
-
-    break; /* #!/tenants/edit */
     // }}}
 
   case '#!/admin': /* {{{ */
@@ -446,207 +317,6 @@ function dispatch(page) {
       }
     });
     break; /* #!/admin/auth */
-    // }}}
-
-  case '#!/admin/tenants': /* {{{ */
-    if (!AEGIS.is('engineer')) {
-      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
-      break;
-    }
-    $('#main').template('loading');
-    api({
-      type: 'GET',
-      url:  '/v2/tenants',
-      error: 'Failed to retrieve tenant information from the SHIELD API.',
-      success: function (data) {
-        $('#main').template('tenants', { tenants: data, admin: true });
-      }
-    });
-    break; /* #!/admin/tenants */
-    // }}}
-  case '#!/admin/tenants/new': /* {{{ */
-    Scratch.track('redrawable', false);
-    if (!AEGIS.is('manager')) {
-      $('#main').template('access-denied', { level: 'system', need: 'manager' });
-      break;
-    }
-    var members = {};
-
-    $('#main').html($($.template('tenants-form', { policy: null, admin: true }))
-      .userlookup('input[name=invite]', {
-        // {{{
-        filter: function (users) {
-          var lst = [];
-          $.each(users, function (i, user) {
-            if (!(user.uuid in members)) {
-              lst.push(user);
-            }
-          });
-          return lst;
-        },
-        onclick: function (user) {
-          user.role = 'operator';
-          $('#main table tbody').append($.template('tenants-form-invitee', { user: user }));
-          members[user.uuid] = user.role;
-        }
-        // }}}
-      })
-      .roles('.role', function (e, role) {
-        members[e.extract('uuid')] = role;
-      })
-      .autofocus()
-      .on('click', 'a[href="banish:user"]', function (event) {
-        // {{{
-        event.preventDefault();
-        delete members[$(event.target).extract('uuid')];
-        $(event.target).closest('tr').remove();
-        // }}}
-      })
-      .on('submit', 'form', function (event) {
-        // {{{
-        event.preventDefault();
-
-        var $form = $(event.target);
-        var data = $form.serializeObject();
-        data.users = [];
-        for (uuid in members) {
-          data.users.push({
-            uuid: uuid,
-            role: members[uuid]
-          });
-        }
-
-        $form.reset();
-        $form.submitting(true);
-        api({
-          type: 'POST',
-          url:  '/v2/tenants',
-          data: data,
-          success: function () {
-            goto("#!/admin/tenants");
-          },
-          error: function (xhr) {
-            $form.submitting(false);
-            $form.error(xhr.responseJSON);
-          }
-        });
-        // }}}
-      }));
-
-    break; /* #!/admin/tenants/new */
-    // }}}
-  case '#!/admin/tenants/edit': /* {{{ */
-    Scratch.track('redrawable', false);
-    if (!AEGIS.is('manager')) {
-      $('#main').template('access-denied', { level: 'system', need: 'manager' });
-      break;
-    }
-    api({
-      type: 'GET',
-      url:  '/v2/tenants/'+args.uuid,
-      error: "Failed to retrieve tenant information from the SHIELD API.",
-      success: function (data) {
-        var members = {};
-        $.each(data.members, function (i, user) {
-          members[user.uuid] = user;
-        });
-        $('#main').html($($.template('tenants-form', { tenant: data, admin: true }))
-          .userlookup('input[name=invite]', {
-            filter: function (users) {
-              var lst = [];
-              $.each(users, function (i, user) {
-                if (!(user.uuid in members)) {
-                  lst.push(user);
-                }
-              });
-              return lst;
-            },
-            onclick: function (user) {
-              user.role = 'operator';
-              $('#main table tbody').append($.template('tenants-form-invitee', { user: user }));
-              members[user.uuid] = user;
-
-              api({
-                type: 'POST',
-                url:  '/v2/tenants/'+args.uuid+'/invite',
-                data: {users:[user]},
-                error: "Unable to save tenant role assignment.",
-                success: function () {
-                  banner('User "'+user.account+'" is now '+{
-                      admin    : 'an administrator',
-                      engineer : 'an engineer',
-                      operator : 'an operator'
-                    }[user.role]+' on this tenant.');
-                }
-              });
-            }
-          })
-          .roles('.role', function (e, role) {
-            var data = {
-              uuid    : e.extract('uuid'),
-              account : e.extract('account'),
-              role    : e.extract('role')
-            };
-            api({
-              type: 'POST',
-              url:  '/v2/tenants/'+args.uuid+'/invite',
-              data: {users:[data]},
-              error: "Unable to save tenant role assignment.",
-              success: function () {
-                banner('User "'+data.account+'" is now '+{
-                    admin    : 'an administrator',
-                    engineer : 'an engineer',
-                    operator : 'an operator'
-                  }[data.role]+' on this tenant.');
-              }
-            });
-          })
-          .autofocus()
-          .on('click', 'a[href="banish:user"]', function (event) {
-            event.preventDefault();
-
-            var e = $(event.target);
-            var data = {
-              uuid    : e.extract('uuid'),
-              account : e.extract('account')
-            };
-            delete members[data.uuid];
-            api({
-              type: 'POST',
-              url:  '/v2/tenants/'+args.uuid+'/banish',
-              data: {users:[data]},
-              error: "Unable to save tenant role assignment.",
-              success: function () {
-                banner('User "'+data.account+'" is no longer associated with this tenant.');
-              }
-            })
-            $(event.target).closest('tr').remove();
-          })
-          .on('submit', 'form', function (event) {
-            event.preventDefault();
-
-            var $form = $(event.target);
-            var data = $form.serializeObject();
-
-            $form.reset();
-            $form.submitting(true);
-            api({
-              type: 'PATCH',
-              url:  '/v2/tenants/'+args.uuid,
-              data: data,
-              success: function () {
-                goto("#!/admin/tenants");
-              },
-              error: function (xhr) {
-                $form.submitting(false);
-                $form.error(xhr.responseJSON);
-              }
-            });
-          }));
-      }
-    });
-
-    break; /* #!/admin/tenants/edit */
     // }}}
 
   case '#!/admin/users': /* {{{ */

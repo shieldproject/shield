@@ -35,10 +35,10 @@ func fixupArchiveResponse(p *Archive) {
 func fixupArchiveRequest(p *Archive) {
 }
 
-func (c *Client) ListArchives(parent *Tenant, filter *ArchiveFilter) ([]*Archive, error) {
+func (c *Client) ListArchives(filter *ArchiveFilter) ([]*Archive, error) {
 	u := qs.Generate(filter).Encode()
 	var out []*Archive
-	if err := c.get(fmt.Sprintf("/v2/tenants/%s/archives?%s", parent.UUID, u), &out); err != nil {
+	if err := c.get(fmt.Sprintf("/v2/archives?%s", u), &out); err != nil {
 		return nil, err
 	}
 	for _, p := range out {
@@ -47,12 +47,12 @@ func (c *Client) ListArchives(parent *Tenant, filter *ArchiveFilter) ([]*Archive
 	return out, nil
 }
 
-func (c *Client) FindArchive(tenant *Tenant, q string, fuzzy bool) (*Archive, error) {
+func (c *Client) FindArchive(q string, fuzzy bool) (*Archive, error) {
 	if uuid.Parse(q) != nil {
-		return c.GetArchive(tenant, q)
+		return c.GetArchive(q)
 	}
 
-	l, err := c.ListArchives(tenant, &ArchiveFilter{
+	l, err := c.ListArchives(&ArchiveFilter{
 		UUID:  q,
 		Fuzzy: fuzzy,
 	})
@@ -67,44 +67,44 @@ func (c *Client) FindArchive(tenant *Tenant, q string, fuzzy bool) (*Archive, er
 		return nil, fmt.Errorf("multiple matching archives found")
 	}
 
-	return c.GetArchive(tenant, l[0].UUID)
+	return c.GetArchive(l[0].UUID)
 }
 
-func (c *Client) GetArchive(parent *Tenant, uuid string) (*Archive, error) {
+func (c *Client) GetArchive(uuid string) (*Archive, error) {
 	var out *Archive
-	if err := c.get(fmt.Sprintf("/v2/tenants/%s/archives/%s", parent.UUID, uuid), &out); err != nil {
+	if err := c.get(fmt.Sprintf("/v2/archives/%s", uuid), &out); err != nil {
 		return nil, err
 	}
 	fixupArchiveResponse(out)
 	return out, nil
 }
 
-func (c *Client) CreateArchive(parent *Tenant, in *Archive) (*Archive, error) {
+func (c *Client) CreateArchive(in *Archive) (*Archive, error) {
 	fixupArchiveRequest(in)
 	var out *Archive
-	if err := c.post(fmt.Sprintf("/v2/tenants/%s/archives", parent.UUID), in, &out); err != nil {
+	if err := c.post("/v2/archives", in, &out); err != nil {
 		return nil, err
 	}
 	fixupArchiveResponse(out)
 	return out, nil
 }
 
-func (c *Client) UpdateArchive(parent *Tenant, in *Archive) (*Archive, error) {
+func (c *Client) UpdateArchive(in *Archive) (*Archive, error) {
 	fixupArchiveRequest(in)
 	var out *Archive
-	if err := c.put(fmt.Sprintf("/v2/tenants/%s/archives/%s", parent.UUID, in.UUID), in, &out); err != nil {
+	if err := c.put(fmt.Sprintf("/v2/archives/%s", in.UUID), in, &out); err != nil {
 		return nil, err
 	}
 	fixupArchiveResponse(out)
 	return out, nil
 }
 
-func (c *Client) DeleteArchive(parent *Tenant, in *Archive) (Response, error) {
+func (c *Client) DeleteArchive(in *Archive) (Response, error) {
 	var out Response
-	return out, c.delete(fmt.Sprintf("/v2/tenants/%s/archives/%s", parent.UUID, in.UUID), &out)
+	return out, c.delete(fmt.Sprintf("/v2/archives/%s", in.UUID), &out)
 }
 
-func (c *Client) RestoreArchive(parent *Tenant, a *Archive, t *Target) (*Task, error) {
+func (c *Client) RestoreArchive(a *Archive, t *Target) (*Task, error) {
 	var out Task
 	var filter struct {
 		Target string `json:"target"`
@@ -114,6 +114,6 @@ func (c *Client) RestoreArchive(parent *Tenant, a *Archive, t *Target) (*Task, e
 		filter.Target = t.UUID
 	}
 
-	return &out, c.post(fmt.Sprintf("/v2/tenants/%s/archives/%s/restore",
-		parent.UUID, a.UUID), filter, &out)
+	return &out, c.post(fmt.Sprintf("/v2/archives/%s/restore",
+		a.UUID), filter, &out)
 }

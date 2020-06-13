@@ -42,12 +42,9 @@ func fixupTaskResponse(p *Task) {
 func fixupTaskRequest(p *Task) {
 }
 
-func (c *Client) ListTasks(parent *Tenant, filter *TaskFilter) ([]*Task, error) {
+func (c *Client) ListTasks(filter *TaskFilter) ([]*Task, error) {
 	u := qs.Generate(filter).Encode()
 	url := fmt.Sprintf("/v2/tasks?%s", u)
-	if parent != nil {
-		url = fmt.Sprintf("/v2/tenants/%s/tasks?%s", parent.UUID, u)
-	}
 
 	var out []*Task
 	if err := c.get(url, &out); err != nil {
@@ -59,12 +56,12 @@ func (c *Client) ListTasks(parent *Tenant, filter *TaskFilter) ([]*Task, error) 
 	return out, nil
 }
 
-func (c *Client) FindTask(parent *Tenant, q string, fuzzy bool) (*Task, error) {
+func (c *Client) FindTask(q string, fuzzy bool) (*Task, error) {
 	if uuid.Parse(q) != nil {
-		return c.GetTask(parent, q)
+		return c.GetTask(q)
 	}
 
-	l, err := c.ListTasks(parent, &TaskFilter{
+	l, err := c.ListTasks(&TaskFilter{
 		UUID:  q,
 		Fuzzy: fuzzy,
 	})
@@ -79,14 +76,11 @@ func (c *Client) FindTask(parent *Tenant, q string, fuzzy bool) (*Task, error) {
 		return nil, fmt.Errorf("multiple matching tasks found")
 	}
 
-	return c.GetTask(parent, l[0].UUID)
+	return c.GetTask(l[0].UUID)
 }
 
-func (c *Client) GetTask(parent *Tenant, uuid string) (*Task, error) {
+func (c *Client) GetTask(uuid string) (*Task, error) {
 	url := fmt.Sprintf("/v2/tasks/%s", uuid)
-	if parent != nil {
-		url = fmt.Sprintf("/v2/tenants/%s/tasks/%s", parent.UUID, uuid)
-	}
 
 	var out *Task
 	if err := c.get(url, &out); err != nil {
@@ -96,29 +90,29 @@ func (c *Client) GetTask(parent *Tenant, uuid string) (*Task, error) {
 	return out, nil
 }
 
-func (c *Client) CreateTask(parent *Tenant, in *Task) (*Task, error) {
+func (c *Client) CreateTask(in *Task) (*Task, error) {
 	fixupTaskRequest(in)
 	var out *Task
-	if err := c.post(fmt.Sprintf("/v2/tenants/%s/tasks", parent.UUID), in, &out); err != nil {
+	if err := c.post("/v2/tasks", in, &out); err != nil {
 		return nil, err
 	}
 	fixupTaskResponse(out)
 	return out, nil
 }
 
-func (c *Client) UpdateTask(parent *Tenant, in *Task) (*Task, error) {
+func (c *Client) UpdateTask(in *Task) (*Task, error) {
 	fixupTaskRequest(in)
 	var out *Task
-	if err := c.put(fmt.Sprintf("/v2/tenants/%s/tasks/%s", parent.UUID, in.UUID), in, &out); err != nil {
+	if err := c.put(fmt.Sprintf("/v2/tasks/%s", in.UUID), in, &out); err != nil {
 		return nil, err
 	}
 	fixupTaskResponse(out)
 	return out, nil
 }
 
-func (c *Client) CancelTask(parent *Tenant, in *Task) (Response, error) {
+func (c *Client) CancelTask(in *Task) (Response, error) {
 	var out Response
-	if err := c.delete(fmt.Sprintf("/v2/tenants/%s/tasks/%s", parent.UUID, in.UUID), &out); err != nil {
+	if err := c.delete(fmt.Sprintf("/v2/tasks/%s", in.UUID), &out); err != nil {
 		return out, err
 	}
 	return out, nil

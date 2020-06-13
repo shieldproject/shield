@@ -1,4 +1,4 @@
-USAGE: @G{shield} run-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+USAGE: @G{shield} run-job @Y{NAME-OR-UUID}
 
   Manually Run a Backup Job.
 

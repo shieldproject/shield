@@ -3,11 +3,12 @@ USAGE: @G{shield} import @Y{FILE}
 
   Import configuration into SHIELD, in bulk.
 
-  SHIELD has a lot of configuration, between storage systems and
-  target data systems, users and tenants, etc.  While you could
-  conceivably write a script to automate the stand-up of a new
-  SHIELD environment, we've provided a much simpler alternative,
-  vis-a-vis a YAML-based import command!
+  SHIELD has a lot of configuration, from protected systems,
+  to backup schedules, to local users.
+
+  While you could conceivably write a script to automate the
+  stand-up of a new SHIELD environment, we've provided a much
+  simpler alternative, vis-a-vis a YAML-based import command!
 
 
 @B{Options:}

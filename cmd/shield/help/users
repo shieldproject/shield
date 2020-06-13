@@ -5,10 +5,9 @@ USAGE: @G{shield} users [OPTIONS]
   SHIELD supports a several 3rd party authentication providers,
   including Github and Cloud Foundry UAA, but for sheer simplicity,
   nothing beats local users.  Local SHIELD users exist inside the
-  SHIELD database, and can be assigned tenant- and system-roles
-  arbitrarily.
+  SHIELD database, and can be assigned system-roles arbitrarily.
 
-  @Y{NOTE:} This command can only be used by SHIELD site managers.
+  @Y{NOTE:} This command can only be used by SHIELD managers.
 
 @B{Options:}
 
@@ -17,11 +16,11 @@ USAGE: @G{shield} users [OPTIONS]
 
   --with-system-role  Only show users who have been assigned the
                       specified system role, one of either @M{admin},
-                      @M{manager}, or @M{engineer}.
+                      @M{manager}, @M{engineer}, or @M{operator}.
 
 @B{Examples:}
 
-  # Who can manage tenants?
+  # Who can manage local accounts?
   @W{shield users} \
      @Y{--with-system-role} @C{manager}
 

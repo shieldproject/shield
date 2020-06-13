@@ -76,11 +76,11 @@
   var AEGIS = function () {
     this.data = {};
     this.grants = {
-      tenant: {},
       system: {
         admin:    false,
         manager:  false,
-        engineer: false
+        engineer: false,
+        operator: false
       }
     };
   };
@@ -107,15 +107,15 @@
       return this;
     },
 
-		clear: function (type, object) {
-			this.data = {};
-			this.grants.tenant = {}
-			this.grants.system = {
-				admin:    false,
-				manager:  false,
-				engineer: false
-			}
-		},
+    clear: function (type, object) {
+      this.data = {};
+      this.grants.system = {
+        admin:    false,
+        manager:  false,
+        engineer: false,
+        operator: false
+      }
+    },
 
     delete: function (type, object) {
       delete this.data[type][object.uuid];
@@ -127,41 +127,11 @@
       throw 'not implemented'; /* FIXME */
     },
 
-    myTenants: function () {
-      var tenants = [];
-      for (var uuid in this.grants.tenant) {
-        var tenant = this.data.tenant[uuid];
-        if (tenant) {
-          tenants.push(tenant);
-        }
-      }
-      return tenants;
-    },
-    tenants: function () {
-      var tenants = [];
-      for (var uuid in this.data.tenant || {}) {
-        var tenant = this.data.tenant[uuid];
-        if (tenant) {
-          tenants.push(tenant);
-        }
-      }
-      return tenants;
-    },
-    tenant: function (uuid) {
-      return this.find('tenant', { uuid: uuid });
-    },
-
-    systems: function (q) {
-      q = q || {};
-
+    systems: function () {
       var systems = [];
-      if ('tenant' in q) {
-        for (var uuid in this.data.target || {}) {
-          if (this.data.target[uuid].tenant_uuid == q.tenant) {
-            var target = this.data.target[uuid];
-            systems.push(target);
-          }
-        }
+      for (var uuid in this.data.target || {}) {
+        var target = this.data.target[uuid];
+        systems.push(target);
       }
       return systems;
     },
@@ -190,9 +160,6 @@
         if ('system' in q && job.target_uuid != q.system) {
           continue;
         }
-        if ('tenant' in q && job.tenant_uuid != q.tenant) {
-          continue;
-        }
         jobs.push(job);
       }
       return jobs;
@@ -207,8 +174,7 @@
       var tasks = [];
       for (var uuid in this.data.task || {}) {
         var task = this.data.task[uuid];
-        if (('tenant'  in q && task.tenant_uuid != q.tenant)
-         || ('system'  in q && task.target_uuid  != q.system)
+        if (('system'  in q && task.target_uuid  != q.system)
          || ('job'     in q && task.job_uuid     != q.job)
          || ('archive' in q && task.archive_uuid != q.archive)) {
           continue;
@@ -250,17 +216,14 @@
       q = q || {};
 
       var archives = [];
-      if ('tenant' in q) {
         for (var uuid in this.data.archive || {}) {
           var archive = this.data.archive[uuid];
-          if (archive.tenant_uuid != q.tenant
-           || ('system'  in q && archive.target_uuid          != q.system)
+          if (('system'  in q && archive.target_uuid          != q.system)
            || ('purged'  in q && (archive.status == "purged") != q.purged)) {
             continue;
           }
           archives.push(archive);
         }
-      }
 
       return archives;
     },
@@ -272,116 +235,40 @@
       if (typeof(uuid) === 'object' && ('uuid' in uuid)) {
         uuid = uuid.uuid;
       }
-      if (uuid === 'tenant') {
-        return this.current ? this.current.uuid : '';
-      }
       return uuid;
-    },
-
-    use: function (uuid) {
-      this.current = this.tenant(uuid);
-      return this;
     },
 
     authenticated: function () {
       return typeof(this.user) !== 'undefined';
     },
-    revoke: function () {
-      if (arguments.length == 0) {
-        /* revoke system rights: revoke() */
-        this.grants.system.admin    = false;
-        this.grants.system.manager  = false;
-        this.grants.system.engineer = false;
 
-      } else {
-        /* revoke a tenant rights: revoke($tenant) */
-        var uuid = arguments[0];
-
-        delete this.grants.tenant[uuid];
-
-        /* if we are no longer a member of our current
-           tenant, change the current tenant */
-        if (this.current && this.current.uuid == uuid) {
-          var tenants = this.myTenants();
-          this.current = tenants.length == 0 ? undefined : tenants[0];
-        }
-      }
+    revoke: function () { // revoke all system rights
+      this.grants.system.admin    = false;
+      this.grants.system.manager  = false;
+      this.grants.system.engineer = false;
+      this.grants.system.operator = false;
       return this;
     },
-
-    grant: function () {
-      if (arguments.length == 1) {
-        /* grant a system role: grant($role) */
-
-        /* first revoke all explicit / implicit grants */
-        this.revoke()
-
-        /* then grant only the privileges for this role */
-        switch (arguments[0]) {
-        case 'admin':    this.grants.system.admin    = true;
-        case 'manager':  this.grants.system.manager  = true;
-        case 'engineer': this.grants.system.engineer = true;
-        }
-
-      } else {
-        /* grant a tenant role: grant($tenant, $role) */
-        var uuid = arguments[0];
-
-        /* first revoke all expliit / implicit grants */
-        this.grants.tenant[uuid] = {
-          admin:    false,
-          engineer: false,
-          operator: false
-        };
-
-        /* then grant only the privileges for this role */
-        switch (arguments[1]) {
-        case 'admin':    this.grants.tenant[uuid].admin    = true;
-        case 'engineer': this.grants.tenant[uuid].engineer = true;
-        case 'operator': this.grants.tenant[uuid].operator = true;
-        }
-
-        if (!this.current) {
-          this.current = this.tenant(uuid);
-        }
+    grant: function () { // grant a system rights
+      this.revoke()
+      switch (arguments[0]) {
+      case 'admin':    this.grants.system.admin    = true;
+      case 'manager':  this.grants.system.manager  = true;
+      case 'engineer': this.grants.system.engineer = true;
+      case 'operator': this.grants.system.operator = true;
       }
       return this;
     },
     role: function () {
-      if (arguments.length == 0) {
-        return this.grants.system.admin    ? 'Administrator'
-             : this.grants.system.manager  ? 'Manager'
-             : this.grants.system.engineer ? 'Engineer'
-             : '';
-      }
-
-      var uuid = arguments[0];
-      if (!(uuid in this.grants.tenant)) { return ''; }
-
-      return this.grants.tenant[uuid].admin    ? 'Administrator'
-           : this.grants.tenant[uuid].engineer ? 'Engineer'
-           : this.grants.tenant[uuid].operator ? 'Operator'
+      return this.grants.system.admin    ? 'Administrator'
+           : this.grants.system.manager  ? 'Manager'
+           : this.grants.system.engineer ? 'Engineer'
+           : this.grants.system.operator ? 'Operator'
            : '';
     },
     is: function () {
-      if (arguments.length == 1) {
-        /* look up system rights: is($role) */
-        return !!this.grants.system[arguments[0]];
-
-      } else {
-        /* look up tenant rights: is($tenant, $role) */
-        var uuid = arguments[0];
-        if (uuid === 'tenant') {
-          uuid = this.current;
-        }
-        if (typeof(uuid) === 'object' && 'uuid' in uuid) {
-          uuid = uuid.uuid;
-        }
-        if (uuid in this.grants.tenant) {
-          return !!this.grants.tenant[uuid][arguments[1]];
-        }
-        return false;
-      }
+      /* look up system rights: is($role) */
+      return !!this.grants.system[arguments[0]];
     },
 
     subscribe: function (opts) {
@@ -431,18 +318,6 @@
         case 'task-status-update':
           self.update('task', update.data);
           break;
-        case 'tenant-banish': var tenant = {uuid: update.data.tenant_uuid};
-                              self.revoke(tenant.uuid)
-                              self.delete("tenant", tenant);
-                              $('.top-bar').template('top-bar');
-                              $('#side-bar').template('side-bar');
-                              break;
-
-        case 'tenant-invite': self.insert("tenant", update.data.tenant)
-                              self.grant(update.data.tenant.uuid, update.data.role);
-                              $('.top-bar').template('top-bar');
-                              $('#side-bar').template('side-bar');
-                              break;
         default:
           console.log('unrecognized websocket message "%s": %s', update.event, JSON.stringify(update.data));
           return;
@@ -465,62 +340,26 @@
             self.user   = bearings.user;
 
             self.data.bucket = {};
-            if (bearings.buckets) {
-              bearings.buckets.forEach(bucket => {
-                self.data.bucket[bucket.key] = bucket;
-              });
-            }
+            (bearings.buckets || []).forEach(bucket => {
+              self.data.bucket[bucket.key] = bucket;
+            });
 
-            for (var uuid in bearings.tenants) {
-              var tenant = bearings.tenants[uuid];
-
-              self.grant(uuid, tenant.role); /* FIXME: we don't need .grants anymore... */
-
-              for (var i = 0; i < tenant.archives.length; i++) {
-                self.insert('archive', tenant.archives[i]);
-              }
-
-              for (var i = 0; i < tenant.jobs.length; i++) {
-                tenant.jobs[i].tenant_uuid = uuid;
-
-                tenant.jobs[i].target_uuid = tenant.jobs[i].target.uuid;
-                delete tenant.jobs[i].target;
-
-                self.insert('job', tenant.jobs[i]);
-              }
-
-              for (var i = 0; i < tenant.targets.length; i++) {
-                tenant.targets[i].tenant_uuid = uuid;
-                self.insert('target', tenant.targets[i]);
-              }
-
-              for (var i = 0; i < tenant.agents.length; i++) {
-                self.insert('agent', tenant.agents[i]);
-              }
-              delete tenant.agents;
-
-              self.insert('tenant', tenant.tenant);
-            }
-            console.log(bearings);
+            (bearings.archives || []).forEach(archive => {
+              self.insert('archive', archive);
+            });
+            (bearings.jobs || []).forEach(job => {
+              delete job.target;
+              self.insert('job', job);
+            });
+            (bearings.targets || []).forEach(target => {
+              self.insert('target', target);
+            });
+            (bearings.agents || []).forEach(agent => {
+              self.insert('agent', agent);
+            });
 
             /* process system grants... */
             self.grant(self.user.sysrole);
-
-            /* set default tenant */
-            if (!self.current && self.data.tenant) {
-              self.current = self.data.tenant[self.user.default_tenant];
-            }
-            if (!self.current) {
-              var l = [];
-              for (var k in self.data.tenant) {
-                l.push(self.data.tenant[k]);
-              }
-              l.sort(function (a, b) {
-                return a.name > b.name ? 1 : a.name == b.name ? 0 : -1;
-              });
-              if (l.length > 0) { self.current = l[0]; }
-            }
-
             df.resolve();
           },
           error: function () {

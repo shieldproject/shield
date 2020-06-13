@@ -1,4 +1,4 @@
-USAGE: @G{shield} purge-archive --tenant @Y{TENANT} @Y{UUID}
+USAGE: @G{shield} purge-archive @Y{UUID}
 
   Remove a Backup Archive from Cloud Storage.
 

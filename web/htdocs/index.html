@@ -22,7 +22,7 @@
         The main (authenticated) layout for the UI
       ]]
       <div class="pane">
-        [[ if (AEGIS.is('engineer') || AEGIS.is('tenant', 'operator')) { ]]
+        [[ if (AEGIS.is('operator')) { ]]
         <div class="hud blk" id="hud">
           <div class="x5"><div class="inst">
             <ul>
@@ -68,7 +68,7 @@
       ]]
       <div class="story-sidebar">
         <nav>
-          [[ if (AEGIS.is('tenant', 'operator')) { ]]
+          [[ if (AEGIS.is('operator')) { ]]
             <li><a href="#!/do/backup">Run an ad hoc backup</a>
                 <p>Run a backup job whenever you need to, regardless of the job's
                 schedule.</p></li>
@@ -76,15 +76,11 @@
             <li><a href="#!/do/restore">Restore data from a backup</a>
                 <p>Restore a protected system back to the state it was in when a
                 backup archive was taken.</p></li>
-            [[ if (AEGIS.is('tenant', 'engineer')) { ]]
+            [[ if (AEGIS.is('engineer')) { ]]
               <li><a href="#!/do/configure">Configure a new backup job</a>
                   <p>Set up a new protected system, and configure the how, when,
                   and for how long of managing its backup archives.</p></li>
             [[ } ]]
-          [[ } else { ]]
-            <li><a>You have no tenants...</a>
-                <p>Operator stories will show up on the sidebar here, but only
-                if you have been assigned to one or more SHIELD tenants.</p></li>
           [[ } ]]
         </nav>
         <footer>
@@ -337,36 +333,19 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         {top-bar} template
 
         Renders the top-most bar, with the SHIELD name / environment, and the
-        current users name / tenant and "personal settings" menu.
+        current users name and access level.
       ]]
         <a class="cli" href="/cli/mac/shield"   title="Download MacOS SHIELD CLI"><i class="fab fa-1x fa-apple"></i></a>
         <a class="cli" href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a>
         <h1><a href="#!/systems">SHIELD [[ if (AEGIS.shield.color) { ]]<span style="color:[[= AEGIS.shield.color ]]">[[ } ]][[= h(AEGIS.shield.env) ]]</span></a></h1>
         [[ if (AEGIS.authenticated()) { ]]
-        <a href="#!/account" rel="account">[[= h(AEGIS.user.name) ]][[ if (AEGIS.current) { ]] ([[= h(AEGIS.current.name) ]] :: [[= AEGIS.role(AEGIS.current.uuid) ]])[[ } ]]</a>
+        <a href="#!/account" rel="account">[[= h(AEGIS.user.name) ]] ([[= AEGIS.role() ]])</a>
         <div class="flyout ephemeral">
           <div class="menu">
             <div class="header">Signed in as [[= h(AEGIS.user.account) ]]
               <span>[[= h(AEGIS.user.backend) ]]</span>
             </div>
             <div class="divider"></div>
-            <div class="header">Your Tenants</div>
-            [[ var tenants = AEGIS.myTenants(); ]]
-            [[ if (tenants.length == 0) { ]]
-            <span class="dropdown odd">you have no tenants</span>
-            [[ } else { ]]
-            [[   $.each($.sortBy(tenants, 'name'), function (i, tenant) { ]]
-            <a class="dropdown[[ if (AEGIS.current && tenant.uuid == AEGIS.current.uuid) { ]] current.tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= h(tenant.name) ]] ([[= AEGIS.role(tenant.uuid) ]])</a>
-            [[   }); ]]
-            [[ } ]]
-            <!--
-            [[ if (AEGIS.is('tenant', 'admin')) { ]]
-                <div class="divider"></div>
-                <a class="dropdown" href="#!/tenants/edit:uuid:[[= AEGIS.current.uuid ]]">Tenant Settings</a>
-            [[ } ]]
-            -->
-            <div class="divider"></div>
-            <!--a class="dropdown" href="#!/settings">Settings</a-->
             <a class="dropdown" href="#!/logout">Sign Out</a>
           </div>
         </div>
@@ -409,14 +388,12 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                       jobs:    "ok"
                     };
 
-                    if (AEGIS.current) {
-                      $.each(AEGIS.jobs({ tenant: AEGIS.current.uuid }),
-                             function (_, job) {
-                               if (!job.healthy) {
-                                 health.jobs = "failing";
-                               }
-                             });
-                    }
+                    $.each(AEGIS.jobs(),
+                           function (_, job) {
+                             if (!job.healthy) {
+                               health.jobs = "failing";
+                             }
+                           });
                 ]]
                 <li class="ok"><object type="image/svg+xml" data="i/api-ok.svg"></object> SHIELD is <span>up</span></li>
 
@@ -426,7 +403,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 <li class="fail"><object type="image/svg+xml" data="i/cloud-fail.svg"></object> Cloud Storage is <span>[[= h(health.storage) ]]</span></li>
                 [[ } ]]
 
-                [[ if (AEGIS.current) { ]]
+                [[ if (AEGIS.jobs().length > 0) { ]]
                 [[ if (health.jobs == "ok") { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/jobs-ok.svg"></object> All Jobs <span>succeeding</span></li>
                 [[ } else { ]]
@@ -439,14 +416,10 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
             <div class="x6"><div class="prot">
               <h3>Data Protection Summary</h3>
               <ul>
-                [[ if (AEGIS.current) { ]]
-                <li>Scheduled Backup Jobs <span>[[= AEGIS.jobs({ tenant: AEGIS.current.uuid }).length ]]</span></li>
-                <li>Backup Archives <span>[[= h(AEGIS.current.archive_count) ]]</span></li>
-                <li class="warn">Cloud Storage Used <span>[[= h(bytes(AEGIS.current.storage_used)) ]]</span></li>
-                <li class="ok">Daily Storage Increase <span>[[= h(bytes(AEGIS.current.daily_increase)) ]]</span></li>
-                [[ } else { ]]
-                <li>you do not belong to any tenants...</li>
-                [[ } ]]
+                <li>Scheduled Backup Jobs <span>[[= AEGIS.jobs().length ]]</span></li>
+                <li>Backup Archives <span>FIXME</span></li>
+                <li class="warn">Cloud Storage Used <span>FIXME [[= h(bytes(0)) ]]</span></li>
+                <li class="ok">Daily Storage Increase <span>FIXME [[= h(bytes(0)) ]]</span></li>
               </ul>
             </div></div>
     <!-- }}} --></script>
@@ -474,86 +447,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
       </pre>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="template:account"><!-- {{{ -->
-      [[#
-        {account}
-
-        Shows the user their current account information,
-        including a form for changing their name (and, if
-        local, their password), and a list of all tenants
-        that they belong to, and their roles therein.
-      ]]
-          <div class="gutter blk account">
-            <h2>My Account</h2>
-
-            <form>
-              <p><label for="name">Display</label>
-              <input type="text" value="" /></p>
-            </form>
-          </div>
-    <!-- }}} --></script>
-    <script type="text/html" id="template:roles-menu"><!-- {{{ -->
-      [[#
-        {roles-menu}
-
-        A flyout menu for selecting roles, on either tenants
-        (if given {type: "tenant"}) or the system ({type: "system"}).
-      ]]
-      <div class="roles-menu ephemeral">
-        [[ if (_.type == 'tenant') { ]]
-        <div[[ if (_.current == "admin") { ]] class="current"[[ } ]] data-role="admin">
-          <strong>Administrator</strong>
-          <p>Full control over this tenant.</p>
-        </div>
-        <div[[ if (_.current == "engineer") { ]] class="current"[[ } ]] data-role="engineer">
-          <strong>Engineer</strong>
-          <p>Can do everything except manage other peoples
-             access to this tenant.</p>
-        </div>
-        <div[[ if (_.current == "operator") { ]] class="current"[[ } ]] data-role="operator">
-          <strong>Operator</strong>
-          <p>View access to most things, with the ability to
-             pause and unpause jobs, run ad hoc backups, and
-             perform restore operations.</p>
-        </div>
-        [[ } else { ]]
-        <div[[ if (_.current == "admin") { ]] class="current"[[ } ]] data-role="admin">
-          <strong>Administrator</strong>
-          <p>Full control over SHIELD.</p>
-        </div>
-        <div[[ if (_.current == "manager") { ]] class="current"[[ } ]] data-role="manager">
-          <strong>Manager</strong>
-          <p>Can create and edit tenants, manage tenant/user
-             memberships, and manage user accounts and access rights.</p>
-        </div>
-        <div[[ if (_.current == "engineer") { ]] class="current"[[ } ]] data-role="engineer">
-          <strong>Engineer</strong>
-          <p>Manages global configuration, namely shared cloud
-             storage configurations.</p>
-        </div>
-        [[ } ]]
-      </div>
-    <!-- }}} --></script>
-    <script type="text/html" id="template:you-have-no-tenants"><!-- {{{ -->
-      [[#
-        {you-have-no-tenants} template
-
-        What do you do when someone tries to access the parts of
-        SHIELD that require a tenancy context, yet they have no
-        tenants to speak of?  Why, you show them this little screen,
-        of course!
-      ]]
-          <div class="gutter blk e404">
-            <h2>Hrmm.  You Don't Seem To Belong To Any Tenants</h2>
-            <p>This part of SHIELD only makes sense in the context of a tenant.
-            However, it seems that your account has not been invited to participate
-            in any tenants yet.</p>
-
-            <p>You may want to reach out to your SHIELD administrator and ask them
-            to assign you to a tenant, or check their configuration if they believe
-            you ought to just be automagically assigned to one by the system.</p>
-          </div>
-    <!-- }}} --></script>
     <script type="text/html" id="template:access-denied"><!-- {{{ -->
       [[#
         {access-denied} template
@@ -562,51 +455,28 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         SHIELD that require a certain level of access that is above
         their role assignment?  Try this screen!
 
-        The following data can be provided to tailor the message:
-
-          level: "system"    What level is access being denied at.
-                             The value 'system' applies to global,
-                             administrative contexts; 'tenant'
-                             indicates a per-tenant ACL violation.
-
-          need: "role"       What role is needed to gain access to
-                             the given resource.
-
       ]]
           <div class="gutter blk">
             <h2>Access Denied</h2>
             [[ var want = _.level + '/' + _.need; ]]
-            [[ if (want == 'system/admin') { ]]
-                 <p>This part of SHIELD requires site-level <strong>administator</strong> access.</p>
+            [[ if (_.need == 'admin') { ]]
+                 <p>This part of SHIELD requires <strong>administator</strong> access.</p>
                  <p>Only SHIELD site administrators can grant this level of access.</p>
-            [[ } else if (want == 'system/manager') { ]]
-                 <p>This part of SHIELD requires site-level <strong>manager</strong> access.</p>
+            [[ } else if (_.need == 'manager') { ]]
+                 <p>This part of SHIELD requires <strong>manager</strong> access.</p>
                  <p>Only SHIELD site administrators can grant this level of access.</p>
-            [[ } else if (want == 'system/engineer') { ]]
-                 <p>This part of SHIELD requires site-level <strong>engineer</strong> access.</p>
+            [[ } else if (_.need == 'engineer') { ]]
+                 <p>This part of SHIELD requires <strong>engineer</strong> access.</p>
                  <p>Only SHIELD site administrators can grant this level of access.</p>
-            [[ } else if (want == 'tenant/admin') { ]]
-                 <p>In order to access this part of SHIELD, you need to be
-                 an <strong>administrator</strong> on this tenant.</p>
-                 <p>Please contact your SHIELD site operators if you believe
-                 you should have this level of access.</p>
-            [[ } else if (want == 'tenant/engineer') { ]]
-                 <p>In order to modify the configuration of resources on this
-                 tenant, you need to be granted <strong>engineer</strong>-level
-                 access.</p>
-                 <p>Please consult your tenant administrators if you believe
-                 you should have this level of access.</p>
-            [[ } else if (want == 'tenant/operator') { ]]
-                 <p>In order to operate on this tenant, you will need to be
-                 granted <strong>operator</strong>-level access.</p>
-                 <p>Please consult your tenant administrators if you believe
-                 you should have this level of access.</p>
-            [[ } else if (want == 'generic/elevated') { ]]
+            [[ } else if (_.need == 'operator') { ]]
+                 <p>This part of SHIELD requires <strong>operator</strong> access.</p>
+                 <p>Only SHIELD site administrators can grant this level of access.</p>
+            [[ } else if (_.need == 'elevated') { ]]
                  <p>This part of SHIELD requires <strong>elevated</strong> access.</p>
                  <p>Please consult your administrators if you believe you should
                  have this level of access.</p>
             [[ } else { ]]
-                 <p>This part of SHIELD requires <strong>[[= h(_.level) ]]/[[= h(_.need) ]]</strong>
+                 <p>This part of SHIELD requires <strong>[[= h(_.need) ]]</strong>
                     access, which seems to be an invalid role.  Please submit a bug report.</p>
             [[ } ]]
           </div>
@@ -621,7 +491,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         data system they want to restore, and how fresh the backup needs
         to be.
       ]]
-      [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
+      [[ var systems = AEGIS.systems(); ]]
       <div class="gutter blk wizard2 steps4 do-backup">
         <form class="new-form1">
           <div class="progress">[[# {{{ ]]
@@ -814,7 +684,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         finding the correct archive to restore, based on what data system
         they want to restore, and how fresh the restore needs to be.
       ]]
-      [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
+      [[ var systems = AEGIS.systems(); ]]
       <div class="gutter blk wizard2 steps4 do-restore">
         <form class="new-form1">
           <div class="progress">[[# {{{ ]]
@@ -869,8 +739,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   </thead>
                   <tbody>
                     [[ $.each(systems, function (i, target) {
-                         var archives = AEGIS.archives({ tenant: target.tenant_uuid,
-                                                         system: target.uuid });
+                         var archives = AEGIS.archives({ system: target.uuid });
                          var n = 0;
                          for(var archive of archives) {
                            if(archive.status == "valid") {
@@ -926,7 +795,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         <div class="x9">
           [[
               var archives = [];
-              var all = AEGIS.archives({ tenant: AEGIS.current.uuid });
+              var all = AEGIS.archives();
               $.each(all, function (i, archive) {
                 if (all[i].status == "valid" && all[i].target_uuid == _.target.uuid) {
                   archives.push(all[i]);
@@ -1035,7 +904,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
 
       ]]
       [[
-        var systems = AEGIS.systems({ tenant: AEGIS.current.uuid });
+        var systems = AEGIS.systems();
         var buckets = AEGIS.buckets();
       ]]
       <div class="gutter blk wizard2 steps5 do-configure">
@@ -1519,9 +1388,9 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         Renders all targets visible to / manageable by the current user.
       ]]
       [[ var view = localStorage.getItem('view-preference') || 'card-view'; ]]
-      [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
+      [[ var systems = AEGIS.systems(); ]]
       <div class="gutter blk switch-me [[= view ]]">
-        [[ if (AEGIS.is('tenant', 'engineer')) { ]]
+        [[ if (AEGIS.is('engineer')) { ]]
           <a class="new" href="#!/do/configure">Configure a New Backup Job&raquo;</a>
         [[ } ]]
         [[ if (systems.length == 0) { ]]
@@ -1609,7 +1478,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               <span>Data System</span>[[= h(target.name) ]]
               <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
             </h2>
-              [[ if (!_.admin && AEGIS.is(target.tenant_uuid, 'engineer')) { ]]
+              [[ if (!_.admin && AEGIS.is('engineer')) { ]]
               <a class="edit"   href="#!/systems/edit:uuid:[[= target.uuid ]]">Edit</a>
               [[ } ]]
             <div>[[= md(target.summary) ]]</div>
@@ -1617,8 +1486,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
             <div class="side-by-side">
               <h3>Storage Footprint</h3>
               [[ var n = 0, used = 0;
-                 $.each(AEGIS.archives({ tenant: target.tenant_uuid,
-                                         system: target.uuid,
+                 $.each(AEGIS.archives({ system: target.uuid,
                                          purged: false }),
                         function (i, archive) {
                           if (archive.status == "valid") {
@@ -1664,7 +1532,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               [[ } ]]
             </div>
 
-            [[ var archives = AEGIS.archives({ tenant: target.tenant_uuid, system: target.uuid }); ]]
+            [[ var archives = AEGIS.archives({ system: target.uuid }); ]]
             [[ if (archives.length > 0) { ]]
               [[ archives = $.sortBy(archives, 'taken_at').reverse(); ]]
               [[ var show = Scratch('archives:all') ? archives : archives.slice(0, 4); ]]
@@ -1743,7 +1611,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
 
             <h2>Timeline</h2>
             [[ var timeline = $.sortBy(AEGIS.tasks({ system: target.uuid }), 'requested_at'); ]]
-            <div class="paginate" data-url="/v2/tenants/[[= AEGIS.current.uuid ]]/tasks?target=[[= target.uuid ]]&before={oldest}" data-oldest="[[= timeline.length > 0 ? timeline[0].requested_at : new Date().getTime() ]]">
+            <div class="paginate" data-url="/v2/tasks?target=[[= target.uuid ]]&before={oldest}" data-oldest="[[= timeline.length > 0 ? timeline[0].requested_at : new Date().getTime() ]]">
               <div class="timeline results">
                 [[ $.each(timeline.reverse(), function (i, task) { ]]
                 [[ include('timeline-entry', task); ]]
@@ -2035,158 +1903,6 @@ for job <em>[[= _.task.job_uuid ]]</em>
           </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="template:tenants"><!-- {{{ -->
-      [[#
-        {tenants} template
-
-        Renders the list of all tenants (for site managers)
-      ]]
-          <div class="gutter blk">
-            [[ if (_.admin) { ]]
-              <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
-              <a class="new" href="#!/admin/tenants/new">Create a New Tenant &raquo;</a>
-            [[ } ]]
-            <h2>Tenants</h2>
-            [[ if (_.tenants.length == 0) { ]]
-            <div class="no-data">No Tenants have been created yet.</div>
-            [[ } else { ]]
-            <table class="lean sortable">
-              <thead><tr>
-                <th class="sortable">Name</th>
-                <th></th>
-              </tr></thead>
-              <tbody>
-                [[ $.each(_.tenants, function (i, tenant) { ]]
-                <tr>
-                  <td>[[= h(tenant.name) ]]</td>
-                  <td><a href="#!/[[= _.admin ? 'admin/' : '' ]]tenants/edit:uuid:[[= tenant.uuid ]]">edit</a></td>
-                </tr>
-                [[ }); ]]
-              </tbody>
-            </table>
-            [[ } ]]
-          </div>
-    <!-- }}} --></script>
-    <script type="text/html" id="template:tenants-form"><!-- {{{ -->
-      [[#
-        {tenants-form} template
-
-        Renders a form for creating new tenants, and editing
-        existing tenants.
-      ]]
-          <div class="gutter blk wizard2">
-            [[ if (_.admin) { ]]
-                <a class="breadcrumb" href="#!/admin/tenants">&laquo; Back to Tenants</a>
-                <h2>[[ if (_.tenant) { ]]Edit[[ } else { ]]New[[ } ]] Tenant</h2>
-            [[ } else { ]]
-                <a class="breadcrumb" href="#!/systems">&laquo; Back to Systems</a>
-                <h2> [[= h(_.tenant.name) ]] - Tenant Settings</h2>
-            [[ } ]]
-
-            <form>
-              <div class="error"></div>
-              <div class="c12 band">
-                <div class="x9">
-                  <div class="c12">
-                    [[ if (_.admin) { ]]
-                    <div class="field required" data-field="name" data-type="string">
-                      <div class="x3"><label for="name">Name</label></div>
-                      <div class="x9">
-                        <input type="text"
-                               name="name"
-                               [[ if (_.tenant) { ]]value="[[= h(_.tenant.name) ]]"[[ } ]]
-                               class="autofocus"
-                               placeholder="Name Your Tenant" />
-                        <span class="errors">
-                          <span data-error="missing">Please provide a name for this new tenant.</span>
-                        </span>
-                        <p class="help">Pick a memorable or descriptive name for this tenant.</p>
-                        </div>
-                      </div>
-                    </div>
-                    [[ } ]]
-
-                    <div class="field">
-                      <div class="x3"><label for="invite">People</label></div>
-                      <div class="x9">
-                        <div class="widget">
-                          <input type="text" name="invite" autocomplete="off"
-                                 class="invite" placeholder="Invite people to join..." />
-
-                          <table class="tenant-members lean sortable">
-                            <thead><tr>
-                              <th></th>
-                              <th class="sortable">Display Name</th>
-                              <th class="sortable">Username</th>
-                              <th class="sortable">Role</th>
-                            </tr></thead>
-                            <tbody data-type="tenant">
-                              [[ if (_.tenant) { ]]
-                                [[ $.each(_.tenant.members, function (i, user) { ]]
-                                <tr data-uuid="[[= user.uuid ]]" data-account="[[= h(user.account) ]]">
-                                  <td><a href="banish:user"><img src="/i/delete.png"></a></td>
-                                  <td>[[= h(user.name) ]]</td>
-                                  <td>[[= h(user.account) ]]</td>
-                                  <td><span class="role" data-role="[[= user.role ]]">
-                                  [[= { admin      : "Administrator",
-                                        engineer   : "Engineer",
-                                        operator   : "Operator" }[user.role] ]]
-                                  </span></td>
-                                </tr>
-                                [[ }); ]]
-                              [[ } ]]
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="x12 buttons">
-                    [[ if (_.tenant) { ]]
-                      <button data-alt="Saving..." class="final">Save</button>
-                    [[ } else { ]]
-                      <button data-alt="Creating..." class="final">Create</button>
-                    [[ } ]]
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </form>
-          </div>
-    <!-- }}} --></script>
-    <script type="text/html" id="template:tenants-form-invitee"><!-- {{{ -->
-      [[#
-        {tenants-form-invitee} template
-
-        Renders a table row in the invitee management UI control.
-      ]]
-                      <tr data-uuid="[[= _.user.uuid ]]" data-account="[[= h(_.user.account) ]]">
-                        <td><a href="banish:user"><img src="/i/delete.png"></a></td>
-                        <td>[[= h(_.user.name) ]]</td>
-                        <td>[[= h(_.user.account) ]]</td>
-                        <td><span class="role" data-role="[[= h(_.user.role) ]]">
-                        [[= { admin      : "Administrator",
-                              engineer   : "Engineer",
-                              operator   : "Operator" }[_.user.role] ]]
-                        </span></td>
-                      </tr>
-    <!-- }}} --></script>
-    <script type="text/html" id="template:userlookup-results"><!-- {{{ -->
-      [[#
-        {userlookup-results} template
-
-        Displays the "dropdown" list of user information,
-        after the /v2/ui/users endpoint has fired in a
-        userlookup control.
-      ]]
-      <div class="userlookup-results">
-        <ul>
-          [[ $.each(_, function (i, user) { ]]
-          <li data-idx="[[= i ]]" data-uuid="[[= user.uuid ]]"><strong>[[= h(user.name) ]]</strong><p>[[= h(user.account) ]]</p></li>
-          [[ }); ]]
-        </ul>
-      </div>
-    <!-- }}} --></script>
-
     <script type="text/html" id="template:admin"><!-- {{{ -->
       [[#
         {admin} template
@@ -2196,20 +1912,15 @@ for job <em>[[= _.task.job_uuid ]]</em>
           <div class="gutter blk" id="admin-home">
             <h2>SHIELD Administration</h2>
             <ul>
-              [[ if (AEGIS.is('manager')) { ]]
-              <li><a href="#!/admin/tenants">Tenants</a>
-                <p>Tenants separate and isolate subsets of your users from one another, so that
-                they can neither see nor affect the data systems, or cloud storage configurations
-                of one another.</p>
-              </li>
-              [[ } ]]
-
-              [[ if (AEGIS.is('admin')) { ]]
+              [[ if (AEGIS.is('engineer')) { ]]
               <li><a href="#!/admin/agents">Agents of SHIELD</a>
                 <p>SHIELD performs backup and restore operations through <em>agents</em> that run
                 on other machines.  These agents register with the SHIELD Core, and provide
                 metadata that is essential to the configuration of your data protection jobs.</p>
               </li>
+              [[ } ]]
+
+              [[ if (AEGIS.is('admin')) { ]]
               <li><a href="#!/admin/auth">Authentication Providers</a>
                 <p>SHIELD can authenticate (and authorize) users against 3rd party OAuth2
                 implementations like Github and UAA.  These authentication <em>providers</em>
@@ -2221,8 +1932,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               [[ if (AEGIS.is('manager')) { ]]
               <li><a href="#!/admin/users">Local User Management</a>
                 <p>Local SHIELD user accounts can be set up to provide access to your SHIELD if
-                you do not want to use a 3rd party authentication provider.  Local users can be
-                granted system roles and be given roles on tenants.</p>
+                you do not want to use a 3rd party authentication provider.</p>
               </li>
               [[ } ]]
 
@@ -2458,7 +2168,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         {admin-users} template
 
         Renders the list of local users, in the SHIELD database, allowing
-        administrators to manage them, assigne them to tenants, etc.
+        administrators to manage them, etc.
       ]]
           <div class="gutter blk" id="admin-users">
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
@@ -2474,7 +2184,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 <th class="sortable">Name</th>
                 <th class="sortable">Username</th>
                 <th class="sortable">System Role</th>
-                <th>Tenants</th>
                 <th></th>
               </tr></thead>
               <tbody>
@@ -2483,17 +2192,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   <td><strong>[[= h(user.name) ]]</strong></td>
                   <td>[[= h(user.account) ]]</td>
                   <td>[[ if (user.sysrole == "") { ]]<span class="none">none</span>[[ } else { ]][[= h(user.sysrole) ]][[ } ]]</td>
-                  <td>
-                    [[ if ((user.tenants || []).length == 0) { ]]
-                    <span class="none">none</span>
-                    [[ } else { ]]
-                    <ul>
-                      [[ $.each(user.tenants || [], function (j, tenant) { ]]
-                      <li><strong>[[= h(tenant.name) ]]</strong> ([[= h(tenant.role) ]])</li>
-                      [[ }); ]]
-                    </ul>
-                    [[ } ]]
-                  </td>
                   <td>
                     [[ if (AEGIS.is('manager')) { ]]
                     <td>

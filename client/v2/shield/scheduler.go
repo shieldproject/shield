@@ -8,16 +8,6 @@ type BacklogStatus struct {
 	Op    string `json:"op"`
 	Agent string `json:"agent"`
 
-	Tenant *struct {
-		UUID string `json:"uuid"`
-		Name string `json:"name"`
-	} `json:"tenant,omitempty"`
-
-	Store *struct {
-		UUID string `json:"uuid"`
-		Name string `json:"name"`
-	} `json:"store,omitempty"`
-
 	System *struct {
 		UUID string `json:"uuid"`
 		Name string `json:"name"`
@@ -43,16 +33,6 @@ type WorkerStatus struct {
 	Op     string `json:"op"`
 	Status string `json:"status"`
 	Agent  string `json:"agent"`
-
-	Tenant *struct {
-		UUID string `json:"uuid"`
-		Name string `json:"name"`
-	} `json:"tenant,omitempty"`
-
-	Store *struct {
-		UUID string `json:"uuid"`
-		Name string `json:"name"`
-	} `json:"store,omitempty"`
 
 	System *struct {
 		UUID string `json:"uuid"`

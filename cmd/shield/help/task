@@ -1,4 +1,4 @@
-USAGE: @G{shield} task --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+USAGE: @G{shield} task @Y{NAME-OR-UUID}
 
   Show a single SHIELD Task.
 

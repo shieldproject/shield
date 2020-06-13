@@ -13,12 +13,6 @@ type User struct {
 	Account  string `json:"account"`
 	SysRole  string `json:"sysrole"`
 	Password string `json:"password,omitempty"`
-
-	Tenants []struct {
-		UUID string `json:"uuid"`
-		Name string `json:"name"`
-		Role string `json:"role"`
-	} `json:"tenants"`
 }
 
 type UserFilter struct {

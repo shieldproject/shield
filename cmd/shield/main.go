@@ -37,9 +37,8 @@ var opts struct {
 	JSON   bool   `cli:"--json" env:"SHIELD_JSON_MODE"`
 	Long   bool   `cli:"-L, --long"`
 
-	Exact  bool   `cli:"--exact"`
-	Fuzzy  bool   `cli:"--fuzzy"`
-	Tenant string `cli:"-t, --tenant" env:"SHIELD_TENANT"`
+	Exact bool `cli:"--exact"`
+	Fuzzy bool `cli:"--fuzzy"`
 
 	HelpCommand struct{} `cli:"help"`
 
@@ -51,9 +50,7 @@ var opts struct {
 	Curl     struct{} `cli:"curl"`
 	TimeSpec struct{} `cli:"timespec"`
 
-	Status struct {
-		Global bool `cli:"--global"`
-	} `cli:"status"`
+	Status struct{} `cli:"status"`
 
 	Import struct {
 		Example bool `cli:"--example"`
@@ -107,30 +104,6 @@ var opts struct {
 	AuthTokens      struct{} `cli:"auth-tokens"`
 	CreateAuthToken struct{} `cli:"create-auth-token"`
 	RevokeAuthToken struct{} `cli:"revoke-auth-token"`
-
-	/* }}} */
-	/* TENANTS {{{ */
-	Tenants    struct{} `cli:"tenants"`
-	ShowTenant struct {
-		Members bool `cli:"--members"`
-	} `cli:"tenant"`
-	CreateTenant struct {
-		Name string `cli:"-n, --name"`
-	} `cli:"create-tenant"`
-	UpdateTenant struct {
-		Name string `cli:"-n, --name"`
-	} `cli:"update-tenant"`
-	DeleteTenant struct {
-		Recursive bool `cli:"-r, --recursive"`
-	} `cli:"delete-tenant"`
-
-	/* }}} */
-	/* MEMBERSHIP {{{ */
-	Banish struct{} `cli:"banish"`
-	Invite struct {
-		Role string `cli:"-r, --role"`
-	} `cli:"invite"`
-	/* FIXME: delete-tenant */
 
 	/* }}} */
 	/* TARGETS {{{ */
@@ -325,7 +298,6 @@ func main() {
 		fmt.Printf("\n")
 		fmt.Printf("      --config   An alternate client configuration file to use. (@W{$SHIELD_CLI_CONFIG})\n")
 		fmt.Printf("  -c, --core     Which SHIELD core to communicate with. (@W{$SHIELD_CORE})\n")
-		fmt.Printf("  -t, --tenant   Which SHIELD tenant to operate within. (@W{$SHIELD_TENANT})\n")
 		fmt.Printf("\n")
 		fmt.Printf("      --exact    Perform lookups against SHIELD data without using fuzzy matching.\n")
 		fmt.Printf("      --fuzzy    Perform lookups against SHIELD data using fuzzy matching.\n")
@@ -348,7 +320,6 @@ func main() {
 		fmt.Printf("\n")
 		fmt.Printf("    SHIELD_CLI_CONFIG=@C{/path/to/.shield}      --config @C{/path/to/.shield}\n")
 		fmt.Printf("    SHIELD_CORE=@C{prod-shield}                 --core @C{prod-shield}\n")
-		fmt.Printf("    SHIELD_TENANT=@C{infrastructure}            --tenant @C{infrastructure}\n")
 		fmt.Printf("    SHIELD_BATCH_MODE=@M{1}                     --batch\n")
 		fmt.Printf("    SHIELD_JSON_MODE=@M{y}                      --json\n")
 		fmt.Printf("    SHIELD_DEBUG=@M{1} SHIELD_TRACE=@M{yes}         --debug --trace\n")
@@ -399,7 +370,6 @@ func main() {
 			fmt.Printf("    @C{auth}       Authentication and SHIELD Endpoint management.\n")
 			fmt.Printf("    @C{misc}       Commands that don't really fit elsewhere...\n")
 			fmt.Printf("    @C{admin}      Administrative commands, for SHIELD site operators.\n")
-			fmt.Printf("    @C{tenants}    Tenant (and membership) management.\n")
 			fmt.Printf("    @C{targets}    Target Data System management.\n")
 			fmt.Printf("    @C{storage}    Cloud Storage management.\n")
 			fmt.Printf("    @C{jobs}       Scheduled Backup Job management.\n")
@@ -489,17 +459,6 @@ func main() {
 			printc("  sessions                 List all authenticated sessions.\n")
 			printc("  session                  Display the details of a single session.\n")
 			printc("  delete-session           Revoke (forcibly de-authenticate) a session.\n")
-		}
-		if show("tenant", "tenants") {
-			header("Tenant Management")
-			printc("  tenants                  List all SHIELD Tenants.\n")
-			printc("  tenant                   Display the details for a single SHIELD Tenant.\n")
-			printc("  create-tenant            Create a new SHIELD Tenant.\n")
-			printc("  update-tenant            Update the metadata for a single tenant.\n")
-			printc("  delete-tenant            Remove a tenant\n")
-			blank()
-			printc("  invite                   Invite a local user to a SHIELD Tenant.\n")
-			printc("  banish                   Remove a local user from a SHIELD Tenant.\n")
 		}
 		if show("target", "targets") {
 			header("Target Data Systems")
@@ -647,44 +606,40 @@ users:
                          #
                          #   admin    - full access to SHIELD
                          #
-                         #   manager  - handles tenants and tenant
+                         #   manager  - handles users and system
                          #              role assignments.
                          #
                          #   engineer - for the technical stuff
-                         #              (mostly just global cloud storage)
+                         #
+                         #   operator - read-only access to (re)run
+                         #              jobs and kick off restores.
                          #
 
   - name:     J User
     username: juser
     password: password
     sysrole:  ~          # juser has no system-level privileges
-                         # (but they can still be invited to tenants)
 
-tenants:
-  - name: A Tenant
-    members:
-      - { user: juser@local, role: admin }
+systems:
+  - name:    A System
+    summary: A protected data system
+    agent:   10.255.6.7:5444
+    plugin:  fs
+    config:
+      base_dir: /tmp
 
-    systems:
-      - name:    A System
-        summary: A protected data system, owned by A Tenant.
-        agent:   10.255.6.7:5444
-        plugin:  fs
-        config:
-          base_dir: /tmp
+    jobs:
+      - name:     Daily
+        when:     daily 4:10am
+        paused:   no
+        bucket:   local
+        retain:   4d
 
-        jobs:
-          - name:     Daily
-            when:     daily 4:10am
-            paused:   no
-            bucket:   local
-            retain:   4d
-
-          - name:     Weekly
-            when:     sundays at 2:45am
-            paused:   yes
-            bucket:   local
-            retain:   28d
+      - name:     Weekly
+        when:     sundays at 2:45am
+        paused:   yes
+        bucket:   local
+        retain:   28d
 `)
 			return
 		}
@@ -847,18 +802,6 @@ tenants:
 		}
 		fmt.Printf("@G{Account Details}\n")
 		r.Output(os.Stdout)
-		fmt.Printf("\n")
-
-		if len(id.Tenants) == 0 {
-			fmt.Printf("@Y{you are not assigned to any tenants}\n")
-		} else {
-			tbl := table.NewTable("UUID", "Name", "Role")
-			for _, tenant := range id.Tenants {
-				tbl.Row(tenant, tenant.UUID, tenant.Name, tenant.Role)
-			}
-			fmt.Printf("@G{Tenants}\n")
-			tbl.Output(os.Stdout)
-		}
 
 	/* }}} */
 
@@ -988,19 +931,8 @@ tenants:
 		info, err := c.Info()
 		bail(err)
 
-		var status *shield.Status
-		if opts.Status.Global || opts.Tenant == "" {
-			status, err = c.GlobalStatus()
-			bail(err)
-
-		} else {
-			required(opts.Tenant != "", "Missing required --tenant option.")
-			tenant, err := c.FindMyTenant(opts.Tenant, true)
-			bail(err)
-
-			status, err = c.TenantStatus(tenant)
-			bail(err)
-		}
+		status, err := c.GlobalStatus()
+		bail(err)
 
 		if opts.JSON {
 			fmt.Printf("%s\n", asJSON(
@@ -1130,7 +1062,7 @@ tenants:
 		none := fmt.Sprintf("@K{(none)}")
 		oops := fmt.Sprintf("@R{(oops)}")
 
-		tbl := table.NewTable("#", "Op", "Status", "Task", "Tenant", "System", "Job", "Archive", "Agent")
+		tbl := table.NewTable("#", "Op", "Status", "Task", "System", "Job", "Archive", "Agent")
 		for _, worker := range ps.Workers {
 			if worker.Idle {
 				tbl.Row(worker, worker.ID, none, fmt.Sprintf("@C{idle}"),
@@ -1150,14 +1082,6 @@ tenants:
 				task := oops
 				if worker.TaskUUID != "" {
 					task = fmt.Sprintf("@Y{%s}", uuid8(worker.TaskUUID))
-				}
-
-				tenant := oops
-				if worker.Tenant != nil {
-					tenant = worker.Tenant.Name
-					if worker.Tenant.UUID != "" {
-						tenant = fmt.Sprintf("@W{%s}\n(%s)", worker.Tenant.Name, uuid8(worker.Tenant.UUID))
-					}
 				}
 
 				system := none
@@ -1180,7 +1104,7 @@ tenants:
 					agent = fmt.Sprintf("@Y{%s}", worker.Agent)
 				}
 
-				tbl.Row(worker, worker.ID, op, status, task, tenant, system, job, archive, agent)
+				tbl.Row(worker, worker.ID, op, status, task, system, job, archive, agent)
 			}
 		}
 		fmt.Printf("@M{Scheduler Threads}\n\n")
@@ -1296,193 +1220,7 @@ tenants:
 
 	/* }}} */
 
-	case "tenants": /* {{{ */
-		required(len(args) <= 1, "Too many arguments.")
-		filter := &shield.TenantFilter{
-			Fuzzy: !opts.Exact,
-		}
-		if len(args) == 1 {
-			filter.Name = args[0]
-			filter.UUID = args[0]
-		}
-
-		tenants, err := c.ListTenants(filter)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(tenants))
-			break
-		}
-
-		tbl := table.NewTable("UUID", "Name")
-		for _, tenant := range tenants {
-			tbl.Row(tenant, uuid8full(tenant.UUID, opts.Long), tenant.Name)
-		}
-		tbl.Output(os.Stdout)
-
-	/* }}} */
-	case "tenant": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
-		}
-
-		tenant, err := c.FindTenant(args[0], !opts.Exact)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(tenant))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", tenant.UUID)
-		r.Add("Name", tenant.Name)
-		r.Output(os.Stdout)
-
-		if opts.ShowTenant.Members {
-			fmt.Printf("\n")
-			t := table.NewTable("UUID", "Name", "Account", "Role")
-			for _, mem := range tenant.Members {
-				t.Row(mem, mem.UUID, mem.Name, fmt.Sprintf("%s@%s", mem.Account, mem.Backend), mem.Role)
-			}
-			t.Output(os.Stdout)
-		}
-
-	/* }}} */
-	case "create-tenant": /* {{{ */
-		if !opts.Batch {
-			if opts.CreateTenant.Name == "" {
-				opts.CreateTenant.Name = prompt("@C{Tenant Name}: ")
-			}
-		}
-
-		t, err := c.CreateTenant(&shield.Tenant{
-			Name: opts.CreateTenant.Name,
-		})
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(t))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", t.UUID)
-		r.Add("Name", t.Name)
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "update-tenant": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
-		}
-		t, err := c.FindTenant(args[0], true)
-		bail(err)
-
-		if opts.UpdateTenant.Name != "" {
-			t.Name = opts.UpdateTenant.Name
-		}
-
-		_, err = c.UpdateTenant(t)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(t))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", t.UUID)
-		r.Add("Name", t.Name)
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "delete-tenant": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
-		}
-		t, err := c.FindTenant(args[0], true)
-		bail(err)
-
-		if !confirm(opts.Yes, "Are you sure you want to delete all configuration under this tenant?") {
-			break
-		}
-
-		_, err = c.DeleteTenant(t, opts.DeleteTenant.Recursive)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s has been deleted\n", asJSON(t))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", t.UUID)
-		r.Add("Name", t.Name)
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "invite": /* {{{ */
-		if len(args) < 1 {
-			fail(2, "Usage: shield %s -r ROLE USER [USER ...]\n", command)
-		}
-		tenant, err := c.FindTenant(opts.Tenant, true)
-		bail(err)
-
-		switch opts.Invite.Role {
-		case "":
-			opts.Invite.Role = "operator"
-		case "operator", "engineer", "admin":
-		default:
-			bail(fmt.Errorf("Invalid --role value '%s' (must be one of operator, engineer, or admin)", opts.Invite.Role))
-		}
-
-		users := make([]*shield.User, len(args))
-		for i := range args {
-			user, err := c.FindUser(args[i], !opts.Exact)
-			bail(err)
-
-			users[i] = user
-		}
-
-		r, err := c.Invite(tenant, opts.Invite.Role, users)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(r))
-			break
-		}
-		fmt.Printf("%s\n", r.OK)
-
-		/* }}} */
-	case "banish": /* {{{ */
-		if len(args) < 1 {
-			fail(2, "Usage: shield %s USER [USER ...]\n", command)
-		}
-		tenant, err := c.FindTenant(opts.Tenant, true)
-		bail(err)
-
-		users := make([]*shield.User, len(args))
-		for i := range args {
-			user, err := c.FindUser(args[i], !opts.Exact)
-			bail(err)
-
-			users[i] = user
-		}
-
-		r, err := c.Banish(tenant, users)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(r))
-			break
-		}
-		fmt.Printf("%s\n", r.OK)
-
-		/* }}} */
-
 	case "targets": /* {{{ */
-		required(opts.Tenant != "", "Missing required --tenant option.")
 		required(!(opts.Targets.Used && opts.Targets.Unused),
 			"The --used and --unused options are mutually exclusive.")
 		required(len(args) <= 1, "Too many arguments.")
@@ -1500,10 +1238,7 @@ tenants:
 			filter.Used = &x
 		}
 
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		targets, err := c.ListTargets(tenant, filter)
+		targets, err := c.ListTargets(filter)
 		bail(err)
 
 		if opts.JSON {
@@ -1523,11 +1258,7 @@ tenants:
 			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		t, err := c.FindTarget(tenant, args[0], !opts.Exact)
+		t, err := c.FindTarget(args[0], !opts.Exact)
 		bail(err)
 
 		if opts.JSON {
@@ -1547,10 +1278,6 @@ tenants:
 
 	/* }}} */
 	case "create-target": /* {{{ */
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
 		conf, err := dataConfig(opts.CreateTarget.Data)
 		bail(err)
 
@@ -1569,7 +1296,7 @@ tenants:
 			}
 		}
 
-		t, err := c.CreateTarget(tenant, &shield.Target{
+		t, err := c.CreateTarget(&shield.Target{
 			Name:    opts.CreateTarget.Name,
 			Summary: opts.CreateTarget.Summary,
 			Agent:   opts.CreateTarget.Agent,
@@ -1594,13 +1321,9 @@ tenants:
 	/* }}} */
 	case "update-target": /* {{{ */
 		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
+			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
 		}
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		t, err := c.FindTarget(tenant, args[0], true)
+		t, err := c.FindTarget(args[0], true)
 		bail(err)
 
 		conf, err := dataConfig(opts.UpdateTarget.Data)
@@ -1631,7 +1354,7 @@ tenants:
 			}
 		}
 
-		_, err = c.UpdateTarget(tenant, t)
+		_, err = c.UpdateTarget(t)
 		bail(err)
 
 		if opts.JSON {
@@ -1651,19 +1374,15 @@ tenants:
 	/* }}} */
 	case "delete-target": /* {{{ */
 		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
+			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
 		}
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
+		t, err := c.FindTarget(args[0], true)
 		bail(err)
 
-		t, err := c.FindTarget(tenant, args[0], true)
-		bail(err)
-
-		if !confirm(opts.Yes, "Delete target @Y{%s} in tenant @Y{%s}?", t.Name, tenant.Name) {
+		if !confirm(opts.Yes, "Delete target @Y{%s}?", t.Name) {
 			break
 		}
-		r, err := c.DeleteTarget(tenant, t)
+		r, err := c.DeleteTarget(t)
 		bail(err)
 
 		if opts.JSON {
@@ -1715,7 +1434,6 @@ tenants:
 	/* }}} */
 
 	case "jobs": /* {{{ */
-		required(opts.Tenant != "", "Missing required --tenant option.")
 		required(!(opts.Jobs.Paused && opts.Jobs.Unpaused),
 			"The --paused and --unpaused options are mutually exclusive.")
 		required(len(args) <= 1, "Too many arguments.")
@@ -1733,10 +1451,7 @@ tenants:
 			filter.UUID = args[0]
 		}
 
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		jobs, err := c.ListJobs(tenant, filter)
+		jobs, err := c.ListJobs(filter)
 		bail(err)
 
 		if opts.JSON {
@@ -1756,11 +1471,7 @@ tenants:
 			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		job, err := c.FindJob(tenant, args[0], !opts.Exact)
+		job, err := c.FindJob(args[0], !opts.Exact)
 		bail(err)
 
 		if opts.JSON {
@@ -1793,11 +1504,6 @@ tenants:
 
 	/* }}} */
 	case "create-job": /* {{{ */
-		required(opts.Tenant != "", "Missing required --tenant option.")
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
 		if !opts.Batch {
 			if opts.CreateJob.Name == "" {
 				opts.CreateJob.Name = prompt("@C{Job Name}: ")
@@ -1808,10 +1514,10 @@ tenants:
 			for opts.CreateJob.Target == "" {
 				id := prompt("@C{Target Data System}: ")
 				if len(id) > 0 && id[0] == '?' {
-					SearchTargets(c, tenant, id[1:])
+					SearchTargets(c, id[1:])
 					continue
 				}
-				if target, err := c.FindTarget(tenant, id, !opts.Exact); err != nil {
+				if target, err := c.FindTarget(id, !opts.Exact); err != nil {
 					fmt.Fprintf(os.Stderr, "@Y{%s}\n", err)
 				} else {
 					opts.CreateJob.Target = target.UUID
@@ -1844,7 +1550,7 @@ tenants:
 
 		} else {
 			if id := opts.CreateJob.Target; id != "" {
-				if target, err := c.FindTarget(tenant, id, !opts.Exact); err != nil {
+				if target, err := c.FindTarget(id, !opts.Exact); err != nil {
 					bail(err)
 				} else {
 					opts.CreateJob.Target = target.UUID
@@ -1859,7 +1565,7 @@ tenants:
 			}
 		}
 
-		job, err := c.CreateJob(tenant, &shield.Job{
+		job, err := c.CreateJob(&shield.Job{
 			Name:       opts.CreateJob.Name,
 			Summary:    opts.CreateJob.Summary,
 			TargetUUID: opts.CreateJob.Target,
@@ -1885,14 +1591,9 @@ tenants:
 	/* }}} */
 	case "update-job": /* {{{ */
 		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
+			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
 		}
-		required(opts.Tenant != "", "Missing required --tenant option.")
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		job, err := c.FindJob(tenant, args[0], !opts.Exact)
+		job, err := c.FindJob(args[0], !opts.Exact)
 		bail(err)
 
 		if opts.UpdateJob.Name != "" {
@@ -1902,7 +1603,7 @@ tenants:
 			job.Summary = opts.UpdateJob.Summary
 		}
 		if id := opts.UpdateJob.Target; id != "" {
-			if target, err := c.FindTarget(tenant, id, !opts.Exact); err != nil {
+			if target, err := c.FindTarget(id, !opts.Exact); err != nil {
 				bail(err)
 			} else {
 				job.TargetUUID = target.UUID
@@ -1929,7 +1630,7 @@ tenants:
 			job.FixedKey = false
 		}
 
-		_, err = c.UpdateJob(tenant, job)
+		_, err = c.UpdateJob(job)
 		bail(err)
 
 		if opts.JSON {
@@ -1946,21 +1647,16 @@ tenants:
 	/* }}} */
 	case "delete-job": /* {{{ */
 		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
+			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
+		job, err := c.FindJob(args[0], true)
 		bail(err)
 
-		job, err := c.FindJob(tenant, args[0], true)
-		bail(err)
-
-		if !confirm(opts.Yes, "Delete job @Y{%s} in tenant @Y{%s}?", job.Name, tenant.Name) {
+		if !confirm(opts.Yes, "Delete job @Y{%s} (for system @W{%s})?", job.Name, job.Target.Name) {
 			break
 		}
-		r, err := c.DeleteJob(tenant, job)
+		r, err := c.DeleteJob(job)
 		bail(err)
 
 		if opts.JSON {
@@ -1972,21 +1668,16 @@ tenants:
 	/* }}} */
 	case "pause-job": /* {{{ */
 		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
+			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
+		job, err := c.FindJob(args[0], true)
 		bail(err)
 
-		job, err := c.FindJob(tenant, args[0], true)
-		bail(err)
-
-		if !confirm(opts.Yes, "Pause job @Y{%s} in tenant @Y{%s}?", job.Name, tenant.Name) {
+		if !confirm(opts.Yes, "Pause job @Y{%s} (for system @W{%s})?", job.Name, job.Target.Name) {
 			break
 		}
-		r, err := c.PauseJob(tenant, job)
+		r, err := c.PauseJob(job)
 		bail(err)
 
 		if opts.JSON {
@@ -1998,21 +1689,16 @@ tenants:
 	/* }}} */
 	case "unpause-job": /* {{{ */
 		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
+			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
+		job, err := c.FindJob(args[0], true)
 		bail(err)
 
-		job, err := c.FindJob(tenant, args[0], true)
-		bail(err)
-
-		if !confirm(opts.Yes, "Unpause job @Y{%s} in tenant @Y{%s}?", job.Name, tenant.Name) {
+		if !confirm(opts.Yes, "Unpause job @Y{%s} (for system @W{%s})?", job.Name, job.Target.Name) {
 			break
 		}
-		r, err := c.UnpauseJob(tenant, job)
+		r, err := c.UnpauseJob(job)
 		bail(err)
 
 		if opts.JSON {
@@ -2024,21 +1710,16 @@ tenants:
 	/* }}} */
 	case "run-job": /* {{{ */
 		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
+			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
+		job, err := c.FindJob(args[0], !opts.Exact)
 		bail(err)
 
-		job, err := c.FindJob(tenant, args[0], !opts.Exact)
-		bail(err)
-
-		if !confirm(opts.Yes, "Run job @Y{%s} in tenant @Y{%s}?", job.Name, tenant.Name) {
+		if !confirm(opts.Yes, "Run job @Y{%s} (for system @W{%s})?", job.Name, job.Target.Name) {
 			break
 		}
-		r, err := c.RunJob(tenant, job)
+		r, err := c.RunJob(job)
 		bail(err)
 
 		if opts.JSON {
@@ -2050,17 +1731,13 @@ tenants:
 	/* }}} */
 
 	case "archives": /* {{{ */
-		required(opts.Tenant != "", "Missing required --tenant option.")
 		required(len(args) <= 1, "Too many arguments.")
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
 
 		if opts.Archives.Limit == 0 {
 			opts.Archives.Limit = 1000 /* sane upper limit */
 		}
 		if opts.Archives.Target != "" {
-			t, err := c.FindTarget(tenant, opts.Archives.Target, !opts.Exact)
+			t, err := c.FindTarget(opts.Archives.Target, !opts.Exact)
 			bail(err)
 			opts.Archives.Target = t.UUID
 		}
@@ -2074,7 +1751,7 @@ tenants:
 			filter.UUID = args[0]
 		}
 
-		archives, err := c.ListArchives(tenant, filter)
+		archives, err := c.ListArchives(filter)
 		bail(err)
 
 		if opts.JSON {
@@ -2094,11 +1771,7 @@ tenants:
 			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		archive, err := c.FindArchive(tenant, args[0], !opts.Exact)
+		archive, err := c.FindArchive(args[0], !opts.Exact)
 		bail(err)
 
 		if opts.JSON {
@@ -2121,20 +1794,16 @@ tenants:
 			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		archive, err := c.FindArchive(tenant, args[0], !opts.Exact)
+		archive, err := c.FindArchive(args[0], !opts.Exact)
 		bail(err)
 
 		var target *shield.Target
 		if id := opts.RestoreArchive.Target; id != "" {
-			target, err = c.FindTarget(tenant, id, !opts.Exact)
+			target, err = c.FindTarget(id, !opts.Exact)
 			bail(err)
 		}
 
-		task, err := c.RestoreArchive(tenant, archive, target)
+		task, err := c.RestoreArchive(archive, target)
 		bail(err)
 
 		if opts.JSON {
@@ -2150,22 +1819,18 @@ tenants:
 			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		archive, err := c.FindArchive(tenant, args[0], !opts.Exact)
+		archive, err := c.FindArchive(args[0], !opts.Exact)
 		bail(err)
 
 		if opts.PurgeArchive.Reason != "" {
 			archive.Notes = opts.PurgeArchive.Reason
-			_, err = c.UpdateArchive(tenant, archive)
+			_, err = c.UpdateArchive(archive)
 			if err != nil && !opts.JSON {
 				fmt.Fprintf(os.Stderr, "@Y{WARNING: Unable to update archive with reason for purge}: %s", err)
 			}
 		}
 
-		rs, err := c.DeleteArchive(tenant, archive)
+		rs, err := c.DeleteArchive(archive)
 		bail(err)
 
 		if opts.JSON {
@@ -2182,15 +1847,12 @@ tenants:
 		}
 
 		required(opts.AnnotateArchive.Notes != "", "Missing required --notes option.")
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
 
-		archive, err := c.FindArchive(tenant, args[0], !opts.Exact)
+		archive, err := c.FindArchive(args[0], !opts.Exact)
 		bail(err)
 
 		archive.Notes = opts.AnnotateArchive.Notes
-		archive, err = c.UpdateArchive(tenant, archive)
+		archive, err = c.UpdateArchive(archive)
 		bail(err)
 
 		if opts.JSON {
@@ -2215,8 +1877,6 @@ tenants:
 		required(!(opts.Tasks.All && opts.Tasks.Active),
 			"The --all and --active options are mutually exclusive.")
 		required(len(args) <= 0, "Too many arguments.")
-		required(opts.Tasks.Target == "" || opts.Tenant != "",
-			"You must select a tenant (via --tenant) if you want to filter by target / system")
 
 		switch opts.Tasks.Status {
 		case "":
@@ -2233,17 +1893,11 @@ tenants:
 			opts.Tasks.Status = ""
 		}
 
-		var tenant *shield.Tenant
 		var err error
-		if opts.Tenant != "" {
-			tenant, err = c.FindMyTenant(opts.Tenant, true)
+		if opts.Tasks.Target != "" {
+			t, err := c.FindTarget(opts.Tasks.Target, !opts.Exact)
 			bail(err)
-
-			if opts.Tasks.Target != "" {
-				t, err := c.FindTarget(tenant, opts.Tasks.Target, !opts.Exact)
-				bail(err)
-				opts.Tasks.Target = t.UUID
-			}
+			opts.Tasks.Target = t.UUID
 		}
 
 		var timeBefore int64
@@ -2265,7 +1919,7 @@ tenants:
 			filter.Active = &opts.Tasks.Active
 		}
 
-		tasks, err := c.ListTasks(tenant, filter)
+		tasks, err := c.ListTasks(filter)
 		bail(err)
 
 		if opts.Tasks.Limit > 30 {
@@ -2282,7 +1936,7 @@ tenants:
 					filter.Active = &opts.Tasks.Active
 				}
 
-				sometasks, err := c.ListTasks(tenant, filter)
+				sometasks, err := c.ListTasks(filter)
 				bail(err)
 				//current request smaller than API limit means we're EoDB
 				if len(sometasks) < 30 {
@@ -2321,13 +1975,7 @@ tenants:
 			fail(2, "Usage: shield %s UUID\n", command)
 		}
 
-		var tenant *shield.Tenant
-		if opts.Tenant != "" {
-			tenant, err = c.FindMyTenant(opts.Tenant, true)
-			bail(err)
-		}
-
-		task, err := c.FindTask(tenant, args[0], !opts.Exact)
+		task, err := c.FindTask(args[0], !opts.Exact)
 		bail(err)
 
 		if opts.JSON {
@@ -2355,7 +2003,7 @@ tenants:
 		r.Add("Stopped at", stopped)
 		r.Break()
 
-		if job, err := c.GetJob(tenant, task.JobUUID); err == nil && job != nil {
+		if job, err := c.GetJob(task.JobUUID); err == nil && job != nil {
 			r.Add("Job", fmt.Sprintf("%s (%s)", job.Name, task.JobUUID))
 		}
 		if task.ArchiveUUID != "" {
@@ -2369,15 +2017,10 @@ tenants:
 	/* }}} */
 	case "cancel": /* {{{ */
 		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] UUID\n", command)
+			fail(2, "Usage: shield %s [OPTIONS] UUID\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		task, err := c.FindTask(tenant, args[0], !opts.Exact)
+		task, err := c.FindTask(args[0], !opts.Exact)
 		bail(err)
 
 		r := tui.NewReport()
@@ -2399,7 +2042,7 @@ tenants:
 		r.Add("Stopped at", stopped)
 		r.Break()
 
-		if job, err := c.GetJob(tenant, task.JobUUID); err == nil {
+		if job, err := c.GetJob(task.JobUUID); err == nil {
 			r.Add("Job", fmt.Sprintf("%s (%s)", job.Name, task.JobUUID))
 		}
 		if task.ArchiveUUID != "" {
@@ -2413,7 +2056,7 @@ tenants:
 		if !confirm(opts.Yes, "Cancel this task?") {
 			break
 		}
-		rs, err := c.CancelTask(tenant, task)
+		rs, err := c.CancelTask(task)
 		bail(err)
 
 		if opts.JSON {
@@ -2516,7 +2159,7 @@ tenants:
 	/* }}} */
 	case "update-user": /* {{{ */
 		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
+			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
 		}
 		user, err := c.FindUser(args[0], !opts.Exact)
 		bail(err)
@@ -2550,7 +2193,7 @@ tenants:
 	/* }}} */
 	case "delete-user": /* {{{ */
 		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
+			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
 		}
 
 		user, err := c.FindUser(args[0], true)

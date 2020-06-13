@@ -2,7 +2,6 @@ package main
 
 import (
 	fmt "github.com/jhunt/go-ansi"
-	"strings"
 
 	"github.com/shieldproject/shield/client/v2/shield"
 )
@@ -18,20 +17,7 @@ type ImportManifest struct {
 		Username   string `yaml:"username"`
 		Password   string `yaml:"password"`
 		SystemRole string `yaml:"sysrole"`
-
-		Tenants []struct {
-			Name string `yaml:"name"`
-			Role string `yaml:"role"`
-		} `yaml:"tenants,omitempty"`
 	} `yaml:"users,omitempty"`
-
-	Tenants []ImportTenant `yaml:"tenants,omitempty"`
-}
-
-type ImportTenant struct {
-	Name string `yaml:"name"`
-
-	Members []ImportMembership `yaml:"members"`
 
 	Systems []struct {
 		Name    string `yaml:"name"`
@@ -52,100 +38,33 @@ type ImportTenant struct {
 	} `yaml:"systems,omitempty"`
 }
 
-type ImportMembership struct {
-	User string `yaml:"user"`
-	Role string `yaml:"role"`
-}
-
 func (m *ImportManifest) Normalize() error {
-	for i, tenant := range m.Tenants {
-		/* tenant.name is required */
-		if tenant.Name == "" {
-			return fmt.Errorf("Tenant #%d is missing its `name' attribute", i+1)
+	for i, system := range m.Systems {
+		if system.Name == "" {
+			return fmt.Errorf("Data system #%d is missing its `name' attribute", i+1)
+		}
+		if system.Agent == "" {
+			return fmt.Errorf("Data system '%s' is missing its `agent' attribute", system.Name)
+		}
+		if system.Plugin == "" {
+			return fmt.Errorf("Data system '%s' is missing its `plugin' attribute", system.Name)
 		}
 
-		for j, assign := range tenant.Members {
-			/* user and role are required */
-			if assign.User == "" {
-				return fmt.Errorf("Tenant '%s', grant #%d is missing the `user' attribute", tenant.Name, j+1)
-			}
-			if assign.Role == "" {
-				return fmt.Errorf("Tenant '%s', grant #%d to %s is missing the `role' attribute", tenant.Name, j+1, assign.User)
-			}
-
-			/* check that any membership grants are to @local */
-			if !strings.HasSuffix(assign.User, "@local") {
-				if strings.Contains(assign.User, "@") {
-					return fmt.Errorf("Tenant '%s' defines membership for non-local user '%s'", tenant.Name, assign.User)
-				} else {
-					return fmt.Errorf("Tenant '%s' defines membership for non-local user '%s' (you forgot the @local)", tenant.Name, assign.User)
-				}
-			}
+		if len(system.Jobs) == 0 {
+			return fmt.Errorf("Data system '%s' has no jobs defined", system.Name)
 		}
-
-		for j, system := range tenant.Systems {
-			if system.Name == "" {
-				return fmt.Errorf("Tenant '%s', data system #%d is missing its `name' attribute", tenant.Name, j+1)
+		for k, job := range system.Jobs {
+			if job.Name == "" {
+				return fmt.Errorf("Data system '%s', job #%d is missing its `name' attribute", system.Name, k+1)
 			}
-			if system.Agent == "" {
-				return fmt.Errorf("Tenant '%s', data system '%s' is missing its `agent' attribute", tenant.Name, system.Name)
+			if job.When == "" {
+				return fmt.Errorf("Data system '%s', job '%s' is missing its `when' attribute", system.Name, job.Name)
 			}
-			if system.Plugin == "" {
-				return fmt.Errorf("Tenant '%s', data system '%s' is missing its `plugin' attribute", tenant.Name, system.Name)
+			if job.Retain == "" {
+				return fmt.Errorf("Data system '%s', job '%s' is missing its `retain' attribute", system.Name, job.Name)
 			}
-
-			if len(system.Jobs) == 0 {
-				return fmt.Errorf("Tenant '%s', data system '%s' has no jobs defined", tenant.Name, system.Name)
-			}
-			for k, job := range system.Jobs {
-				if job.Name == "" {
-					return fmt.Errorf("Tenant '%s', data system '%s', job #%d is missing its `name' attribute", tenant.Name, system.Name, k+1)
-				}
-				if job.When == "" {
-					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `when' attribute", tenant.Name, system.Name, job.Name)
-				}
-				if job.Retain == "" {
-					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `retain' attribute", tenant.Name, system.Name, job.Name)
-				}
-				if job.Bucket == "" {
-					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `bucket' attribute", tenant.Name, system.Name, job.Name)
-				}
-			}
-		}
-	}
-
-	/* convert $.global.users.tenants into autovivified $.tenants
-	   entries, with appropriate .members[] sub-entries */
-	for _, user := range m.Users {
-		for _, memb := range user.Tenants {
-			found := false
-			for i, tenant := range m.Tenants {
-				if tenant.Name == memb.Name {
-					for _, assign := range tenant.Members {
-						if user.Username+"@local" == assign.User {
-							found = true
-							if memb.Role != assign.Role {
-								return fmt.Errorf("%s is assigned the %s role on %s via `users`, but is also assigned the %s role under the tenant definition", user.Username, memb.Role, tenant.Name, assign.Role)
-							}
-							break
-						}
-					}
-					if !found {
-						m.Tenants[i].Members = append(m.Tenants[i].Members, ImportMembership{
-							user.Username + "@local",
-							memb.Role,
-						})
-					}
-					found = true
-					break
-				}
-			}
-			if !found {
-				t := ImportTenant{Name: memb.Name}
-				t.Members = make([]ImportMembership, 1)
-				t.Members[0].User = user.Username
-				t.Members[0].Role = memb.Role
-				m.Tenants = append(m.Tenants, t)
+			if job.Bucket == "" {
+				return fmt.Errorf("Data system '%s', job '%s' is missing its `bucket' attribute", system.Name, job.Name)
 			}
 		}
 	}
@@ -212,102 +131,68 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 		}
 	}
 
-	fmt.Printf("\n@G{Importing Tenants...}\n")
-	for _, tenant := range m.Tenants {
-		fmt.Printf("importing tenant @C{%s}...\n", tenant.Name)
-		t, _ := c.FindTenant(tenant.Name, false)
-		if t == nil {
-			fmt.Printf("creating tenant @C{%s}\n", tenant.Name)
-			t, err = c.CreateTenant(&shield.Tenant{
-				Name: tenant.Name,
+	fmt.Printf("\n@G{Importing Data Systems...}\n")
+	for _, system := range m.Systems {
+		sys, _ := c.FindTarget(system.Name, false)
+		if sys == nil {
+			fmt.Printf("creating data system @M{%s}, using the @Y{%s} plugin\n", system.Name, system.Plugin)
+			sys, err = c.CreateTarget(&shield.Target{
+				Name:    system.Name,
+				Summary: system.Summary,
+				Agent:   system.Agent,
+				Plugin:  system.Plugin,
+				Config:  system.Config,
 			})
 			if err != nil {
-				return fmt.Errorf("failed to create tenant '%s': %s", tenant.Name, err)
+				return fmt.Errorf("failed to create data system '%s': %s", system.Name, err)
+			}
+		} else {
+			fmt.Printf("updating data system @M{%s}, using the @Y{%s} plugin\n", system.Name, system.Plugin)
+			sys.Summary = system.Summary
+			sys.Agent = system.Agent
+			sys.Plugin = system.Plugin
+			sys.Config = system.Config
+			_, err := c.UpdateTarget(sys)
+			if err != nil {
+				return fmt.Errorf("failed to update data system '%s': %s", system.Name, err)
 			}
 		}
 
-		fmt.Printf("@C{%s}> @G{inviting local users...}\n", tenant.Name)
-		for _, assign := range tenant.Members {
-			fmt.Printf("@C{%s}> inviting @M{%s} in the @Y{%s} role\n", tenant.Name, assign.User, assign.Role)
-			user, err := c.ListUsers(&shield.UserFilter{
-				Fuzzy:   false,
-				Account: strings.TrimSuffix(assign.User, "@local"),
-			})
-			if err != nil || len(user) == 0 {
-				return fmt.Errorf("unable to find local SHIELD user '%s': %s", assign.User, err)
-			} else if len(user) > 1 {
-				return fmt.Errorf("multiple local SHIELD users name '%s' found!", assign.User)
-			}
-			_, err = c.Invite(t, assign.Role, user)
+		for _, job := range system.Jobs {
+			bucket, err := c.FindBucket(job.Bucket, false)
 			if err != nil {
-				return fmt.Errorf("unable to invite local SHIELD user '%s' to '%s' as role '%s': %s", assign.User, tenant.Name, assign.Role, err)
+				return fmt.Errorf("unable to find storage bucket '%s' for '%s' job on data system '%s': %s", job.Bucket, job.Name, sys.Name, err)
 			}
-		}
 
-		fmt.Printf("@C{%s}> @G{importing data systems...}\n", tenant.Name)
-		for _, system := range tenant.Systems {
-			sys, _ := c.FindTarget(t, system.Name, false)
-			if sys == nil {
-				fmt.Printf("@C{%s}> creating data system @M{%s}, using the @Y{%s} plugin\n", tenant.Name, system.Name, system.Plugin)
-				sys, err = c.CreateTarget(t, &shield.Target{
-					Name:    system.Name,
-					Summary: system.Summary,
-					Agent:   system.Agent,
-					Plugin:  system.Plugin,
-					Config:  system.Config,
+			ll, err := c.ListJobs(&shield.JobFilter{
+				Fuzzy:  false,
+				Name:   job.Name,
+				Target: sys.UUID,
+				Bucket: bucket.Key,
+			})
+			if err != nil || len(ll) == 0 {
+				fmt.Printf("@C{%s}> creating @M{%s} job, running at @W{%s}\n", sys.Name, system.Name, job.Name, job.When)
+				_, err = c.CreateJob(&shield.Job{
+					Name:       job.Name,
+					TargetUUID: sys.UUID,
+					Bucket:     bucket.Key,
+					Schedule:   job.When,
+					Retain:     job.Retain,
+					Paused:     job.Paused,
 				})
 				if err != nil {
-					return fmt.Errorf("failed to create data system '%s' for tenant '%s': %s", system.Name, tenant.Name, err)
+					return fmt.Errorf("failed to configure job '%s' of data system '%s': %s", job.Name, system.Name, err)
 				}
+			} else if len(ll) > 1 {
+				return fmt.Errorf("failed to configure job '%s' of data system '%s': too many matching jobs", job.Name, system.Name)
 			} else {
-				fmt.Printf("@C{%s}> updating data system @M{%s}, using the @Y{%s} plugin\n", tenant.Name, system.Name, system.Plugin)
-				sys.Summary = system.Summary
-				sys.Agent = system.Agent
-				sys.Plugin = system.Plugin
-				sys.Config = system.Config
-				_, err := c.UpdateTarget(t, sys)
+				fmt.Printf("@C{%s}> updating @M{%s} job, running at @W{%s}\n", system.Name, job.Name, job.When)
+				ll[0].Bucket = job.Bucket
+				ll[0].Schedule = job.When
+				ll[0].Retain = job.Retain
+				_, err := c.UpdateJob(ll[0])
 				if err != nil {
-					return fmt.Errorf("failed to update data system '%s' on tenant '%s': %s", system.Name, tenant.Name, err)
-				}
-			}
-
-			for _, job := range system.Jobs {
-				bucket, err := c.FindBucket(job.Bucket, false)
-				if err != nil {
-					return fmt.Errorf("unable to find storage bucket '%s' for '%s' job on tenant '%s': %s", job.Bucket, job.Name, tenant.Name, err)
-				}
-
-				ll, err := c.ListJobs(t, &shield.JobFilter{
-					Fuzzy:  false,
-					Name:   job.Name,
-					Target: sys.UUID,
-					Bucket: bucket.Key,
-				})
-				if err != nil || len(ll) == 0 {
-					fmt.Printf("@C{%s} :: @B{%s}> creating @M{%s} job, running at @W{%s}\n", tenant.Name, system.Name, job.Name, job.When)
-					_, err = c.CreateJob(t, &shield.Job{
-						Name:       job.Name,
-						TargetUUID: sys.UUID,
-						Bucket:     bucket.Key,
-						Schedule:   job.When,
-						Retain:     job.Retain,
-						FixedKey:   job.FixedKey,
-						Paused:     job.Paused,
-					})
-					if err != nil {
-						return fmt.Errorf("failed to configure job '%s' of data system '%s' for tenant '%s': %s", job.Name, system.Name, tenant.Name, err)
-					}
-				} else if len(ll) > 1 {
-					return fmt.Errorf("failed to configure job '%s' of data system '%s' for tenant '%s': too many matching jobs", job.Name, system.Name, tenant.Name)
-				} else {
-					fmt.Printf("@C{%s} :: @B{%s}> updating @M{%s} job, running at @W{%s}\n", tenant.Name, system.Name, job.Name, job.When)
-					ll[0].Bucket = job.Bucket
-					ll[0].Schedule = job.When
-					ll[0].Retain = job.Retain
-					_, err := c.UpdateJob(t, ll[0])
-					if err != nil {
-						return fmt.Errorf("failed to reconfigure job '%s' of data system '%s' on tenant '%s': %s", job.Name, system.Name, tenant.Name, err)
-					}
+					return fmt.Errorf("failed to reconfigure job '%s' of data system '%s': %s", job.Name, system.Name, err)
 				}
 			}
 		}

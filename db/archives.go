@@ -9,7 +9,6 @@ import (
 
 type Archive struct {
 	UUID        string `json:"uuid"            mbus:"uuid"`
-	TenantUUID  string `json:"tenant_uuid"     mbus:"tenant_uuid"`
 	TargetUUID  string `json:"target_uuid"     mbus:"target_uuid"`
 	StoreKey    string `json:"key"             mbus:"key"`
 	TakenAt     int64  `json:"taken_at"        mbus:"taken_at"`
@@ -35,7 +34,6 @@ type ArchiveFilter struct {
 	ExpiresAfter  *time.Time
 	WithStatus    []string
 	WithOutStatus []string
-	ForTenant     string
 	ForStoreKey   string
 	Limit         int
 }
@@ -85,11 +83,6 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		args = append(args, f.ExpiresBefore.Unix())
 	}
 
-	if f.ForTenant != "" {
-		wheres = append(wheres, "a.tenant_uuid = ?")
-		args = append(args, f.ForTenant)
-	}
-
 	if f.ForStoreKey != "" {
 		wheres = append(wheres, "a.store_key = ?")
 		args = append(args, f.ForStoreKey)
@@ -106,7 +99,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
                a.taken_at, a.expires_at, a.notes,
                t.uuid, t.name, t.plugin, t.endpoint,
                a.status, a.purge_reason, a.job,
-               a.tenant_uuid, a.size
+               a.size
 
         FROM archives a
            LEFT  JOIN targets t   ON t.uuid = a.target_uuid
@@ -150,7 +143,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 			&a.UUID, &a.StoreKey, &takenAt, &expiresAt, &a.Notes,
 			&targetUUID, &targetName, &targetPlugin, &targetEndpoint,
 			&a.Status, &a.PurgeReason, &a.Job,
-			&a.TenantUUID, &size); err != nil {
+			&size); err != nil {
 
 			return l, err
 		}
@@ -188,7 +181,7 @@ func (db *DB) GetArchive(id string) (*Archive, error) {
                a.taken_at, a.expires_at, a.notes,
                t.uuid, t.name, t.plugin, t.endpoint,
                a.status, a.purge_reason, a.job,
-               a.tenant_uuid, a.size
+               a.size
 
         FROM archives a
            LEFT  JOIN targets t   ON t.uuid = a.target_uuid
@@ -210,7 +203,7 @@ func (db *DB) GetArchive(id string) (*Archive, error) {
 		&a.UUID, &a.StoreKey, &takenAt, &expiresAt, &a.Notes,
 		&targetUUID, &targetName, &targetPlugin, &targetEndpoint,
 		&a.Status, &a.PurgeReason, &a.Job,
-		&a.TenantUUID, &size); err != nil {
+		&size); err != nil {
 
 		return nil, err
 	}
@@ -244,18 +237,18 @@ func (db *DB) createArchiveFromTask(task_uuid string, archive Archive) (*Archive
               INSERT INTO archives
                 (uuid, target_uuid, store_key, taken_at,
                  expires_at, notes, status, purge_reason, job,
-                 size, tenant_uuid)
+                 size)
 
                   SELECT ?, t.uuid, ?, ?,
                          ?, '', 'valid', '', j.Name,
-                         ?, ?
+                         ?
                   FROM tasks
                      INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
                      INNER JOIN targets t     ON t.uuid = j.target_uuid
                   WHERE tasks.uuid = ?`,
 		archive.UUID, archive.StoreKey, archive.TakenAt,
 		archive.ExpiresAt,
-		archive.Size, archive.TenantUUID,
+		archive.Size,
 		task_uuid)
 	if err != nil {
 		return nil, err
@@ -334,7 +327,7 @@ func (db *DB) ManuallyPurgeArchive(id string) error {
 		if err != nil {
 			return fmt.Errorf("unable to retrieve archive [%s]: %s", id, err)
 		}
-		db.sendUpdateObjectEvent(archive, "tenant:"+archive.TenantUUID)
+		db.sendUpdateObjectEvent(archive, "*")
 		return nil
 	})
 }
@@ -349,15 +342,4 @@ func (db *DB) CleanupArchives(age int) error {
              WHERE status IN ('purged', 'manually purged')
                AND expires_at < ?`,
 		(int)(time.Now().Unix())-age)
-}
-
-func (db *DB) CleanArchives() error {
-	return db.Exec(`
-       UPDATE archives
-          SET status = "expired"
-        WHERE uuid IN (SELECT a.uuid
-                         FROM archives a
-                    LEFT JOIN tenants  t
-                           ON t.uuid = a.tenant_uuid
-                        WHERE t.uuid IS NULL)`)
 }

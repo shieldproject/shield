@@ -9,13 +9,12 @@ import (
 )
 
 type Target struct {
-	UUID       string `json:"uuid"        mbus:"uuid"`
-	TenantUUID string `json:"-"           mbus:"tenant_uuid"`
-	Name       string `json:"name"        mbus:"name"`
-	Summary    string `json:"summary"     mbus:"summary"`
-	Plugin     string `json:"plugin"      mbus:"plugin"`
-	Agent      string `json:"agent"       mbus:"agent"`
-	Healthy    bool   `json:"healthy"     mbus:"healthy"`
+	UUID    string `json:"uuid"        mbus:"uuid"`
+	Name    string `json:"name"        mbus:"name"`
+	Summary string `json:"summary"     mbus:"summary"`
+	Plugin  string `json:"plugin"      mbus:"plugin"`
+	Agent   string `json:"agent"       mbus:"agent"`
+	Healthy bool   `json:"healthy"     mbus:"healthy"`
 
 	Config map[string]interface{} `json:"config,omitempty"  mbus:"config"`
 }
@@ -49,7 +48,6 @@ type TargetFilter struct {
 	SkipUsed   bool
 	SkipUnused bool
 	SearchName string
-	ForTenant  string
 	ForPlugin  string
 	ExactMatch bool
 }
@@ -84,10 +82,6 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 		wheres = []string{strings.Join(wheres, " OR ")}
 	}
 
-	if f.ForTenant != "" {
-		wheres = append(wheres, "t.tenant_uuid = ?")
-		args = append(args, f.ForTenant)
-	}
 	if f.ForPlugin != "" {
 		wheres = append(wheres, "t.plugin LIKE ?")
 		args = append(args, f.ForPlugin)
@@ -95,7 +89,7 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
-		   SELECT t.uuid, t.tenant_uuid, t.name, t.summary, t.plugin,
+		   SELECT t.uuid, t.name, t.summary, t.plugin,
 		          t.endpoint, t.agent, t.healthy, -1 AS n
 		     FROM targets t
 		    WHERE ` + strings.Join(wheres, " AND ") + `
@@ -108,7 +102,7 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 	}
 
 	return `
-	   SELECT DISTINCT t.uuid, t.tenant_uuid, t.name, t.summary, t.plugin,
+	   SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin,
 	                   t.endpoint, t.agent, t.healthy, COUNT(j.uuid) AS n
 	              FROM targets t
 	         LEFT JOIN jobs j
@@ -149,7 +143,7 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 			n         int
 			rawconfig []byte
 		)
-		if err = r.Scan(&t.UUID, &t.TenantUUID, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &t.Healthy, &n); err != nil {
+		if err = r.Scan(&t.UUID, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &t.Healthy, &n); err != nil {
 			return l, err
 		}
 		if rawconfig != nil {
@@ -166,7 +160,7 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 
 func (db *DB) GetTarget(id string) (*Target, error) {
 	r, err := db.query(`
-	    SELECT uuid, tenant_uuid, name, summary, plugin,
+	    SELECT uuid, name, summary, plugin,
 	           endpoint, agent, healthy
 
 	      FROM targets
@@ -185,7 +179,7 @@ func (db *DB) GetTarget(id string) (*Target, error) {
 	var (
 		rawconfig []byte
 	)
-	if err = r.Scan(&t.UUID, &t.TenantUUID, &t.Name, &t.Summary, &t.Plugin,
+	if err = r.Scan(&t.UUID, &t.Name, &t.Summary, &t.Plugin,
 		&rawconfig, &t.Agent, &t.Healthy); err != nil {
 		return nil, err
 	}
@@ -206,25 +200,18 @@ func (db *DB) CreateTarget(target *Target) (*Target, error) {
 
 	target.UUID = RandomID()
 	target.Healthy = true
-	err = db.exclusively(func() error {
-		/* validate the tenant */
-		if err := db.tenantShouldExist(target.TenantUUID); err != nil {
-			return fmt.Errorf("unable to create target: %s", err)
-		}
-
-		return db.Exec(`
-		    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin,
+	err = db.Exec(`
+		    INSERT INTO targets (uuid, name, summary, plugin,
 		                         endpoint, agent, healthy)
-		                 VALUES (?, ?, ?, ?, ?,
+		                 VALUES (?, ?, ?, ?,
 		                         ?, ?, ?)`,
-			target.UUID, target.TenantUUID, target.Name, target.Summary, target.Plugin,
-			string(rawconfig), target.Agent, target.Healthy)
-	})
+		target.UUID, target.Name, target.Summary, target.Plugin,
+		string(rawconfig), target.Agent, target.Healthy)
 	if err != nil {
 		return nil, err
 	}
 
-	db.sendCreateObjectEvent(target, "tenant:"+target.TenantUUID)
+	db.sendCreateObjectEvent(target, "*")
 	return target, nil
 }
 
@@ -256,7 +243,7 @@ func (db *DB) UpdateTarget(target *Target) error {
 		return fmt.Errorf("unable to retrieve target %s after update", target.UUID)
 	}
 
-	db.sendUpdateObjectEvent(target, "tenant:"+target.TenantUUID)
+	db.sendUpdateObjectEvent(target, "*")
 	return nil
 }
 
@@ -278,7 +265,7 @@ func (db *DB) UpdateTargetHealth(id string, health bool) error {
 		return err
 	}
 
-	db.sendHealthUpdateEvent(target, "tenant:"+target.TenantUUID)
+	db.sendHealthUpdateEvent(target, "*")
 	return nil
 }
 
@@ -303,20 +290,8 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 		return false, err
 	}
 
-	db.sendDeleteObjectEvent(target, "tenant:"+target.TenantUUID)
+	db.sendDeleteObjectEvent(target, "*")
 	return true, nil
-}
-
-func (db *DB) CleanTargets() error {
-	return db.Exec(`
-	   DELETE FROM targets
-	         WHERE uuid in (SELECT uuid
-	                          FROM targets t
-	                         WHERE tenant_uuid = NULL
-	                           AND (SELECT COUNT(*)
-	                                  FROM archives a
-	                                 WHERE a.target_uuid = t.uuid
-	                                   AND a.status != 'purged') = 0)`)
 }
 
 func (db *DB) targetShouldExist(uuid string) error {
