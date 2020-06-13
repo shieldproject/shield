@@ -141,17 +141,14 @@ var opts struct {
 		Schedule string `cli:"--schedule"`
 		Retain   string `cli:"--retain"`
 		Paused   bool   `cli:"--paused"`
-		FixedKey bool   `cli:"--fixed-key"`
 	} `cli:"create-job"`
 	UpdateJob struct {
-		Name       string `cli:"-n, --name"`
-		Summary    string `cli:"-s, --summary"`
-		Target     string `cli:"--target"`
-		Bucket     string `cli:"--bucket"`
-		Schedule   string `cli:"--schedule"`
-		Retain     string `cli:"--retain"`
-		FixedKey   bool   `cli:"--fixed-key"`
-		NoFixedKey bool   `cli:"--no-fixed-key"`
+		Name     string `cli:"-n, --name"`
+		Summary  string `cli:"-s, --summary"`
+		Target   string `cli:"--target"`
+		Bucket   string `cli:"--bucket"`
+		Schedule string `cli:"--schedule"`
+		Retain   string `cli:"--retain"`
 	} `cli:"update-job"`
 
 	/* }}} */
@@ -1348,9 +1345,9 @@ systems:
 			break
 		}
 
-		tbl := table.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Retention", "SHIELD Agent", "Target", "Bucket", "Fixed-Key")
+		tbl := table.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Retention", "SHIELD Agent", "Target", "Bucket")
 		for _, job := range jobs {
-			tbl.Row(job, uuid8full(job.UUID, opts.Long), job.Name, wrap(job.Summary, 35), job.Schedule, job.Status(), fmt.Sprintf("%dd (%d archives)", job.KeepDays, job.KeepN), job.Agent, job.Target.Name, job.Bucket, job.FixedKey)
+			tbl.Row(job, uuid8full(job.UUID, opts.Long), job.Name, wrap(job.Summary, 35), job.Schedule, job.Status(), fmt.Sprintf("%dd (%d archives)", job.KeepDays, job.KeepN), job.Agent, job.Target.Name, job.Bucket)
 		}
 		tbl.Output(os.Stdout)
 
@@ -1386,7 +1383,6 @@ systems:
 		r.Add("Cloud Storage", job.Bucket)
 		r.Break()
 
-		r.Add("Fixed-Key", strconv.FormatBool(job.FixedKey))
 		r.Add("Notes", job.Summary)
 
 		r.Output(os.Stdout)
@@ -1462,7 +1458,6 @@ systems:
 			Schedule:   opts.CreateJob.Schedule,
 			Retain:     opts.CreateJob.Retain,
 			Paused:     opts.CreateJob.Paused,
-			FixedKey:   opts.CreateJob.FixedKey,
 		})
 		bail(err)
 
@@ -1510,13 +1505,6 @@ systems:
 		}
 		if opts.UpdateJob.Retain != "" {
 			job.Retain = opts.UpdateJob.Retain
-		}
-
-		if opts.UpdateJob.FixedKey {
-			job.FixedKey = true
-		}
-		if opts.UpdateJob.NoFixedKey {
-			job.FixedKey = false
 		}
 
 		_, err = c.UpdateJob(job)

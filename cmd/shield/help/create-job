@@ -33,10 +33,6 @@ USAGE: @G{shield} create-job [OPTIONS]
   --paused        Don't schedule this job; in order for it to run,
                   an operator will have to manually kick it off.
 
-  --fixed-key     Encrypt backup archives with the fixed key.
-                  Backups of SHIELD itself should use this option
-                  to enable recovery in a disaster scenario
-
   In @Y{--batch} mode, the name or UUID specified on the command-line
   must be "unique enough" for shield to determine what you meant.
   In interactive mode, you will be asked to narrow your search

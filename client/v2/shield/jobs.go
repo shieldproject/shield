@@ -19,7 +19,6 @@ type Job struct {
 	Agent      string `json:"agent"`
 	LastStatus string `json:"last_task_status"`
 	LastRun    int64  `json:"last_run"`
-	FixedKey   bool   `json:"fixed_key"`
 
 	TargetUUID string `json:"-"`
 	Target     struct {
@@ -106,7 +105,6 @@ func (c *Client) CreateJob(job *Job) (*Job, error) {
 		Paused   bool   `json:"paused"`
 		Bucket   string `json:"bucket"`
 		Target   string `json:"target"`
-		FixedKey bool   `json:"fixed_key"`
 	}{
 		Name:     job.Name,
 		Summary:  job.Summary,
@@ -115,7 +113,6 @@ func (c *Client) CreateJob(job *Job) (*Job, error) {
 		Paused:   job.Paused,
 		Target:   job.TargetUUID,
 		Bucket:   job.Bucket,
-		FixedKey: job.FixedKey,
 	}
 	if err := c.post("/v2/jobs", in, &out); err != nil {
 		return nil, err
@@ -132,7 +129,6 @@ func (c *Client) UpdateJob(job *Job) (*Job, error) {
 		Retain   string `json:"retain,omitempty"`
 		Bucket   string `json:"bucket,omitempty"`
 		Target   string `json:"target,omitempty"`
-		FixedKey bool   `json:"fixed_key"`
 	}{
 		Name:     job.Name,
 		Summary:  job.Summary,
@@ -140,7 +136,6 @@ func (c *Client) UpdateJob(job *Job) (*Job, error) {
 		Retain:   job.Retain,
 		Target:   job.TargetUUID,
 		Bucket:   job.Bucket,
-		FixedKey: job.FixedKey,
 	}
 	if err := c.put(fmt.Sprintf("/v2/jobs/%s", job.UUID), in, nil); err != nil {
 		return nil, err

@@ -26,10 +26,6 @@ USAGE: @G{shield} update-job @Y{NAME-OR-UUID}
   --retain        How long to keep backup archives.  Can be given
                   in days (7d) or weeks (5w).
 
-  --fixed-key     Encrypt backup archives with the fixed key.
-                  Backups of SHIELD itself should use this option
-                  to enable recovery in a disaster scenario
-
   To pause/unpause a job, please use "pause-job" or "unpause-job".
 
   In @Y{--batch} mode, the name or UUID specified on the command-line

@@ -28,12 +28,11 @@ type ImportManifest struct {
 		Config map[string]interface{} `yaml:"config"`
 
 		Jobs []struct {
-			Name     string `yaml:"name"`
-			When     string `yaml:"when"`
-			Retain   string `yaml:"retain"`
-			Bucket   string `yaml:"bucket"`
-			FixedKey bool   `yaml:"fixed_key"`
-			Paused   bool   `yaml:"paused"`
+			Name   string `yaml:"name"`
+			When   string `yaml:"when"`
+			Retain string `yaml:"retain"`
+			Bucket string `yaml:"bucket"`
+			Paused bool   `yaml:"paused"`
 		} `yaml:"jobs,omitempty"`
 	} `yaml:"systems,omitempty"`
 }
