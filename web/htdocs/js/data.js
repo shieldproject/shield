@@ -348,7 +348,7 @@
               self.insert('archive', archive);
             });
             (bearings.jobs || []).forEach(job => {
-              delete job.target;
+              job.target_uuid = job.target.uuid;
               self.insert('job', job);
             });
             (bearings.targets || []).forEach(target => {
@@ -371,7 +371,7 @@
       return df.promise();
     },
 
-    plugins: function (type) {
+    plugins: function () {
       var seen = {}; /* de-duplicating map */
       var list = []; /* sorted list of [label, name] tuples */
       var map  = {}; /* plugin.id => [agent, ...] */
@@ -394,12 +394,10 @@
           if (name in seen) { return; }
           seen[name] = true;
 
-          if (plugin.features[type] == "yes") {
-            list.push({
-              id:     name,
-              label:  plugin.name + ' (' + name + ')'
-            });
-          }
+          list.push({
+            id:     name,
+            label:  plugin.name + ' (' + name + ')'
+          });
         });
       });
 
