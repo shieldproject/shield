@@ -1570,11 +1570,11 @@ tenants:
 		}
 
 		t, err := c.CreateTarget(tenant, &shield.Target{
-			Name:        opts.CreateTarget.Name,
-			Summary:     opts.CreateTarget.Summary,
-			Agent:       opts.CreateTarget.Agent,
-			Plugin:      opts.CreateTarget.Plugin,
-			Config:      conf,
+			Name:    opts.CreateTarget.Name,
+			Summary: opts.CreateTarget.Summary,
+			Agent:   opts.CreateTarget.Agent,
+			Plugin:  opts.CreateTarget.Plugin,
+			Config:  conf,
 		})
 		bail(err)
 
