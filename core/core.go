@@ -290,11 +290,11 @@ func Configure(file string, config Config) (*Core, error) {
 		c.Config.StorageGateway.GatewayURLs = strings.TrimSpace(c.Config.StorageGateway.GatewayURLs)
 		c.Config.StorageGateway.Gateways = strings.Split(c.Config.StorageGateway.GatewayURLs, ",")
 	} else {
-		return nil, fmt.Errorf("No ssg urls found")
+		return nil, fmt.Errorf("no storage gateways configured")
 	}
 
 	if c.Config.StorageGateway.Token == "" {
-		return nil, fmt.Errorf("No ssg control token provided")
+		return nil, fmt.Errorf("storage gateway control token not provided")
 	}
 
 	/* set up information for /v2/info and /init.js */
