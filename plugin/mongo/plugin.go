@@ -20,29 +20,6 @@ func New() plugin.Plugin {
 		Name:    "MongoDB Backup Plugin",
 		Author:  "Szlachta, Jacek",
 		Version: "0.0.1",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-  "mongo_host"     : "127.0.0.1",   # optional
-  "mongo_port"     : "27017",       # optional
-  "mongo_user"     : "username",    # optional
-  "mongo_password" : "password",    # optional
-  "mongo_database" : "db",          # optional
-  "mongo_authdb"   : "other-db",    # optional
-  "mongo_bindir"   : "/path/to/bin" # optional
-  "mongo_options"  : "--ssl"        # optional
-}
-`,
-		Defaults: `
-{
-  "mongo_host"   : "127.0.0.1",
-  "mongo_port"   : "27017",
-  "mongo_bindir" : "/var/vcap/packages/shield-mongo/bin"
-}
-`,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:    "target",
@@ -228,18 +205,6 @@ func (p MongoPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.Shield
 	cmd := fmt.Sprintf("%s/mongorestore %s %s", mongo.Bin, connectionString(mongo), mongo.RestoreOptions)
 	plugin.DEBUG("Exec: %s", cmd)
 	return plugin.Exec(cmd, in, log, log)
-}
-
-func (p MongoPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p MongoPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p MongoPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
 }
 
 func connectionString(info *MongoConnectionInfo) string {

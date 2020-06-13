@@ -1,18 +1,5 @@
 package plugin
 
-/*
-
-Here are a bunch of frameworky-helper functions for use when creating a new backup/restore plugin. Important things to remember:
-
-Use plugin.Run()  for starting your plugin execution.
-
-Use plugin.PluginInfo to fill out the info for your plugin.
-Make your plugin conform to the Plugin interface, by implementing Backup(), Restore(), Retrieve(), and Store(). If they don't make sense, just return plugin.UNSUPPORTED_ACTION, and a helpful errorm essage
-
-plugin.Exec() can be used to easily run external commands sending their stdin/stdout to that of the plugin command. Keep in mind the commands don't get run in a shell, so things like '>', '<', '|' won't work the way you want them to, but you can just run /bin/bash -c <command> to solve that, right?
-
-*/
-
 import (
 	"encoding/json"
 	"fmt"
@@ -38,18 +25,12 @@ type Opt struct {
 	Validate struct{} `cli:"validate"`
 	Backup   struct{} `cli:"backup"`
 	Restore  struct{} `cli:"restore"`
-	Store    struct{} `cli:"store"`
-	Retrieve struct{} `cli:"retrieve"`
-	Purge    struct{} `cli:"purge"`
 }
 
 type Plugin interface {
 	Validate(io.Writer, ShieldEndpoint) error
 	Backup(io.Writer, io.Writer, ShieldEndpoint) error
 	Restore(io.Reader, io.Writer, ShieldEndpoint) error
-	Store(io.Reader, io.Writer, ShieldEndpoint) (string, int64, error)
-	Retrieve(io.Writer, io.Writer, ShieldEndpoint, string) error
-	Purge(io.Writer, ShieldEndpoint, string) error
 	Meta() PluginInfo
 }
 
@@ -69,17 +50,8 @@ type PluginInfo struct {
 	Name     string         `json:"name"`
 	Author   string         `json:"author"`
 	Version  string         `json:"version"`
-	Features PluginFeatures `json:"features"`
-
-	Example  string `json:"-"`
-	Defaults string `json:"-"`
 
 	Fields []Field `json:"fields"`
-}
-
-type PluginFeatures struct {
-	Target string `json:"target"`
-	Store  string `json:"store"`
 }
 
 var debug bool
@@ -92,13 +64,6 @@ func DEBUG(format string, args ...interface{}) {
 	}
 }
 
-func Debugf(f string, args ...interface{}) {
-	if debug {
-		for _, line := range strings.Split(fmt.Sprintf(f, args...), "\n") {
-			fmt.Fprintf(os.Stderr, "DEBUG> %s\n", line)
-		}
-	}
-}
 func Infof(f string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, f+"\n", args...)
 }
@@ -127,20 +92,11 @@ func Run(p Plugin) {
   -v, --version   Print the version of this plugin and exit.
 
 COMMANDS
-  info                         Print plugin information (name / version / author)
-  validate -e JSON             Validate endpoint JSON/configuration
-  backup   -e JSON             Backup a target
-  restore  -e JSON             Replay a backup archive to a target
-  store    -e JSON [--text]    Store a backup archive
-  retrieve -e JSON -k KEY      Stream a backup archive from storage
-  purge    -e JSON -k KEY      Delete a backup archive from storage
+  info                Print plugin information (name / version / author)
+  validate -e JSON    Validate endpoint JSON/configuration
+  backup   -e JSON    Backup a target
+  restore  -e JSON    Replay a backup archive to a target
 `)
-		if info.Example != "" {
-			fmt.Fprintf(os.Stderr, "\nEXAMPLE ENDPOINT CONFIGURATION\n%s\n", info.Example)
-		}
-		if info.Defaults != "" {
-			fmt.Fprintf(os.Stderr, "\nDEFAULT ENDPOINT\n%s\n", info.Defaults)
-		}
 		os.Exit(0)
 	}
 
@@ -299,8 +255,6 @@ STORAGE COMMANDS
 func dispatch(p Plugin, mode string, opt Opt) error {
 	var (
 		err      error
-		key      string
-		size     int64
 		endpoint ShieldEndpoint
 	)
 
@@ -347,52 +301,6 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 			return err
 		}
 		err = p.Restore(os.Stdin, os.Stderr, endpoint)
-
-	case "store":
-		endpoint, err = getEndpoint(opt.Endpoint)
-		if err != nil {
-			return err
-		}
-
-		key, size, err = p.Store(os.Stdin, os.Stdout, endpoint)
-		if opt.Text {
-			fmt.Printf("%s\n", key)
-
-		} else {
-			output, err := json.MarshalIndent(struct {
-				Key  string `json:"key"`
-				Size int64  `json:"archive_size"`
-			}{
-				Key:  key,
-				Size: size,
-			}, "", "    ")
-
-			if err != nil {
-				return JSONError{Err: fmt.Sprintf("Could not JSON encode blob key: %s", err)}
-			}
-
-			fmt.Printf("%s\n", string(output))
-		}
-
-	case "retrieve":
-		endpoint, err = getEndpoint(opt.Endpoint)
-		if err != nil {
-			return err
-		}
-		if opt.Key == "" {
-			return MissingRestoreKeyError{}
-		}
-		err = p.Retrieve(os.Stdout, os.Stdout, endpoint, opt.Key)
-
-	case "purge":
-		endpoint, err = getEndpoint(opt.Endpoint)
-		if err != nil {
-			return err
-		}
-		if opt.Key == "" {
-			return MissingRestoreKeyError{}
-		}
-		err = p.Purge(os.Stdout, endpoint, opt.Key)
 
 	default:
 		return UnsupportedActionError{Action: mode}

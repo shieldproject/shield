@@ -24,29 +24,6 @@ func New() plugin.Plugin {
 		Name:    "MySQL Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-  "mysql_host"         : "127.0.0.1",    # optional
-  "mysql_port"         : "3306",         # optional
-  "mysql_user"         : "username",
-  "mysql_password"     : "password",
-  "mysql_read_replica" : "hostname/ip",  # optional
-  "mysql_database"     : "db",           # optional
-  "mysql_options"      : "--quick",      # optional
-  "mysql_bindir"       : "/path/to/bin"  # optional
-}
-`,
-		Defaults: `
-{
-  "mysql_host"   : "127.0.0.1",
-  "mysql_port"   : "3306",
-  "mysql_bindir" : "/var/vcap/packages/shield-mysql/bin"
-}
-`,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
@@ -251,18 +228,6 @@ func (p MySQLPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.Shield
 		plugin.DEBUG("Exec: %s", cmd)
 		return plugin.Exec(cmd, in, log, log)
 	}
-}
-
-func (p MySQLPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p MySQLPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p MySQLPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
 }
 
 func connectionString(info *MySQLConnectionInfo, backup bool) string {

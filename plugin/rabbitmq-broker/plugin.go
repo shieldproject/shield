@@ -16,24 +16,6 @@ func New() plugin.Plugin {
 		Name:    "Pivotal RabbitMQ Broker Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-  "rmq_url"      : "http://127.0.0.1:15672",  # REQUIRED
-  "rmq_username" : "admin",                   # REQUIRED
-  "rmq_password" : "secret",                  # REQUIRED
-
-  "skip_ssl_validation" : true      # Skip certificate verification (not recommended)
-}
-`,
-		Defaults: `
-{
-  "skip_ssl_validation" : false
-}
-`,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
@@ -171,18 +153,6 @@ func (p RabbitMQBrokerPlugin) Restore(in io.Reader, log io.Writer, endpoint plug
 	}
 
 	return nil
-}
-
-func (p RabbitMQBrokerPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p RabbitMQBrokerPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p RabbitMQBrokerPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
 }
 
 func getRabbitMQEndpoint(endpoint plugin.ShieldEndpoint) (RabbitMQEndpoint, error) {

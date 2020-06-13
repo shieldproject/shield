@@ -20,26 +20,6 @@ func New() plugin.Plugin {
 		Name:    "Consul Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-  "host"     : "consul-endpoint",      # Optional hostname, with or without the
-                                       # http:// or https:// URL scheme.
-
-  "skip_ssl_validation" : false        # Skip certificate verification (not recommended)
-
-  "username" : "basic-auth-username",  # Optional username and password
-  "password" : "basic-auth-password"   # for HTTP Basic Authentication.
-}
-`,
-		Defaults: `
-{
-  "host" : "http://127.0.0.1:8500"
-}
-`,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:    "target",
@@ -188,18 +168,6 @@ func (p ConsulPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.Shiel
 		}
 	}
 	return nil
-}
-
-func (p ConsulPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p ConsulPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p ConsulPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
 }
 
 func consulClient(endpoint plugin.ShieldEndpoint) (*api.Client, error) {

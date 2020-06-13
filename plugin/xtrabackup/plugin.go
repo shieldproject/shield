@@ -23,33 +23,6 @@ func New() plugin.Plugin {
 		Name:    "MySQL XtraBackup Plugin",
 		Author:  "Swisscom",
 		Version: "0.0.1",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-  "mysql_user":           "username-for-mysql",      # REQUIRED
-  "mysql_password":       "password-for-above-user", # REQUIRED
-
-  "mysql_databases":      "db1,db2",              # List of databases to limit
-                                                  # backup and recovery to.
-
-  "mysql_datadir":        "/var/lib/mysql",                         # Path to the MySQL data directory
-  "mysql_socket":         "/var/vcap/sys/run/mysql/mysqld.sock",    # Path to the MySQL socket
-  "mysql_xtrabackup":     "/path/to/xtrabackup",                    # Full path to the xtrabackup binary
-  "mysql_temp_targetdir": "/tmp/backups"                            # Temporary work directory
-  "mysql_tar":            "tar"                                     # Tar-compatible archival tool to use
-}
-`,
-		Defaults: `
-{
-  "mysql_tar"           : "tar",
-  "mysql_datadir"       : "/var/lib/mysql",
-  "mysql_xtrabackup"    : "/var/vcap/packages/shield-mysql/bin/xtrabackup",
-  "mysql_temp_targetdir": "/tmp/backups"
-}
-`,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
@@ -410,18 +383,6 @@ func (p XtraBackupPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.S
 	fmt.Fprintf(log, "@G{\u2713 Changed files ownership}\n")
 	// remove temporary target directory
 	return os.RemoveAll(xtrabackup.TargetDir)
-}
-
-func (p XtraBackupPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p XtraBackupPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p XtraBackupPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
 }
 
 func getXtraBackupEndpoint(endpoint plugin.ShieldEndpoint) (XtraBackupEndpoint, error) {

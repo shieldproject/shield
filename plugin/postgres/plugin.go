@@ -21,28 +21,6 @@ func New() plugin.Plugin {
 		Name:    "PostgreSQL Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-  "pg_user"     : "username",   # REQUIRED
-
-  "pg_password" : "password",
-  "pg_host"     : "10.0.0.1",
-  "pg_port"     : "5432",             # Port that PostgreSQL is listening on
-  "pg_database" : "db1",              # Limit backup/restore operation to this database
-  "pg_bindir"   : "/path/to/pg/bin"   # Where to find the psql command
-  "pg_options"  : "",                 # optional
-}
-`,
-		Defaults: `
-{
-  "pg_port"   : "5432",
-  "pg_bindir" : "/var/vcap/packages/postgres-9.4/bin"
-}
-`,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:  "target",
@@ -317,18 +295,6 @@ func (p PostgresPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.Shi
 		return err
 	}
 	return <-scanErr
-}
-
-func (p PostgresPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p PostgresPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p PostgresPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
 }
 
 func setupEnvironmentVariables(pg *PostgresConnectionInfo) {

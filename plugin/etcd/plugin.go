@@ -29,25 +29,6 @@ func New() plugin.Plugin {
 		Name:    "Etcd Backup Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-  "url"         : "https://192.168.42.45:2379,https://192.168.23.54:2379",       # REQUIRED
-  "auth"        : "Role-Based Authentication",
-  "username"    : "admin",
-  "password"    : "p@ssw0rd",
-  "overwrite"   : "true",
-  "prefix"      : "/data1"
-}
-`,
-		Defaults: `
-{
-  "timeout" : "2"
-}
-`,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
@@ -479,16 +460,4 @@ func (p EtcdPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldE
 		}
 	}
 	return nil
-}
-
-func (p EtcdPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p EtcdPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p EtcdPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, key string) error {
-	return plugin.UNIMPLEMENTED
 }

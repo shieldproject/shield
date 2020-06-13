@@ -19,25 +19,6 @@ func New() plugin.Plugin {
 		Name:    "Vault Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-	"url"                 : "https://vault.myorg.mycompany.com",    # REQUIRED
-	"token"               : "b8714fec-0df9-3f66-d262-35a57e414120", # REQUIRED
-	"skip_ssl_validation" : true,                                   # REQUIRED
-
-	"subtree"             : "secret/some/sub/tree",                 # OPTIONAL
-}
-`,
-		Defaults: `
-{
-	"subtree"             : "secret",
-	"skip_ssl_validation" : false
-}
-`,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
@@ -202,18 +183,6 @@ func (p VaultPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.Shield
 		return Import(v, []byte(prev), log)
 	}
 	return nil
-}
-
-func (p VaultPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p VaultPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p VaultPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
 }
 
 func connect(endpoint plugin.ShieldEndpoint) (*vault.Vault, string, error) {

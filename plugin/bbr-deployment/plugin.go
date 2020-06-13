@@ -23,25 +23,6 @@ func New() plugin.Plugin {
 		Name:    "BBR Deployment Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "1.4.0",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-  "bindir"     : "/path/to/bbr-package/bin",
-  "username"   : "admin",
-  "password"   : "c1oudc0w",
-  "director"   : "192.168.50.6",
-  "deployment" : "cf",
-  "cacert"     : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"
-}
-`,
-		Defaults: `
-{
-  "bindir"   : "/var/vcap/packages/bbr/bin",
-}
-`,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
@@ -385,18 +366,6 @@ func (p BBRPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEn
 	err = cmd.Run()
 	fmt.Fprintf(log, "----------------------------------------------------------\n\n\n")
 	return err
-}
-
-func (p BBRPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p BBRPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p BBRPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, key string) error {
-	return plugin.UNIMPLEMENTED
 }
 
 func getDetails(endpoint plugin.ShieldEndpoint) (*details, error) {

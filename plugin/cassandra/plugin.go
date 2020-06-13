@@ -3,12 +3,6 @@
 //
 // PLUGIN FEATURES
 //
-// This plugin implements functionality suitable for use with the following
-// SHIELD Job components:
-//
-//   Target: yes
-//   Store:  no
-//
 // PLUGIN CONFIGURATION
 //
 // The endpoint configuration passed to this plugin is used to identify which
@@ -114,29 +108,6 @@ func New() plugin.Plugin {
 		Name:    "Cassandra Backup Plugin",
 		Author:  "Orange",
 		Version: "0.1.0",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-  "host"         : "127.0.0.1",      # optional
-  "port"         : "9042",           # optional
-  "user"         : "username",
-  "password"     : "password",
-  "keyspace"     : "db",
-  "datadir"      : "/path/to/data"   # optional
-}
-`,
-		Defaults: `
-{
-  "host"     : "127.0.0.1",
-  "port"     : "9042",
-  "user"     : "cassandra",
-  "password" : "cassandra",
-  "datadir"  : "/var/vcap/store/cassandra/data"
-}
-`,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
@@ -568,18 +539,6 @@ func (p CassandraPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.Sh
 	fmt.Fprintf(log, "@G{\u2713 Load all tables data}\n")
 
 	return nil
-}
-
-func (p CassandraPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p CassandraPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p CassandraPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, key string) error {
-	return plugin.UNIMPLEMENTED
 }
 
 func cassandraInfo(endpoint plugin.ShieldEndpoint) (*CassandraInfo, error) {

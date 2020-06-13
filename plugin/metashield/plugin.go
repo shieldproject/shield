@@ -15,10 +15,6 @@ func New() plugin.Plugin {
 		Name:    "SHIELD Backup Plugin",
 		Author:  "Stark and Wayne",
 		Version: "1.0.0",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
@@ -136,16 +132,4 @@ func (p ShieldPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.Shiel
 		return fmt.Errorf("SHIELD agent needs to be updated to have SHIELD_TASK_UUID environment variable")
 	}
 	return c.Import(taskUUID, os.Getenv("SHIELD_RESTORE_KEY"), in)
-}
-
-func (p ShieldPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p ShieldPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p ShieldPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, key string) error {
-	return plugin.UNIMPLEMENTED
 }

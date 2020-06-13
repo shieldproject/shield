@@ -3,12 +3,6 @@
 //
 // PLUGIN FEATURES
 //
-// This plugin implements functionality suitable for use with the following
-// SHIELD Job components:
-//
-//   Target: yes
-//   Store:  no
-//
 // PLUGIN CONFIGURATION
 //
 // The endpoint configuration passed to this plugin is used to identify
@@ -63,27 +57,6 @@ func New() plugin.Plugin {
 		Name:    "Consul Snapshot Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-  "consul"      : "/var/vcap/packages/consul/bin/consul"     # Path to the consul binary
-  "address"     : "consul.service.consul:8200",              # Optional hostname, with or without the http:// or https:// URL scheme.
-
-  "ca-path"     : "/var/vcap/jobs/consul/consul/ca.cert"     # Path to the CA certificate to use for TLS when communicating with Consul via https.
-  "client-cert" : "/var/vcap/jobs/consul/consul/consul.cert" # Path to a client cert file to use for TLS when 'verify_incoming' is enabled.
-  "client-key"  : "/var/vcap/jobs/consul/consul/consul.key"  # Path to a client key file to use for TLS when 'verify_incoming' is enabled.
-
-}
-`,
-		Defaults: `
-{
-  "consul"  : "/var/vcap/packages/consul/bin/consul"
-  "address" : "http://127.0.0.1:8500"
-}
-`,
 	}
 }
 
@@ -283,16 +256,4 @@ func (p ConsulPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.Shiel
 	}
 
 	return nil
-}
-
-func (p ConsulPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p ConsulPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p ConsulPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
 }

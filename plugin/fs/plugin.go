@@ -17,24 +17,6 @@ func New() plugin.Plugin {
 		Name:    "Local Filesystem Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "1.0.0",
-		Features: plugin.PluginFeatures{
-			Target: "yes",
-			Store:  "no",
-		},
-		Example: `
-{
-  "base_dir" : "/path/to/backup"   # REQUIRED
-
-  "include"  : "*.txt",            # UNIX glob of files to include in backup
-  "exclude"  : "*.o",              # ... and another for what to exclude
-  "verbose"  : false               # Can set to true for debugging
-}
-`,
-		Defaults: `
-{
-}
-`,
-
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
@@ -359,16 +341,4 @@ func (p FSPlugin) Restore(in io.Reader, log io.Writer, endpoint plugin.ShieldEnd
 
 	fmt.Fprintf(log, "done; restored %d files / directories...\n\n", n)
 	return nil
-}
-
-func (p FSPlugin) Store(in io.Reader, log io.Writer, endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	return "", 0, plugin.UNIMPLEMENTED
-}
-
-func (p FSPlugin) Retrieve(out io.Writer, log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
-}
-
-func (p FSPlugin) Purge(log io.Writer, endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
 }
