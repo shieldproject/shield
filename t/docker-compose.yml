@@ -5,6 +5,8 @@ services:
     environment:
       POSTGRES_PASSWORD: 'password'
       POSTGRES_DB: 'shield'
+    volumes:
+      - 'pg:/var/lib/postgresql'
 
   ssg:
     image: 'huntprod/ssg'
@@ -31,9 +33,10 @@ services:
       SHIELD_SSG_URLS: http://ssg:8080
       SHIELD_SSG_TOKEN: integration-control
     volumes:
-      - 'shield-data:/var/shield'
-      - 'shield-etc:/etc/shield'
+      - 'etc:/etc/shield'
       - '$PWD/web/htdocs:/shield/ui'
+    tmpfs:
+      - /var/shield
 
   agent:
     depends_on:
@@ -49,9 +52,8 @@ services:
       SHIELD_AGENT_REGISTRATION_TOKEN: yo-yo-im-an-agent
       SHIELD_AGENT_REGISTRATION_ENDPOINT: agent
     volumes:
-      - 'shield-data:/var/shield'
-      - 'shield-etc:/etc/shield'
+      - 'etc:/etc/shield'
 
 volumes:
-  shield-data:
-  shield-etc:
+  etc:
+  pg:
