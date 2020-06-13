@@ -62,21 +62,18 @@ func (db *DB) importAgents(n uint, in *json.Decoder) error {
 
 func (db *DB) importArchives(n uint, in *json.Decoder) error {
 	type archive struct {
-		UUID           string `json:"uuid"`
-		TenantUUID     string `json:"tenant_uuid"`
-		TargetUUID     string `json:"target_uuid"`
-		StoreKey       string `json:"store_key"`
-		TakenAt        int    `json:"taken_at"`
-		ExpiresAt      int    `json:"expires_at"`
-		Notes          string `json:"notes"`
-		PurgeReason    string `json:"purge_reason"`
-		Status         string `json:"status"`
-		Size           *int   `json:"size"`
-		Job            string `json:"jobs"`
-		EncryptionType string `json:"encryption_type"`
-		EncryptionKey  string `json:"encryption_key"`
-		EncryptionIV   string `json:"encryption_iv"`
-		Error          string `json:"error"`
+		UUID        string `json:"uuid"`
+		TenantUUID  string `json:"tenant_uuid"`
+		TargetUUID  string `json:"target_uuid"`
+		StoreKey    string `json:"store_key"`
+		TakenAt     int    `json:"taken_at"`
+		ExpiresAt   int    `json:"expires_at"`
+		Notes       string `json:"notes"`
+		PurgeReason string `json:"purge_reason"`
+		Status      string `json:"status"`
+		Size        *int   `json:"size"`
+		Job         string `json:"jobs"`
+		Error       string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
@@ -94,14 +91,14 @@ func (db *DB) importArchives(n uint, in *json.Decoder) error {
 		  INSERT INTO archives
 		    (uuid, tenant_uuid, target_uuid,
 		     store_key, taken_at, expires_at, notes, purge_reason,
-		     status, size, job, encryption_type)
+		     status, size, job)
 		  VALUES
 		    (?, ?, ?, ?,
 		     ?, ?, ?, ?, ?,
-		     ?, ?, ?, ?)`,
+		     ?, ?, ?)`,
 			v.UUID, v.TenantUUID, v.TargetUUID,
 			v.StoreKey, v.TakenAt, v.ExpiresAt, v.Notes, v.PurgeReason,
-			v.Status, v.Size, v.Job, v.EncryptionType)
+			v.Status, v.Size, v.Job)
 		if err != nil {
 			return err
 		}
@@ -157,7 +154,6 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 		NextRun    int    `json:"next_run"`
 		Priority   int    `json:"priority"`
 		Paused     bool   `json:"paused"`
-		FixedKey   bool   `json:"fixed_key"`
 		Healthy    bool   `json:"healthy"`
 		Error      string `json:"error"`
 	}
@@ -177,14 +173,14 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 		  INSERT INTO jobs
 		    (uuid, target_uuid, bucket, tenant_uuid,
 		     name, summary, schedule, keep_n, keep_days,
-		     next_run, priority, paused, fixed_key, healthy)
+		     next_run, priority, paused, healthy)
 		  VALUES
 		    (?, ?, ?, ?,
 		     ?, ?, ?, ?, ?,
-		     ?, ?, ?, ?, ?)`,
+		     ?, ?, ?, ?)`,
 			v.UUID, v.TargetUUID, v.Bucket, v.TenantUUID,
 			v.Name, v.Summary, v.Schedule, v.KeepN, v.KeepDays,
-			v.NextRun, v.Priority, v.Paused, v.FixedKey, v.Healthy)
+			v.NextRun, v.Priority, v.Paused, v.Healthy)
 		if err != nil {
 			return err
 		}
@@ -280,7 +276,6 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		Log            string  `json:"log"`
 		Attempts       int     `json:"attempts"`
 		Agent          string  `json:"agent"`
-		FixedKey       string  `json:"fixed_key"`
 		TargetPlugin   string  `json:"target_plugin"`
 		TargetEndpoint string  `json:"target_endpoint"`
 		RestoreKey     string  `json:"restore_key"`
@@ -288,7 +283,6 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		Notes          string  `json:"notes"`
 		Clear          string  `json:"clear"`
 		Error          string  `json:"error"`
-		EncryptionType string  `json:"encryption_type"`
 	}
 
 	for ; n > 0; n-- {
@@ -315,7 +309,7 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
                 (uuid, owner, op,
                 tenant_uuid, job_uuid, archive_uuid, target_uuid,
                 status, requested_at, started_at, stopped_at, timeout_at,
-                log, attempts, agent, fixed_key,
+                log, attempts, agent,
                 target_plugin, target_endpoint,
                 restore_key,
                 ok, notes, clear)
@@ -323,14 +317,14 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
                 (?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
-                ?, ?, ?, ?,
+                ?, ?, ?,
                 ?, ?,
                 ?,
                 ?, ?, ?)`,
 				v.UUID, v.Owner, v.Op,
 				v.TenantUUID, v.JobUUID, v.ArchiveUUID, v.TargetUUID,
 				v.Status, v.RequestedAt, v.StartedAt, v.StoppedAt, v.TimeoutAt,
-				v.Log, v.Attempts, v.Agent, v.FixedKey,
+				v.Log, v.Attempts, v.Agent,
 				v.TargetPlugin, v.TargetEndpoint,
 				v.RestoreKey,
 				v.OK, v.Notes, v.Clear)

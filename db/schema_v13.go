@@ -54,6 +54,11 @@ func (s v13Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`ALTER TABLE archives DROP COLUMN encryption_type`)
+	if err != nil {
+		return err
+	}
+
 	err = db.Exec(`UPDATE schema_info set version = 13`)
 	if err != nil {
 		return err

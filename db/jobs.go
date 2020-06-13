@@ -21,7 +21,6 @@ type Job struct {
 	KeepDays int    `json:"keep_days" mbus:"keep_days"`
 	Schedule string `json:"schedule"  mbus:"schedule"`
 	Paused   bool   `json:"paused"    mbus:"paused"`
-	FixedKey bool   `json:"fixed_key" mbus:"fixed_key"`
 
 	Target struct {
 		UUID   string `json:"uuid"`
@@ -123,7 +122,7 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	        )
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.bucket,
-	          j.tenant_uuid, j.fixed_key, j.healthy, j.keep_n, j.keep_days,
+	          j.tenant_uuid, j.healthy, j.keep_n, j.keep_days,
 	          t.uuid, t.name, t.plugin, t.endpoint, t.agent,
 	          k.started_at, k.status
 
@@ -157,7 +156,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		)
 		if err = r.Scan(
 			&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &j.Bucket,
-			&j.TenantUUID, &j.FixedKey, &j.Healthy, &j.KeepN, &j.KeepDays,
+			&j.TenantUUID, &j.Healthy, &j.KeepN, &j.KeepDays,
 			&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
 			&j.Agent, &last, &status); err != nil {
 			return l, err
@@ -234,13 +233,13 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 		return db.Exec(`
 		   INSERT INTO jobs (uuid, tenant_uuid,
 		                     name, summary, schedule, keep_n, keep_days, paused,
-		                     target_uuid, bucket, fixed_key, healthy)
+		                     target_uuid, bucket, healthy)
 		             VALUES (?, ?,
 		                     ?, ?, ?, ?, ?, ?,
-		                     ?, ?, ?, ?)`,
+		                     ?, ?, ?)`,
 			job.UUID, job.TenantUUID,
 			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays, job.Paused,
-			job.TargetUUID, job.Bucket, job.FixedKey, job.Healthy)
+			job.TargetUUID, job.Bucket, job.Healthy)
 	})
 	if err != nil {
 		return nil, err
@@ -275,11 +274,10 @@ func (db *DB) UpdateJob(job *Job) error {
 		          keep_n         = ?,
 		          keep_days      = ?,
 		          target_uuid    = ?,
-		          bucket         = ?,
-		          fixed_key      = ?
+		          bucket         = ?
 		    WHERE uuid = ?`,
 			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays,
-			job.TargetUUID, job.Bucket, job.FixedKey,
+			job.TargetUUID, job.Bucket,
 			job.UUID)
 	})
 	if err != nil {

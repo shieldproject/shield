@@ -8,17 +8,16 @@ import (
 )
 
 type Archive struct {
-	UUID           string `json:"uuid"            mbus:"uuid"`
-	TenantUUID     string `json:"tenant_uuid"     mbus:"tenant_uuid"`
-	TargetUUID     string `json:"target_uuid"     mbus:"target_uuid"`
-	StoreKey       string `json:"key"             mbus:"key"`
-	TakenAt        int64  `json:"taken_at"        mbus:"taken_at"`
-	ExpiresAt      int64  `json:"expires_at"      mbus:"expires_at"`
-	Notes          string `json:"notes"           mbus:"notes"`
-	Status         string `json:"status"          mbus:"status"`
-	PurgeReason    string `json:"purge_reason"    mbus:"purge_reason"`
-	EncryptionType string `json:"encryption_type" mbus:"encryption_type"`
-	Size           int64  `json:"size"            mbus:"size"`
+	UUID        string `json:"uuid"            mbus:"uuid"`
+	TenantUUID  string `json:"tenant_uuid"     mbus:"tenant_uuid"`
+	TargetUUID  string `json:"target_uuid"     mbus:"target_uuid"`
+	StoreKey    string `json:"key"             mbus:"key"`
+	TakenAt     int64  `json:"taken_at"        mbus:"taken_at"`
+	ExpiresAt   int64  `json:"expires_at"      mbus:"expires_at"`
+	Notes       string `json:"notes"           mbus:"notes"`
+	Status      string `json:"status"          mbus:"status"`
+	PurgeReason string `json:"purge_reason"    mbus:"purge_reason"`
+	Size        int64  `json:"size"            mbus:"size"`
 
 	TargetName     string `json:"target_name"`
 	TargetPlugin   string `json:"target_plugin"`
@@ -106,7 +105,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
         SELECT a.uuid, a.store_key,
                a.taken_at, a.expires_at, a.notes,
                t.uuid, t.name, t.plugin, t.endpoint,
-               a.status, a.purge_reason, a.job, a.encryption_type,
+               a.status, a.purge_reason, a.job,
                a.tenant_uuid, a.size
 
         FROM archives a
@@ -150,7 +149,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		if err = r.Scan(
 			&a.UUID, &a.StoreKey, &takenAt, &expiresAt, &a.Notes,
 			&targetUUID, &targetName, &targetPlugin, &targetEndpoint,
-			&a.Status, &a.PurgeReason, &a.Job, &a.EncryptionType,
+			&a.Status, &a.PurgeReason, &a.Job,
 			&a.TenantUUID, &size); err != nil {
 
 			return l, err
@@ -188,7 +187,7 @@ func (db *DB) GetArchive(id string) (*Archive, error) {
         SELECT a.uuid, a.store_key,
                a.taken_at, a.expires_at, a.notes,
                t.uuid, t.name, t.plugin, t.endpoint,
-               a.status, a.purge_reason, a.job, a.encryption_type,
+               a.status, a.purge_reason, a.job,
                a.tenant_uuid, a.size
 
         FROM archives a
@@ -210,7 +209,7 @@ func (db *DB) GetArchive(id string) (*Archive, error) {
 	if err = r.Scan(
 		&a.UUID, &a.StoreKey, &takenAt, &expiresAt, &a.Notes,
 		&targetUUID, &targetName, &targetPlugin, &targetEndpoint,
-		&a.Status, &a.PurgeReason, &a.Job, &a.EncryptionType,
+		&a.Status, &a.PurgeReason, &a.Job,
 		&a.TenantUUID, &size); err != nil {
 
 		return nil, err
@@ -245,18 +244,18 @@ func (db *DB) createArchiveFromTask(task_uuid string, archive Archive) (*Archive
               INSERT INTO archives
                 (uuid, target_uuid, store_key, taken_at,
                  expires_at, notes, status, purge_reason, job,
-                 encryption_type, size, tenant_uuid)
+                 size, tenant_uuid)
 
                   SELECT ?, t.uuid, ?, ?,
                          ?, '', 'valid', '', j.Name,
-                         ?, ?, ?
+                         ?, ?
                   FROM tasks
                      INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
                      INNER JOIN targets t     ON t.uuid = j.target_uuid
                   WHERE tasks.uuid = ?`,
 		archive.UUID, archive.StoreKey, archive.TakenAt,
 		archive.ExpiresAt,
-		archive.EncryptionType, archive.Size, archive.TenantUUID,
+		archive.Size, archive.TenantUUID,
 		task_uuid)
 	if err != nil {
 		return nil, err

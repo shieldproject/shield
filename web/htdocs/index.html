@@ -290,36 +290,6 @@
             </div>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="template:fixedkey"><!-- {{{ -->
-        [[#
-          {fixedkey} template
-
-          Displays the Shield Fixed Key, so that operators can restore
-          fixed-key backups in the event of a disaster.
-        ]]
-            <div id="fixed-wrapper" class="frontdoor">
-              <div>
-                <h1>SHIELD<span>[[= h(AEGIS.shield.env) ]]<span></h1>
-                <div class="dialog">
-                  <h2>Shield Fixed Key</h2>
-                  <img src="/i/terminal.png" class="highlight">
-
-                  <p>Here is your SHIELD Fixed Key:</p>
-
-                  <pre id="fixedkey">[[= _.fixed_key ]]</pre>
-
-                  <p id="dr-explain">
-                    You will need to save this key in a secure location
-                    for use in recovery of fixed-key backups in a disaster scenario.
-                    Fixed-key backups must be used to backup shield itself. Once you
-                    leave this screen, there is no way to access this key or corresponding
-                    fixed-key backups unless you have saved it!
-                  </p>
-                  <a href="/"><button id="accept">I Understand</button></a>
-                </div>
-              </div>
-            </div>
-    <!-- }}} --></script>
     <script type="text/html" id="template:logging-in"><!-- {{{ -->
       [[#
         {logging-in} template
@@ -1312,15 +1282,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 <p class="help">How long should SHIELD keep each backup archive?</p>
               </div>
             </div>[[# }}} ]]
-            <div class="field required">[[# encryption {{{ ]]
-              <div class="x3"><label for="job.randomize_keys">Randomize Encryption Keys</label></div>
-              <div class="x9">
-                <label for="cb-job.randomize_keys" class="switch">
-                  <input id="cb-job.randomize_keys" name="job.randomize_keys" type="checkbox" checked><span class="slider round"></span>
-                </label>
-                <p class="help">For increased security, SHIELD randomizes the encryption key used for each archive it creates.  This helps to defeat statistical attacks against encrypted archives for data sets that change very little.</p>
-              </div>
-            </div>[[# }}} ]]
               </div>
             </div>
           </div>
@@ -1418,14 +1379,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 <div class="x2"><label>Retention</label></div>
                 <div class="x7">
                   <p class="selected-elsewhere">keep [[= pluralize(_.job.keep_days, 'day') ]] of backup archives
-                  <a class="change-me" href="step:4">change</a></p>
-                </div>
-              </div>
-
-              <div class="c12 band">
-                <div class="x2"><label>Encryption Keys</label></div>
-                <div class="x7">
-                  <p class="selected-elsewhere">[[ if (_.job.fixed_key) { ]]fixed[[ } else { ]]randomized[[ } ]]
                   <a class="change-me" href="step:4">change</a></p>
                 </div>
               </div>
@@ -1751,7 +1704,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               <thead>
                 <tr>
                   <th class="sortable">Name</th>
-                  <th class="encryption">Encryption</th>
                   <th class="sortable">Schedule</th>
                   <th class="sortable">Cloud Storage</th>
                   <th class="sortable">Retention</th>
@@ -1766,9 +1718,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   <td class="name [[= job.healthy ? 'ok' : 'fail' ]]">
                     <img src="i/shield-[[= job.healthy ? 'ok' : 'fail' ]].svg">
                     [[= h(job.name) ]]
-                  </td>
-                  <td class="enc">
-                    [[ if (job.fixed_key) { ]]<span class="tag fixed">fixed</span>[[ } else { ]]<span class="tag randomized">randomized</span>[[ } ]]
                   </td>
                   <td class="schedule" data-sort="[[= job.keep_n / job.keep_days * 1000 ]]" data-sort-as="number">
                     [[= h(job.schedule) ]][[ if (job.paused) { ]] (paused)[[ } ]]

@@ -42,7 +42,6 @@ type Task struct {
 	TimeoutAt      int64          `json:"-"`
 	Attempts       int            `json:"-"`
 	RestoreKey     string         `json:"-"`
-	FixedKey       bool           `json:"-"`
 	Agent          string         `json:"-"`
 	Log            string         `json:"log"`
 	OK             bool           `json:"ok"              mbus:"ok"`
@@ -183,7 +182,7 @@ func (f *TaskFilter) Query() (string, []interface{}) {
                t.target_uuid, t.target_plugin, t.target_endpoint,
                t.status, t.requested_at, t.started_at, t.stopped_at, t.timeout_at,
                t.bucket, t.stream, t.restore_key, t.attempts, t.agent, t.log,
-               t.ok, t.notes, t.clear, t.fixed_key
+               t.ok, t.notes, t.clear
 
         FROM tasks t
 
@@ -217,7 +216,7 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 			&target, &t.TargetPlugin, &t.TargetEndpoint,
 			&t.Status, &t.RequestedAt, &started, &stopped, &deadline,
 			&t.Bucket, &t.Stream, &t.RestoreKey, &t.Attempts, &t.Agent, &log,
-			&t.OK, &t.Notes, &t.Clear, &t.FixedKey); err != nil {
+			&t.OK, &t.Notes, &t.Clear); err != nil {
 			return l, err
 		}
 		if job.Valid {
@@ -271,7 +270,7 @@ func (db *DB) ReinsertTask(task *Task) error {
             (uuid, owner, op,
              tenant_uuid, job_uuid, archive_uuid, target_uuid,
              status, requested_at, started_at, stopped_at, timeout_at,
-             log, attempts, agent, fixed_key
+             log, attempts, agent
              target_plugin, target_endpoint,
              bucket, stream, restore_key,
              ok, notes, clear)
@@ -279,14 +278,14 @@ func (db *DB) ReinsertTask(task *Task) error {
             (?, ?, ?,
              ?, ?, ?, ?,
              ?, ?, ?, ?, ?,
-             ?, ?, ?, ?,
+             ?, ?, ?,
              ?, ?,
              ?, ?, ?,
              ?, ?, ?)`,
 		task.UUID, task.Owner, task.Op,
 		task.TenantUUID, task.JobUUID, task.ArchiveUUID, task.TargetUUID,
 		task.Status, task.RequestedAt, task.StartedAt, task.StoppedAt, task.TimeoutAt,
-		task.Log, task.Attempts, task.Agent, task.FixedKey,
+		task.Log, task.Attempts, task.Agent,
 		task.TargetPlugin, task.TargetEndpoint,
 		task.Bucket, task.Stream, task.RestoreKey,
 		task.OK, task.Notes, task.Clear)
@@ -317,16 +316,16 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
                 (uuid, owner, op, job_uuid, status, log, requested_at,
                  bucket, archive_uuid,
                  target_uuid, target_plugin, target_endpoint, restore_key,
-                 agent, attempts, tenant_uuid, fixed_key)
+                 agent, attempts, tenant_uuid)
               VALUES
                 (?, ?, ?, ?, ?, ?, ?,
                  ?, ?,
                  ?, ?, ?, ?,
-                 ?, ?, ?, ?)`,
+                 ?, ?, ?)`,
 			id, owner, BackupOperation, job.UUID, PendingStatus, "", time.Now().Unix(),
 			job.Bucket, archive,
 			job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
-			job.Agent, 0, job.TenantUUID, job.FixedKey)
+			job.Agent, 0, job.TenantUUID)
 	})
 	if err != nil {
 		return nil, err
@@ -364,16 +363,16 @@ func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) 
                 (uuid, owner, op, job_uuid, status, log,
                  requested_at, started_at, stopped_at, ok,
                  target_uuid, target_plugin, target_endpoint, restore_key,
-                 agent, attempts, tenant_uuid, fixed_key)
+                 agent, attempts, tenant_uuid)
               VALUES
                 (?, ?, ?, ?, ?, ?,
                  ?, ?, ?, ?,
                  ?, ?, ?, ?,
-                 ?, ?, ?, ?)`,
+                 ?, ?, ?)`,
 			id, owner, BackupOperation, job.UUID, CanceledStatus, msg,
 			now, now, now, 0,
 			job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
-			job.Agent, 0, job.TenantUUID, job.FixedKey)
+			job.Agent, 0, job.TenantUUID)
 	})
 	if err != nil {
 		return nil, err
@@ -671,7 +670,7 @@ func (db *DB) getTaskArchiveRetention(id string) (int, error) {
 	return n, nil
 }
 
-func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryptionType string, archive_size int64, tenant_uuid string) (string, error) {
+func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, archive_size int64, tenant_uuid string) (string, error) {
 	if key == "" {
 		return "", fmt.Errorf("cannot create an archive without a store_key")
 	}
@@ -684,13 +683,12 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryp
 
 	// insert an archive with all proper references, expiration, etc.
 	archive, err := db.createArchiveFromTask(id, Archive{
-		UUID:           archive_id,
-		StoreKey:       key,
-		TakenAt:        effectively(at),
-		ExpiresAt:      at.Add(time.Duration(n*24) * time.Hour).Unix(),
-		EncryptionType: encryptionType,
-		Size:           archive_size,
-		TenantUUID:     tenant_uuid,
+		UUID:       archive_id,
+		StoreKey:   key,
+		TakenAt:    effectively(at),
+		ExpiresAt:  at.Add(time.Duration(n*24) * time.Hour).Unix(),
+		Size:       archive_size,
+		TenantUUID: tenant_uuid,
 	})
 	if err != nil {
 		log.Errorf("failed to insert archive with UUID %s into database: %s", archive.UUID, err)
