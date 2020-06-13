@@ -139,7 +139,7 @@ func (db *DB) GetUserByID(id string) (*User, error) {
 	r, err := db.query(`
 	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash
 	      FROM users u
-	     WHERE u.uuid = ?`, id)
+	     WHERE u.uuid::text = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -192,18 +192,18 @@ func (db *DB) UpdateUser(user *User) error {
 	return db.Exec(`
 	   UPDATE users
 	      SET name = ?, account = ?, backend = ?, sysrole = ?, pwhash = ?
-	    WHERE uuid = ?
+	    WHERE uuid::text = ?
 	`, user.Name, user.Account, user.Backend, user.SysRole, user.pwhash, user.UUID)
 }
 
 func (db *DB) DeleteUser(user *User) error {
 	return db.Exec(`
 		DELETE FROM users
-		      WHERE uuid = ?`, user.UUID)
+		      WHERE uuid::text = ?`, user.UUID)
 }
 
 func (db *DB) userShouldExist(uuid string) error {
-	if ok, err := db.Exists(`SELECT uuid FROM users WHERE uuid = ?`, uuid); err != nil {
+	if ok, err := db.Exists(`SELECT uuid FROM users WHERE uuid::text = ?`, uuid); err != nil {
 		return fmt.Errorf("unable to look up user [%s]: %s", uuid, err)
 	} else if !ok {
 		return fmt.Errorf("user [%s] does not exist", uuid)

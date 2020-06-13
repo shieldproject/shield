@@ -112,7 +112,7 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 	}
 
 	if f.ForArchive != "" {
-		wheres = append(wheres, "t.archive_uuid = ?")
+		wheres = append(wheres, "t.archive_uuid::text = ?")
 		args = append(args, f.ForArchive)
 	}
 
@@ -131,7 +131,7 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 	}
 
 	if f.ForTarget != "" {
-		wheres = append(wheres, "t.target_uuid = ?")
+		wheres = append(wheres, "t.target_uuid::text = ?")
 		args = append(args, f.ForTarget)
 	}
 
@@ -469,7 +469,7 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 
 	r, err := db.query(`
         SELECT uuid FROM tasks
-          WHERE target_uuid = ? AND status = ? LIMIT 1`, task.TargetUUID, RunningStatus)
+          WHERE target_uuid::text = ? AND status = ? LIMIT 1`, task.TargetUUID, RunningStatus)
 	if err != nil {
 		return false, err
 	}
@@ -483,7 +483,7 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 
 func (db *DB) StartTask(id string, at time.Time) error {
 	err := db.Exec(
-		`UPDATE tasks SET status = ?, started_at = ? WHERE uuid = ?`,
+		`UPDATE tasks SET status = ?, started_at = ? WHERE uuid::text = ?`,
 		RunningStatus, effectively(at), id,
 	)
 	if err != nil {
@@ -504,7 +504,7 @@ func (db *DB) StartTask(id string, at time.Time) error {
 
 func (db *DB) ScheduledTask(id string) error {
 	err := db.Exec(
-		`UPDATE tasks SET status = ? WHERE uuid = ?`,
+		`UPDATE tasks SET status = ? WHERE uuid::text = ?`,
 		ScheduledStatus, id)
 	if err != nil {
 		return err
@@ -524,7 +524,7 @@ func (db *DB) ScheduledTask(id string) error {
 
 func (db *DB) updateTaskStatus(id, status string, at int64, ok int) error {
 	err := db.Exec(
-		`UPDATE tasks SET status = ?, stopped_at = ?, ok = ? WHERE uuid = ?`,
+		`UPDATE tasks SET status = ?, stopped_at = ?, ok = ? WHERE uuid::text = ?`,
 		status, at, ok, id)
 	if err != nil {
 		return err
@@ -592,7 +592,7 @@ func (db *DB) CompleteTask(id string, at time.Time) error {
 
 func (db *DB) UpdateTaskLog(id string, more string) error {
 	err := db.Exec(
-		`UPDATE tasks SET log = log || ? WHERE uuid = ?`,
+		`UPDATE tasks SET log = log || ? WHERE uuid::text = ?`,
 		more, id,
 	)
 	if err != nil {
@@ -608,7 +608,7 @@ func (db *DB) getTaskArchiveRetention(id string) (int, error) {
 	         SELECT j.keep_days
 	           FROM jobs j
 	     INNER JOIN tasks t ON j.uuid = t.job_uuid
-	          WHERE t.uuid = ?`, id)
+	          WHERE t.uuid::text = ?`, id)
 	if err != nil {
 		return 0, err
 	}
@@ -652,7 +652,7 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, archiv
 
 	// and finally, associate task -> archive
 	return archive_id, db.Exec(
-		`UPDATE tasks SET archive_uuid = ? WHERE uuid = ?`,
+		`UPDATE tasks SET archive_uuid = ? WHERE uuid::text = ?`,
 		archive_id, id)
 }
 
@@ -682,7 +682,7 @@ func (db *DB) AnnotateTargetTask(target, id string, t *TaskAnnotation) error {
 	args = append(args, target, id)
 	return db.Exec(
 		`UPDATE tasks SET `+strings.Join(updates, ", ")+
-			`WHERE target_uuid = ? AND uuid = ?`, args...)
+			` WHERE target_uuid::text = ? AND uuid::text = ?`, args...)
 }
 
 func (db *DB) MarkTasksIrrelevant() error {
@@ -738,7 +738,7 @@ func (db *DB) UnscheduleAllTasks() error {
 }
 
 func (db *DB) archiveShouldExist(uuid string) error {
-	if ok, err := db.Exists(`SELECT uuid FROM archives WHERE uuid = ?`, uuid); err != nil {
+	if ok, err := db.Exists(`SELECT uuid FROM archives WHERE uuid::text = ?`, uuid); err != nil {
 		return fmt.Errorf("unable to look up archive [%s]: %s", uuid, err)
 	} else if !ok {
 		return fmt.Errorf("archive [%s] does not exist", uuid)

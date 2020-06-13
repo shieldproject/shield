@@ -51,7 +51,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		}
 	}
 	if f.ForTarget != "" {
-		wheres = append(wheres, "target_uuid = ?")
+		wheres = append(wheres, "target_uuid::text = ?")
 		args = append(args, f.ForTarget)
 	}
 	if f.Before != nil {
@@ -186,7 +186,7 @@ func (db *DB) GetArchive(id string) (*Archive, error) {
         FROM archives a
            LEFT  JOIN targets t   ON t.uuid = a.target_uuid
 
-        WHERE a.uuid = ?`, id)
+        WHERE a.uuid::text = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (db *DB) createArchiveFromTask(task_uuid string, archive Archive) (*Archive
                   FROM tasks
                      INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
                      INNER JOIN targets t     ON t.uuid = j.target_uuid
-                  WHERE tasks.uuid = ?`,
+                  WHERE tasks.uuid::text = ?`,
 		archive.UUID, archive.StoreKey, archive.TakenAt,
 		archive.ExpiresAt,
 		archive.Size,
@@ -259,14 +259,14 @@ func (db *DB) createArchiveFromTask(task_uuid string, archive Archive) (*Archive
 
 func (db *DB) UpdateArchive(update *Archive) error {
 	return db.Exec(
-		`UPDATE archives SET notes = ? WHERE uuid = ?`,
+		`UPDATE archives SET notes = ? WHERE uuid::text = ?`,
 		update.Notes, update.UUID,
 	)
 }
 
 func (db *DB) AnnotateTargetArchive(target, id, notes string) error {
 	return db.Exec(
-		`UPDATE archives SET notes = ? WHERE uuid = ? AND target_uuid = ?`,
+		`UPDATE archives SET notes = ? WHERE uuid::text = ? AND target_uuid::text = ?`,
 		notes, id, target,
 	)
 }
@@ -288,7 +288,7 @@ func (db *DB) GetExpiredArchives() ([]*Archive, error) {
 }
 
 func (db *DB) InvalidateArchive(id string) error {
-	return db.Exec(`UPDATE archives SET status = 'invalid' WHERE uuid = ?`, id)
+	return db.Exec(`UPDATE archives SET status = 'invalid' WHERE uuid::text = ?`, id)
 }
 
 func (db *DB) PurgeArchive(id string) error {
@@ -304,21 +304,21 @@ func (db *DB) PurgeArchive(id string) error {
 		return fmt.Errorf("invalid attempt to purge a 'valid' archive detected")
 	}
 
-	err = db.Exec(`UPDATE archives SET purge_reason = status WHERE uuid = ?`, id)
+	err = db.Exec(`UPDATE archives SET purge_reason = status WHERE uuid::text = ?`, id)
 	if err != nil {
 		return err
 	}
 
-	return db.Exec(`UPDATE archives SET status = 'purged', expires_at = ? WHERE uuid = ?`, time.Now().Unix(), id)
+	return db.Exec(`UPDATE archives SET status = 'purged', expires_at = ? WHERE uuid::text = ?`, time.Now().Unix(), id)
 }
 
 func (db *DB) ExpireArchive(id string) error {
-	return db.Exec(`UPDATE archives SET status = 'expired' WHERE uuid = ?`, id)
+	return db.Exec(`UPDATE archives SET status = 'expired' WHERE uuid::text = ?`, id)
 }
 
 func (db *DB) ManuallyPurgeArchive(id string) error {
 	return db.exclusively(func() error {
-		err := db.Exec(`UPDATE archives SET status = 'manually purged', expires_at = ? WHERE uuid = ?`, time.Now().Unix(), id)
+		err := db.Exec(`UPDATE archives SET status = 'manually purged', expires_at = ? WHERE uuid::text = ?`, time.Now().Unix(), id)
 		if err != nil {
 			return err
 		}
@@ -333,7 +333,7 @@ func (db *DB) ManuallyPurgeArchive(id string) error {
 }
 
 func (db *DB) DeleteArchive(id string) (bool, error) {
-	return true, db.Exec(`DELETE FROM archives WHERE uuid = ?`, id)
+	return true, db.Exec(`DELETE FROM archives WHERE uuid::text = ?`, id)
 }
 
 func (db *DB) CleanupArchives(age int) error {

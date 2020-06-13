@@ -120,7 +120,7 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN ok INT NOT NULL DEFAULT 1`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN ok BOOLEAN NOT NULL DEFAULT true`)
 	if err != nil {
 		return err
 	}

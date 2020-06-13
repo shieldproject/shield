@@ -36,12 +36,12 @@ func (f *SessionFilter) Query() (string, []interface{}) {
 	var args []interface{}
 
 	if f.UUID != "" {
-		wheres = append(wheres, "s.uuid = ?")
+		wheres = append(wheres, "s.uuid::text = ?")
 		args = append(args, f.UUID)
 	}
 
 	if f.UserUUID != "" {
-		wheres = append(wheres, "s.user_uuid = ?")
+		wheres = append(wheres, "s.user_uuid::text = ?")
 		args = append(args, f.UserUUID)
 	}
 
@@ -124,7 +124,7 @@ func (db *DB) GetSession(id string) (*Session, error) {
 	           FROM sessions s
 	     INNER JOIN users u   ON u.uuid = s.user_uuid
 
-	         WHERE s.uuid = ?`, id)
+	         WHERE s.uuid::text = ?`, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve session: %s", err)
 	}
@@ -162,7 +162,7 @@ func (db *DB) GetUserForSession(id string) (*User, error) {
 
 	          FROM sessions s
 	    INNER JOIN users u ON u.uuid = s.user_uuid
-	         WHERE s.uuid = ?`, id)
+	         WHERE s.uuid::text = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -211,13 +211,13 @@ func (db *DB) ClearExpiredSessions(expiration_threshold time.Time) error {
 }
 
 func (db *DB) ClearSession(id string) error {
-	return db.Exec(`DELETE FROM sessions WHERE token IS NULL AND uuid = ?`, id)
+	return db.Exec(`DELETE FROM sessions WHERE token IS NULL AND uuid::text = ?`, id)
 }
 
 func (db *DB) PokeSession(session *Session) error {
 	return db.Exec(`
 	   UPDATE sessions SET last_seen = ?, user_uuid = ?, ip_addr = ?, user_agent = ?
-	    WHERE uuid = ?`, time.Now().Unix(), session.UserUUID, session.IP, session.UserAgent, session.UUID)
+	    WHERE uuid::text = ?`, time.Now().Unix(), session.UserUUID, session.IP, session.UserAgent, session.UUID)
 }
 
 func stripIP(raw_ip string) string {

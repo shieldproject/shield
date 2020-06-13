@@ -32,7 +32,7 @@ func (t AuthTokenFilter) Query() (string, []interface{}) {
 		args = append(args, t.Name)
 	}
 	if t.User != nil {
-		wheres = append(wheres, "u.uuid = ?")
+		wheres = append(wheres, "u.uuid::text = ?")
 		args = append(args, t.User.UUID)
 	}
 
@@ -100,5 +100,5 @@ func (db *DB) GenerateAuthToken(name string, user *User) (*AuthToken, string, er
 }
 
 func (db *DB) DeleteAuthToken(id string, user *User) error {
-	return db.Exec(`DELETE FROM sessions WHERE token = ? AND user_uuid = ?`, id, user.UUID)
+	return db.Exec(`DELETE FROM sessions WHERE token = ? AND user_uuid::text = ?`, id, user.UUID)
 }

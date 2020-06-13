@@ -247,7 +247,7 @@ func (db *DB) UpdateAgent(agent *Agent) error {
 		                   last_checked_at = ?,
 		                   last_seen_at    = ?,
 		                   last_error      = ?
-		        WHERE uuid = ?`,
+		        WHERE uuid::text = ?`,
 			agent.Name, agent.Address, agent.Version, agent.Status, agent.Hidden, agent.RawMeta,
 			agent.LastCheckedAt, agent.LastSeenAt, agent.LastError,
 			agent.UUID)
@@ -279,6 +279,6 @@ func (db *DB) DeleteAgent(agent *Agent) error {
 		}
 
 		db.sendDeleteObjectEvent(agent, "*")
-		return db.Exec(`DELETE FROM agents WHERE uuid = ?`, agent.UUID)
+		return db.Exec(`DELETE FROM agents WHERE uuid::text = ?`, agent.UUID)
 	})
 }

@@ -44,7 +44,7 @@ func (s v10Schema) Deploy(db *DB) error {
 		}
 
 		for _, uuid := range toDelete {
-			err = db.Exec(`DELETE FROM agents WHERE uuid = ?`, uuid)
+			err = db.Exec(`DELETE FROM agents WHERE uuid::text = ?`, uuid)
 			if err != nil {
 				return err
 			}

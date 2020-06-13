@@ -165,7 +165,7 @@ func (db *DB) GetTarget(id string) (*Target, error) {
 
 	      FROM targets
 
-	     WHERE uuid = ?`, id)
+	     WHERE uuid::text = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +228,7 @@ func (db *DB) UpdateTarget(target *Target) error {
 	         plugin      = ?,
 	         endpoint    = ?,
 	         agent       = ?
-	   WHERE uuid = ?`,
+	   WHERE uuid::text = ?`,
 		target.Name, target.Summary, target.Plugin, string(rawconfig),
 		target.Agent, target.UUID)
 	if err != nil {
@@ -258,7 +258,7 @@ func (db *DB) UpdateTargetHealth(id string, health bool) error {
 	err = db.Exec(`
         UPDATE targets
             SET healthy = ?
-        WHERE uuid = ?`,
+        WHERE uuid::text = ?`,
 		health,
 		target.UUID)
 	if err != nil {
@@ -280,12 +280,12 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 		return true, nil
 	}
 
-	n, err := db.Count(`SELECT uuid FROM jobs WHERE jobs.target_uuid = ?`, target.UUID)
+	n, err := db.Count(`SELECT uuid FROM jobs WHERE jobs.target_uuid::text = ?`, target.UUID)
 	if n > 0 || err != nil {
 		return false, err
 	}
 
-	err = db.Exec(`DELETE FROM targets WHERE uuid = ?`, id)
+	err = db.Exec(`DELETE FROM targets WHERE uuid::text = ?`, id)
 	if err != nil {
 		return false, err
 	}
@@ -295,7 +295,7 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 }
 
 func (db *DB) targetShouldExist(uuid string) error {
-	if ok, err := db.Exists(`SELECT uuid FROM targets WHERE uuid = ?`, uuid); err != nil {
+	if ok, err := db.Exists(`SELECT uuid FROM targets WHERE uuid::text = ?`, uuid); err != nil {
 		return fmt.Errorf("unable to look up target [%s]: %s", uuid, err)
 	} else if !ok {
 		return fmt.Errorf("target [%s] does not exist", uuid)

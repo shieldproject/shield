@@ -87,7 +87,7 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	}
 
 	if f.ForTarget != "" {
-		wheres = append(wheres, "j.target_uuid = ?")
+		wheres = append(wheres, "j.target_uuid::text = ?")
 		args = append(args, f.ForTarget)
 	}
 	if f.ForBucket != "" {
@@ -181,11 +181,11 @@ func (db *DB) GetJob(id string) (*Job, error) {
 }
 
 func (db *DB) PauseOrUnpauseJob(id string, pause bool) (bool, error) {
-	n, err := db.Count(`SELECT uuid FROM jobs WHERE uuid = ? AND paused = ?`, id, !pause)
+	n, err := db.Count(`SELECT uuid FROM jobs WHERE uuid::text = ? AND paused = ?`, id, !pause)
 	if n == 0 || err != nil {
 		return false, err
 	}
-	err = db.Exec(`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`, pause, id, !pause)
+	err = db.Exec(`UPDATE jobs SET paused = ? WHERE uuid::text = ? AND paused = ?`, pause, id, !pause)
 	if err != nil {
 		return true, err
 	}
@@ -249,7 +249,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 func (db *DB) UpdateJob(job *Job) error {
 	err := db.exclusively(func() error {
 		/* validate the target */
-		if ok, err := db.Exists(`SELECT uuid FROM targets WHERE uuid = ?`, job.TargetUUID); err != nil {
+		if ok, err := db.Exists(`SELECT uuid FROM targets WHERE uuid::text = ?`, job.TargetUUID); err != nil {
 			return fmt.Errorf("unable to validate existence of target with UUID [%s]: %s", job.TargetUUID, err)
 		} else if !ok {
 			return fmt.Errorf("unable to set job target to [%s]: no such target in database", job.TargetUUID)
@@ -264,7 +264,7 @@ func (db *DB) UpdateJob(job *Job) error {
 		          keep_days      = ?,
 		          target_uuid    = ?,
 		          bucket         = ?
-		    WHERE uuid = ?`,
+		    WHERE uuid::text = ?`,
 			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays,
 			job.TargetUUID, job.Bucket,
 			job.UUID)
@@ -296,7 +296,7 @@ func (db *DB) UpdateJobHealth(id string, status bool) error {
 	err = db.Exec(`
         UPDATE jobs
             SET healthy = ?
-        WHERE uuid = ?`,
+        WHERE uuid::text = ?`,
 		status,
 		job.UUID)
 	if err != nil {
@@ -318,7 +318,7 @@ func (db *DB) DeleteJob(id string) (bool, error) {
 		return true, nil
 	}
 
-	err = db.Exec(`DELETE FROM jobs WHERE uuid = ?`, job.UUID)
+	err = db.Exec(`DELETE FROM jobs WHERE uuid::text = ?`, job.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -339,7 +339,7 @@ func (db *DB) DeleteJob(id string) (bool, error) {
 
 func (db *DB) RescheduleJob(j *Job, t time.Time) error {
 	/* note: this update does not require a message bus notification */
-	return db.Exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID)
+	return db.Exec(`UPDATE jobs SET next_run = ? WHERE uuid::text = ?`, t.Unix(), j.UUID)
 }
 
 func (j *Job) Reschedule() error {
