@@ -85,21 +85,6 @@ var opts struct {
 	ID     struct{} `cli:"id"`
 
 	/* }}} */
-	/* LOCKING / INIT {{{ */
-	Init struct {
-		Master string `cli:"--master" env:"SHIELD_CORE_MASTER"`
-	} `cli:"init, initialize"`
-	Lock   struct{} `cli:"lock"`
-	Unlock struct {
-		Master string `cli:"--master" env:"SHIELD_CORE_MASTER"`
-	} `cli:"unlock"`
-	Rekey struct {
-		OldMaster   string `cli:"--old-master"`
-		NewMaster   string `cli:"--new-master"`
-		RotateFixed bool   `cli:"--rotate-fixed-key"`
-	} `cli:"rekey"`
-
-	/* }}} */
 	/* AUTH TOKENS {{{ */
 	AuthTokens      struct{} `cli:"auth-tokens"`
 	CreateAuthToken struct{} `cli:"create-auth-token"`
@@ -445,11 +430,6 @@ func main() {
 		}
 		if show("admin", "administration", "administrative") {
 			header("Administrative Tasks")
-			printc("  init                     Initialize a new SHIELD Core.\n")
-			printc("  lock                     Lock a SHIELD Core.\n")
-			printc("  unlock                   Unlock a SHIELD Core (i.e. after a reboot).\n")
-			printc("  rekey                    Change a SHIELD Core master (unlock) password.\n")
-			blank()
 			printc("  users                    List all of the local user accounts.\n")
 			printc("  user                     Display the details for a single local user account.\n")
 			printc("  create-user              Create a new local user account.\n")
@@ -802,79 +782,6 @@ systems:
 		}
 		fmt.Printf("@G{Account Details}\n")
 		r.Output(os.Stdout)
-
-	/* }}} */
-
-	case "init": /* {{{ */
-		if opts.Init.Master == "" {
-			a := secureprompt("@Y{New SHIELD Core master password}: ")
-			b := secureprompt("@Y{Confirm new master password}: ")
-			if a == "" {
-				fail(3, "@R{master password cannot be blank!}\n")
-			} else if a != b {
-				fail(3, "@R{master password mismatch!}\n")
-			}
-			opts.Init.Master = a
-		}
-		fixedKey, err := c.Initialize(opts.Init.Master)
-		bail(err)
-
-		fmt.Printf("SHIELD core unlocked successfully.\n")
-
-		if fixedKey != "" {
-			fmt.Printf("@R{BELOW IS YOUR FIXED KEY FOR RECOVERING FIXED-KEY BACKUPS.}\n")
-			fmt.Printf("@R{SAVE THIS IN A SECURE LOCATION.}\n")
-			fmt.Printf("----------------------------------------------------------------\n")
-			fmt.Printf("@Y{" + c.SplitKey(fixedKey, 64) + "}")
-			fmt.Printf("\n----------------------------------------------------------------\n")
-		} else {
-			bail(fmt.Errorf("Failed to initialize Fixed Key!"))
-		}
-
-	/* }}} */
-	case "lock": /* {{{ */
-		bail(c.Lock())
-		fmt.Printf("SHIELD core locked successfully.\n")
-
-	/* }}} */
-	case "unlock": /* {{{ */
-		if opts.Unlock.Master == "" {
-			opts.Unlock.Master = secureprompt("@Y{SHIELD Core master password:} ")
-		}
-		err := c.Unlock(opts.Unlock.Master)
-		bail(err)
-
-		fmt.Printf("SHIELD core unlocked successfully.\n")
-
-	/* }}} */
-	case "rekey": /* {{{ */
-		if opts.Rekey.OldMaster == "" {
-			opts.Rekey.OldMaster = secureprompt("@Y{Current master password:} ")
-		}
-		if opts.Rekey.NewMaster == "" {
-			a := secureprompt("@C{New SHIELD Core master password:} ")
-			b := secureprompt("@C{Confirm new master password}: ")
-			if a == "" {
-				fail(3, "@R{master password cannot be blank!}\n")
-			} else if a != b {
-				fail(3, "@R{new master password mismatch!}\n")
-			}
-			opts.Rekey.NewMaster = a
-		}
-		fixedKey, err := c.Rekey(opts.Rekey.OldMaster, opts.Rekey.NewMaster, opts.Rekey.RotateFixed)
-		bail(err)
-
-		if fixedKey != "" {
-			fmt.Printf("@R{BELOW IS YOUR FIXED KEY FOR RECOVERING FIXED-KEY BACKUPS.}\n")
-			fmt.Printf("@R{SAVE THIS IN A SECURE LOCATION.}\n")
-			fmt.Printf("----------------------------------------------------------------\n")
-			fmt.Printf("@Y{" + c.SplitKey(fixedKey, 64) + "}")
-			fmt.Printf("\n----------------------------------------------------------------\n")
-		} else if opts.Rekey.RotateFixed {
-			bail(fmt.Errorf("Failed to initialize Fixed Key!"))
-		}
-
-		fmt.Printf("SHIELD core rekeyed successfully.\n")
 
 	/* }}} */
 
