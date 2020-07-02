@@ -66,20 +66,27 @@ const (
 
 func (c *Client) Status() (Status, error) {
 	err := c.vault.Health(false)
-	if err == nil {
-		return Ready, nil
-	}
 	if vaultkv.IsUninitialized(err) {
 		return Blank, nil
 	}
 	if vaultkv.IsSealed(err) {
 		return Locked, nil
 	}
+
+	if err != nil {
+		return Unknown, err
+	}
+
 	err = c.vault.TokenIsValid()
 	if err != nil {
+		if vaultkv.IsTransport(err) {
+			return Unknown, err
+		}
+
 		return Locked, nil
 	}
-	return Unknown, err
+
+	return Ready, nil
 }
 func (c *Client) StatusString() (string, error) {
 	st, err := c.Status()
