@@ -420,7 +420,11 @@
       this.ws.onclose = function () {
         self.ws = undefined;
         df.reject();
-        self.subscribe()
+
+        console.log('websocket closed, waiting 3000 ms before reopening to avoid infinite loop');
+        setTimeout(function() {
+            self.subscribe();
+        }, (3 * 1000));
       };
 
       this.ws.onmessage = function (m) {
