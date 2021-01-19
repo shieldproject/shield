@@ -71,6 +71,14 @@ func main() {
 				Help:    "If your Vault certificate is invalid, expired, or signed by an unknown Certificate Authority, you can disable SSL validation.  This is not recommended from a security standpoint, however.",
 				Default: "false",
 			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "namespace",
+				Type:    "string",
+				Title:   "Namespace",
+				Help:    "If you are using a Vault Enterprise namespace, set this as the namespace to target.",
+				Default: "",
+			},
 		},
 	}
 
@@ -222,6 +230,9 @@ func connect(endpoint plugin.ShieldEndpoint) (*vault.Vault, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
+	if token == "" {
+		return nil, "", fmt.Errorf("connect failed: vault token was left empty")
+	}
 	plugin.DEBUG("AUTH_TOKEN: '%s'", token)
 
 	skipSslValidation, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
@@ -230,7 +241,14 @@ func connect(endpoint plugin.ShieldEndpoint) (*vault.Vault, string, error) {
 	}
 	if skipSslValidation {
 		plugin.DEBUG("Skipping SSL validation")
-		os.Setenv("VAULT_SKIP_VERIFY", "1")
+	}
+
+	namespace, err := endpoint.StringValueDefault("namespace", "")
+	if err != nil {
+		return nil, "", err
+	}
+	if namespace != "" {
+		plugin.DEBUG("Setting enterprise namespace to '%s'", namespace)
 	}
 
 	subtree, err := endpoint.StringValueDefault("subtree", "")
@@ -238,7 +256,12 @@ func connect(endpoint plugin.ShieldEndpoint) (*vault.Vault, string, error) {
 		return nil, "", err
 	}
 
-	v, err := vault.NewVault(url, token, true)
+	v, err := vault.NewVault(vault.VaultConfig{
+		URL:        url,
+		Token:      token,
+		SkipVerify: skipSslValidation,
+		Namespace:  namespace,
+	})
 	return v, subtree, err
 }
 
