@@ -230,6 +230,9 @@ func connect(endpoint plugin.ShieldEndpoint) (*vault.Vault, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
+	if token == "" {
+		return nil, "", fmt.Errorf("connect failed: vault token was left empty")
+	}
 	plugin.DEBUG("AUTH_TOKEN: '%s'", token)
 
 	skipSslValidation, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
