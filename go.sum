@@ -27,6 +27,8 @@ github.com/cloudfoundry-community/vaultkv v0.0.0-20200311151509-343c0e6fc506 h1:
 github.com/cloudfoundry-community/vaultkv v0.0.0-20200311151509-343c0e6fc506/go.mod h1:pMz8czjvi3S7Lb7hgAK4J8knpIi+4fK3Bbe+LyzsHus=
 github.com/cloudfoundry-community/vaultkv v0.1.1 h1:z4N2Ze/N5o+R3d7oWQ1n+tQMWAw+V9SDKaZyDmTX/ms=
 github.com/cloudfoundry-community/vaultkv v0.1.1/go.mod h1:qjEGtHytd0cvF0m9LxA2oJlkP1k2CwRMimDeiW7iYgE=
+github.com/cloudfoundry-community/vaultkv v0.3.0 h1:O2u6ZVlH9JF3IBSbUYDhX9lAMe0PhVqCKKbz1/lYqk0=
+github.com/cloudfoundry-community/vaultkv v0.3.0/go.mod h1:LtRaWcG9IMMsGBcq5HMj3rEK0sCG/ckw1xNM/JYdIxU=
 github.com/coreos/etcd v3.3.18+incompatible h1:Zz1aXgDrFFi1nadh58tA9ktt06cmPTwNNP3dXwIq1lE=
 github.com/coreos/etcd v3.3.18+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f h1:JOrtw2xFKzlg+cbHpyrpLDmnN1HqhBfnX7WDiW7eG2c=

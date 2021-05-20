@@ -1,12 +1,19 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
+	"regexp"
+	"runtime"
+	"strings"
+	"sync"
 
+	"github.com/cloudfoundry-community/vaultkv"
 	fmt "github.com/jhunt/go-ansi"
-	"github.com/starkandwayne/safe/vault"
 
 	"github.com/shieldproject/shield/plugin"
 )
@@ -27,8 +34,7 @@ func main() {
 	"url"                 : "https://vault.myorg.mycompany.com",    # REQUIRED
 	"token"               : "b8714fec-0df9-3f66-d262-35a57e414120", # REQUIRED
 	"skip_ssl_validation" : true,                                   # REQUIRED
-
-	"subtree"             : "secret/some/sub/tree",                 # OPTIONAL
+	"subtree"             : "secret/some/sub/tree"                  # OPTIONAL
 }
 `,
 		Defaults: `
@@ -149,8 +155,9 @@ func (p VaultPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	plugin.DEBUG("Reading %s/* from the Vault...", subtree)
-	var output string
-	if output, err = Export(v, subtree); err != nil {
+
+	output, err := Export(v, subtree)
+	if err != nil {
 		return err
 	}
 
@@ -183,7 +190,7 @@ func (p VaultPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		plugin.DEBUG("Saving seal keys for current Vault...")
 		prev, err = Export(v, "secret/vault/seal/keys")
 		if err != nil {
-			if !vault.IsNotFound(err) {
+			if !vaultkv.IsNotFound(err) {
 				return err
 			}
 			prev = ""
@@ -191,7 +198,20 @@ func (p VaultPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	plugin.DEBUG("Deleting pre-existing contents of %s/* from Vault...", subtree)
-	if err = v.DeleteTree(subtree, vault.DeleteOpts{Destroy: true, All: true}); err != nil && !vault.IsNotFound(err) {
+	listChan := make(chan string, 500)
+	errChan := make(chan error)
+	go func() {
+		err := recursivelyList(subtree, v, listChan)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		close(listChan)
+	}()
+
+	err = destroyGivenSecrets(v, listChan)
+	if err != nil {
 		return err
 	}
 
@@ -219,12 +239,12 @@ func (p VaultPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func connect(endpoint plugin.ShieldEndpoint) (*vault.Vault, string, error) {
-	url, err := endpoint.StringValue("url")
+func connect(endpoint plugin.ShieldEndpoint) (*vaultkv.KV, string, error) {
+	vaultURL, err := endpoint.StringValue("url")
 	if err != nil {
 		return nil, "", err
 	}
-	plugin.DEBUG("VAULT_URL: '%s'", url)
+	plugin.DEBUG("VAULT_URL: '%s'", vaultURL)
 
 	token, err := endpoint.StringValue("token")
 	if err != nil {
@@ -235,11 +255,11 @@ func connect(endpoint plugin.ShieldEndpoint) (*vault.Vault, string, error) {
 	}
 	plugin.DEBUG("AUTH_TOKEN: '%s'", token)
 
-	skipSslValidation, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
+	skipSSLValidation, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
 		return nil, "", err
 	}
-	if skipSslValidation {
+	if skipSSLValidation {
 		plugin.DEBUG("Skipping SSL validation")
 	}
 
@@ -256,16 +276,40 @@ func connect(endpoint plugin.ShieldEndpoint) (*vault.Vault, string, error) {
 		return nil, "", err
 	}
 
-	v, err := vault.NewVault(vault.VaultConfig{
-		URL:        url,
-		Token:      token,
-		SkipVerify: skipSslValidation,
-		Namespace:  namespace,
-	})
-	return v, subtree, err
+	vaultURLParsed, err := url.Parse(strings.TrimSuffix(vaultURL, "/"))
+	if err != nil {
+		return nil, "", fmt.Errorf("Could not parse Vault URL: %s", err)
+	}
+
+	//The default port for Vault is typically 8200 (which is the VaultKV default),
+	// but safe has historically ignored that and used the default http or https
+	// port, depending on which was specified as the scheme
+	if vaultURLParsed.Port() == "" {
+		port := ":80"
+		if strings.ToLower(vaultURLParsed.Scheme) == "https" {
+			port = ":443"
+		}
+		vaultURLParsed.Host = vaultURLParsed.Host + port
+	}
+
+	v := vaultkv.Client{
+		VaultURL:  vaultURLParsed,
+		AuthToken: token,
+		Namespace: namespace,
+		Client: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: skipSSLValidation,
+				},
+				MaxIdleConnsPerHost: 100,
+			},
+		},
+	}
+
+	return v.NewKV(), subtree, err
 }
 
-type v1ExportFormat map[string]*vault.Secret
+type v1ExportFormat map[string]map[string]interface{}
 
 type v2ExportFormat struct {
 	ExportVersion uint `json:"export_version"`
@@ -280,101 +324,123 @@ type exportSecret struct {
 }
 
 type exportVersion struct {
-	Deleted   bool              `json:"deleted,omitempty"`
-	Destroyed bool              `json:"destroyed,omitempty"`
-	Value     map[string]string `json:"value,omitempty"`
+	Deleted   bool                   `json:"deleted,omitempty"`
+	Destroyed bool                   `json:"destroyed,omitempty"`
+	Value     map[string]interface{} `json:"value,omitempty"`
 }
 
-func Export(v *vault.Vault, path string) (string, error) {
-	var toExport interface{}
+func Export(v *vaultkv.KV, path string) (string, error) {
+	vaultData, err := scrape(v, path)
+	if err != nil {
+		return "", err
+	}
 
+	output, err := formatExport(v, vaultData)
+	if err != nil {
+		return "", err
+	}
+
+	return output, nil
+}
+
+func scrape(v *vaultkv.KV, path string) (map[string]exportSecret, error) {
 	//Standardize and validate path
-	path = vault.Canonicalize(path)
-	_, key, version := vault.ParsePath(path)
-	if key != "" {
-		return "", fmt.Errorf("Cannot export path with key (%s)", path)
-	}
+	path = canonizePath(path)
 
-	if version > 0 {
-		return "", fmt.Errorf("Cannot export path with version (%s)", path)
-	}
+	listedPaths := make(chan string, 500)
+	errChan := make(chan error, 1)
 
-	secrets, err := v.ConstructSecrets(path, vault.TreeOpts{
-		FetchKeys:           true,
-		FetchAllVersions:    true,
-		GetDeletedVersions:  true,
-		AllowDeletedSecrets: true,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	var mustV2Export bool
-	//Determine if we can get away with a v1 export
-	for _, s := range secrets {
-		if len(s.Versions) > 1 {
-			mustV2Export = true
-			break
+	go func() {
+		if err := recursivelyList(path, v, listedPaths); err != nil {
+			errChan <- err
+			return
 		}
+		close(listedPaths)
+	}()
+
+	numWorkers := getNumWorkers()
+
+	type pathSecretPair struct {
+		path   string
+		secret *exportSecret
 	}
 
-	v1Export := func() error {
-		export := v1ExportFormat{}
-		for _, s := range secrets {
-			export[s.Path] = s.Versions[0].Data
-		}
+	retrievedSecretsChan := make(chan pathSecretPair, 500)
+	getWait := sync.WaitGroup{}
+	getWait.Add(numWorkers)
 
-		toExport = export
-		return nil
-	}
-
-	v2Export := func() error {
-		export := v2ExportFormat{ExportVersion: 2, Data: map[string]exportSecret{}, RequiresVersioning: map[string]bool{}}
-
-		for _, secret := range secrets {
-			if len(secret.Versions) > 1 {
-				mount, _ := v.Client().MountPath(secret.Path)
-				export.RequiresVersioning[mount] = true
-			}
-
-			thisSecret := exportSecret{FirstVersion: secret.Versions[0].Number}
-			//We want to omit the `first` key in the json if it's 1
-			if thisSecret.FirstVersion == 1 {
-				thisSecret.FirstVersion = 0
-			}
-
-			for _, version := range secret.Versions {
-				thisVersion := exportVersion{
-					Deleted:   version.State == vault.SecretStateDeleted,
-					Destroyed: version.State == vault.SecretStateDestroyed,
-					Value:     map[string]string{},
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			for path := range listedPaths {
+				secret, err := getAllVersionsOfSecret(path, v)
+				if err != nil {
+					errChan <- err
+					return
 				}
 
-				for _, key := range version.Data.Keys() {
-					thisVersion.Value[key] = version.Data.Get(key)
+				if secret != nil {
+					retrievedSecretsChan <- pathSecretPair{path, secret}
 				}
-
-				thisSecret.Versions = append(thisSecret.Versions, thisVersion)
 			}
 
-			export.Data[secret.Path] = thisSecret
+			getWait.Done()
+		}()
+	}
 
-			//Wrap export in array so that older versions of safe don't try to import this improperly.
-			toExport = []v2ExportFormat{export}
+	go func() {
+		getWait.Wait()
+		close(retrievedSecretsChan)
+	}()
+
+	doneChan := make(chan bool)
+
+	secretsToExport := map[string]exportSecret{}
+	go func() {
+		for secret := range retrievedSecretsChan {
+			secretsToExport[secret.path] = *secret.secret
 		}
 
-		return nil
+		doneChan <- true
+	}()
+
+	select {
+	case err := <-errChan:
+		return nil, err
+	case <-doneChan:
+		return secretsToExport, nil
+	}
+}
+
+func getNumWorkers() int {
+	numWorkers := runtime.NumCPU()
+	if numWorkers < 1 {
+		numWorkers = 1
 	}
 
-	if mustV2Export {
-		err = v2Export()
-	} else {
-		err = v1Export()
+	return numWorkers
+}
+
+func formatExport(v *vaultkv.KV, secrets map[string]exportSecret) (string, error) {
+	var toExport []v2ExportFormat
+
+	export := v2ExportFormat{ExportVersion: 2, Data: map[string]exportSecret{}, RequiresVersioning: map[string]bool{}}
+
+	for path, secret := range secrets {
+		if len(secret.Versions) > 1 {
+			mount, err := v.MountPath(path)
+			if err != nil {
+				return "", err
+			}
+
+			export.RequiresVersioning[mount] = true
+		}
+
+		export.Data[path] = secret
 	}
 
-	if err != nil {
-		return "", err
-	}
+	//Wrap export in array so that older versions of safe don't try to import this improperly.
+	toExport = []v2ExportFormat{export}
+
 	b, err := json.Marshal(&toExport)
 	if err != nil {
 		return "", err
@@ -382,121 +448,289 @@ func Export(v *vault.Vault, path string) (string, error) {
 	return string(b), nil
 }
 
-func Import(v *vault.Vault, backup []byte) error {
-	type importFunc func([]byte) error
+func recursivelyList(path string, v *vaultkv.KV, listedPaths chan string) error {
+	l, err := v.List(path)
+	if err != nil {
+		if vaultkv.IsNotFound(err) {
+			mount, err := v.MountPath(path)
+			if err != nil {
+				return fmt.Errorf("Error when determining mount for path `%s': %s", path, err)
+			}
+			if canonizePath(mount) == canonizePath(path) {
+				//then this is just a mount with no secrets in it
+				return nil
+			}
+		}
+		return fmt.Errorf("Error when listing path `%s': %s", path, err)
+	}
 
-	v1Import := func(input []byte) error {
-		data := v1ExportFormat{}
-		err := json.Unmarshal(input, &data)
+	for _, val := range l {
+		if !strings.HasSuffix(val, "/") {
+			listedPaths <- canonizePath(fmt.Sprintf("%s/%s", path, val))
+			continue
+		}
+
+		recursivelyList(canonizePath(fmt.Sprintf("%s/%s", path, val)), v, listedPaths)
+		//only care about 404s and 403s at the top level. below that, it's not
+		// unreasonable that permissions might not allow scraping _everything_ in
+		// the tree.
+		if err != nil && !(vaultkv.IsNotFound(err) || vaultkv.IsForbidden(err)) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func getAllVersionsOfSecret(path string, v *vaultkv.KV) (*exportSecret, error) {
+	versions, err := v.Versions(path)
+	if err != nil {
+		if vaultkv.IsNotFound(err) || vaultkv.IsForbidden(err) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	secretToExport := &exportSecret{FirstVersion: versions[0].Version}
+	if secretToExport.FirstVersion == 1 {
+		secretToExport.FirstVersion = 0
+	}
+
+	for _, version := range versions {
+		versionToExport := exportVersion{
+			Destroyed: version.Destroyed,
+			Deleted:   version.Deleted,
+			Value:     map[string]interface{}{},
+		}
+
+		if !version.Destroyed {
+			if version.Deleted {
+				err = v.Undelete(path, []uint{version.Version})
+				if err != nil {
+					return nil, fmt.Errorf("Error unmarking deletion from path `%s', version `%d': %s", path, version.Version, err)
+				}
+			}
+
+			_, err = v.Get(
+				path,
+				&versionToExport.Value,
+				&vaultkv.KVGetOpts{Version: version.Version},
+			)
+			if err != nil {
+				return nil, fmt.Errorf("Error getting path `%s', version `%d': %s", path, version.Version, err)
+			}
+
+			if version.Deleted {
+				err = v.Delete(path, &vaultkv.KVDeleteOpts{Versions: []uint{version.Version}})
+				if err != nil {
+					return nil, fmt.Errorf("Error marking as deleted for path `%s', version `%d': %s", path, version.Version, err)
+				}
+			}
+		}
+
+		secretToExport.Versions = append(secretToExport.Versions, versionToExport)
+	}
+
+	return secretToExport, nil
+}
+
+func destroyGivenSecrets(v *vaultkv.KV, toDelete <-chan string) error {
+	doneChan := make(chan bool)
+	errChan := make(chan error)
+
+	numWorkers := getNumWorkers()
+	destroyWaitGroup := sync.WaitGroup{}
+	destroyWaitGroup.Add(numWorkers)
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			for path := range toDelete {
+				err := v.DestroyAll(path)
+				if err != nil {
+					errChan <- fmt.Errorf("Error destroying all versions of secret at path `%s': %s", path, err)
+					return
+				}
+			}
+
+			destroyWaitGroup.Done()
+		}()
+	}
+
+	go func() {
+		destroyWaitGroup.Wait()
+		doneChan <- true
+	}()
+
+	var err error
+	select {
+	case err = <-errChan:
+	case <-doneChan:
+	}
+
+	return err
+}
+
+func parseAsV2Structure(b []byte) (*v2ExportFormat, error) {
+	var preliminaryDecode interface{}
+	err := json.Unmarshal(b, &preliminaryDecode)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret *v2ExportFormat
+
+	switch preliminaryDecode.(type) {
+	case map[string]interface{}:
+		v1Format := v1ExportFormat{}
+		err = json.Unmarshal(b, &v1Format)
+		if err != nil {
+			return nil, fmt.Errorf("Error unmarshaling into v1 backup format: %s", err)
+		}
+		ret = convertV1ToV2(v1Format)
+
+	case []interface{}:
+		v2FormatWrapped := &[]v2ExportFormat{}
+		//unmarshal and verify
+		err = json.Unmarshal(b, v2FormatWrapped)
+		if err != nil {
+			return nil, fmt.Errorf("Error unmarshaling into v2 backup format: %s", err)
+		}
+
+		v2Format := &v2ExportFormat{}
+		if len(*v2FormatWrapped) > 0 {
+			v2Format = &(*v2FormatWrapped)[0]
+		}
+
+		if v2Format.ExportVersion != 2 {
+			return nil, fmt.Errorf("Unsupported export version `%d', expected `2'", v2Format.ExportVersion)
+		}
+
+		ret = v2Format
+
+	default:
+		err = fmt.Errorf("Unknown Vault backup format")
+	}
+
+	return ret, err
+}
+
+func convertV1ToV2(exp v1ExportFormat) *v2ExportFormat {
+	ret := &v2ExportFormat{
+		ExportVersion:      2,
+		RequiresVersioning: map[string]bool{},
+		Data:               map[string]exportSecret{},
+	}
+
+	//Expose v1 (non-versioned) format as a v2 (versioned) backup where every
+	// secret has exactly one version which can not possibly have been
+	// deleted/destroyed
+	for path, secret := range exp {
+		ret.Data[path] = exportSecret{
+			FirstVersion: 1,
+			Versions: []exportVersion{
+				{Value: secret},
+			},
+		}
+	}
+
+	return ret
+}
+
+func Import(v *vaultkv.KV, input []byte) error {
+	exp, err := parseAsV2Structure(input)
+	if err != nil {
+		return err
+	}
+
+	//Verify that the mounts that require versioning actually support it. We
+	//can't really detect if v1 mounts exist at this stage unless we assume
+	//the token given has mount listing privileges. Not a big deal, because
+	//it will become very apparent once we start trying to put secrets in it
+	for mount, needsVersioning := range exp.RequiresVersioning {
+		if needsVersioning {
+			if err := verifyMountIsVersion2(v, mount); err != nil {
+				return err
+			}
+		}
+	}
+
+	//Put the secrets in the places, writing the versions in the correct order and deleting/destroying secrets that
+	// need to be deleted/destroyed.
+	for path, secret := range exp.Data {
+		err := writeSecret(v, path, expandVersionList(secret))
 		if err != nil {
 			return err
 		}
-		for path, s := range data {
-			err = v.Write(path, s)
-			if err != nil {
-				return err
-			}
-			fmt.Fprintf(os.Stderr, "wrote %s\n", path)
-		}
-		return nil
 	}
 
-	v2Import := func(input []byte) error {
-		var unmarshalTarget []v2ExportFormat
-		err := json.Unmarshal(input, &unmarshalTarget)
+	return nil
+}
+
+func verifyMountIsVersion2(v *vaultkv.KV, mount string) error {
+	mountVersion, err := v.MountVersion(mount)
+	if err != nil {
+		return fmt.Errorf("Could not determine existing mount version: %s", err)
+	}
+
+	if mountVersion != 2 {
+		return fmt.Errorf("Export for mount `%s' has secrets with multiple versions, but the mount either\n"+
+			"does not exist or does not support versioning", mount)
+	}
+
+	return nil
+}
+
+func expandVersionList(secret exportSecret) []exportVersion {
+	ret := []exportVersion{}
+
+	for vers := uint(1); vers < secret.FirstVersion; vers++ {
+		ret = append(ret, exportVersion{
+			Destroyed: true,
+		})
+	}
+
+	return append(ret, secret.Versions...)
+}
+
+//this is the value that gets written for secret versions that need to be
+//destroyed
+var placeholderDestroyedValue = map[string]interface{}{"placeholder": "garbage"}
+
+func writeSecret(v *vaultkv.KV, path string, versions []exportVersion) error {
+	var versionsToDelete, versionsToDestroy []uint
+
+	for i, vers := range versions {
+		if vers.Destroyed {
+			vers.Value = placeholderDestroyedValue
+		}
+
+		meta, err := v.Set(path, &vers.Value, nil)
 		if err != nil {
-			return fmt.Errorf("Could not interpret export file: %s", err)
+			return fmt.Errorf("Error writing path `%s', version `%d': %s", path, i+1, err)
 		}
 
-		if len(unmarshalTarget) != 1 {
-			return fmt.Errorf("Improperly formatted export file")
-		}
-
-		data := unmarshalTarget[0]
-
-		//Verify that the mounts that require versioning actually support it. We
-		//can't really detect if v1 mounts exist at this stage unless we assume
-		//the token given has mount listing privileges. Not a big deal, because
-		//it will become very apparent once we start trying to put secrets in it
-		for mount, needsVersioning := range data.RequiresVersioning {
-			if needsVersioning {
-				mountVersion, err := v.MountVersion(mount)
-				if err != nil {
-					return fmt.Errorf("Could not determine existing mount version: %s", err)
-				}
-
-				if mountVersion != 2 {
-					return fmt.Errorf("Export for mount `%s' has secrets with multiple versions, but the mount either\n"+
-						"does not exist or does not support versioning", mount)
-				}
-			}
-		}
-
-		//Put the secrets in the places, writing the versions in the correct order and deleting/destroying secrets that
-		// need to be deleted/destroyed.
-		for path, secret := range data.Data {
-			s := vault.SecretEntry{
-				Path: path,
-			}
-
-			firstVersion := secret.FirstVersion
-			if firstVersion == 0 {
-				firstVersion = 1
-			}
-
-			for i := range secret.Versions {
-				state := vault.SecretStateAlive
-				if secret.Versions[i].Destroyed {
-					state = vault.SecretStateDestroyed
-				} else if secret.Versions[i].Deleted {
-					state = vault.SecretStateDeleted
-				}
-				data := vault.NewSecret()
-				for k, v := range secret.Versions[i].Value {
-					data.Set(k, v, false)
-				}
-				s.Versions = append(s.Versions, vault.SecretVersion{
-					Number: firstVersion + uint(i),
-					State:  state,
-					Data:   data,
-				})
-			}
-
-			err := s.Copy(v, s.Path, vault.TreeCopyOpts{
-				Clear: true,
-				Pad:   true,
-			})
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
-
-	var fn importFunc
-	//determine which version of the export format this is
-	var typeTest interface{}
-	json.Unmarshal(backup, &typeTest)
-	switch v := typeTest.(type) {
-	case map[string]interface{}:
-		fn = v1Import
-	case []interface{}:
-		if len(v) == 1 {
-			if meta, isMap := (v[0]).(map[string]interface{}); isMap {
-				version, isFloat64 := meta["export_version"].(float64)
-				if isFloat64 && version == 2 {
-					fn = v2Import
-				}
-			}
+		if vers.Destroyed {
+			versionsToDestroy = append(versionsToDestroy, meta.Version)
+		} else if vers.Deleted {
+			versionsToDelete = append(versionsToDelete, meta.Version)
 		}
 	}
 
-	if fn == nil {
-		return fmt.Errorf("Unknown export file format - aborting")
+	if len(versionsToDelete) > 0 {
+		err := v.Delete(path, &vaultkv.KVDeleteOpts{Versions: versionsToDelete})
+		if err != nil {
+			return fmt.Errorf("Error marking versions as deleted for path `%s': %s", path, err)
+		}
 	}
 
-	return fn(backup)
+	if len(versionsToDestroy) > 0 {
+		err := v.Destroy(path, versionsToDestroy)
+		if err != nil {
+			return fmt.Errorf("Error destroying placeholder versions for path `%s': %s", path, err)
+		}
+	}
+
+	return nil
 }
 
 func Read(subtree string) ([]byte, error) {
@@ -506,4 +740,14 @@ func Read(subtree string) ([]byte, error) {
 func Write(output string) error {
 	fmt.Printf("%s\n", output)
 	return nil
+}
+
+func canonizePath(path string) string {
+	path = strings.TrimSuffix(path, "/")
+	path = strings.TrimPrefix(path, "/")
+
+	re := regexp.MustCompile("//+")
+	path = re.ReplaceAllString(path, "/")
+
+	return path
 }
