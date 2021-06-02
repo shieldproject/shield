@@ -193,6 +193,8 @@ func (p VaultPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 			if !vaultkv.IsNotFound(err) {
 				return err
 			}
+
+			fmt.Fprintf(os.Stderr, "Skipping saving seal keys because they do not exist in the Vault")
 			prev = ""
 		}
 	}
@@ -452,16 +454,18 @@ func recursivelyList(path string, v *vaultkv.KV, listedPaths chan string) error 
 	l, err := v.List(path)
 	if err != nil {
 		if vaultkv.IsNotFound(err) {
-			mount, err := v.MountPath(path)
-			if err != nil {
-				return fmt.Errorf("Error when determining mount for path `%s': %s", path, err)
+			mount, mountErr := v.MountPath(path)
+			if mountErr != nil {
+				fmt.Fprintf(os.Stderr, "Error when determining mount for path `%s': %s\n", path, mountErr)
+				return mountErr
 			}
 			if canonizePath(mount) == canonizePath(path) {
 				//then this is just a mount with no secrets in it
 				return nil
 			}
 		}
-		return fmt.Errorf("Error when listing path `%s': %s", path, err)
+		fmt.Fprintf(os.Stderr, "Error when listing path `%s': %s\n", path, err)
+		return err
 	}
 
 	for _, val := range l {
