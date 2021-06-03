@@ -199,7 +199,7 @@ func getRabbitMQEndpoint(endpoint plugin.ShieldEndpoint) (RabbitMQEndpoint, erro
 		return RabbitMQEndpoint{}, err
 	}
 
-	sslValidate, err := endpoint.BooleanValue("skip_ssl_validation")
+	sslValidate, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
 		return RabbitMQEndpoint{}, err
 	}
