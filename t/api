@@ -35,7 +35,7 @@ trap "cleanup >&2" EXIT QUIT INT TERM
 
 spin_vault() {
   if [[ ! -f ${PWD}/bin/vault ]]; then
-    VAULT_VERSION=0.9.0
+    VAULT_VERSION=1.9.0
     echo "... retrieving vault $VAULT_VERSION form the web..."
     case "${OSTYPE}" in
       (*darwin*)
@@ -44,7 +44,7 @@ spin_vault() {
             curl -C - -sLo ${WORKDIR}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_darwin_amd64.zip 
             ;;
           (arm64)
-            vault_0.9.0_darwin_amd64.zip 
+            curl -C - -sLo ${WORKDIR}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_darwin_arm64.zip 
             ;;
           (*)
             echo >&2 "Architecture is neither x86_64 nor arm64, and the vault command was not found.  bailing..."; exit 1
