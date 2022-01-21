@@ -32,7 +32,7 @@ USAGE: @G{shield} create-target --tenant @Y{TENANT} [OPTIONS]
 
   -C, --compression
                   The type of compression to use when backing up this
-                  target. Valid values are `bzip2' and `none'. Defaults
+                  target. Valid values are `bzip2' 'gzip' and `none'. Defaults
                   to `bzip2'.
 
   -d, --data      Configuration data for the target plugin, in the

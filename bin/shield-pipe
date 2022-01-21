@@ -224,6 +224,7 @@ exit 0
 
 	case $SHIELD_COMPRESSION in
 	bzip2) header "Running backup task (using bzip2 compression)" ;;
+	gzip)  header "Running backup task (using gzip compression" ;;
 	none)  header "Running backup task (without compression)" ;;
 	*)
 		fail "Unrecognized compression scheme '$SHIELD_COMPRESSION'"
@@ -248,6 +249,15 @@ exit 0
 			shield-crypt --encrypt  3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}" | \
 			${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}" | \
 			shield-report --compression bzip2
+		;;
+		
+	gzip)
+		${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | \
+			tee >(tail -c1 >$PULSE) | \
+			gzip | \
+			shield-crypt --encrypt  3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}" | \
+			${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}" | \
+			shield-report --compression gzip
 		;;
 
 	none)
@@ -289,6 +299,7 @@ exit 0
 
 	case $SHIELD_COMPRESSION in
 	bzip2) header "Running restore task (using bzip2 compression)" ;;
+	gzip)  header "Running restore task (using gzip compression)" ;;
 	none)  header "Running restore task (without compression)" ;;
 	*)
 		fail "Unrecognized compression scheme '$SHIELD_COMPRESSION'"
@@ -307,6 +318,13 @@ exit 0
 		${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | \
 			shield-crypt --decrypt 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}"  | \
 			bunzip2 | \
+			${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
+		;;
+
+	gzip)
+		${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | \
+			shield-crypt --decrypt 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}"  | \
+			gunzip | \
 			${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
 		;;
 

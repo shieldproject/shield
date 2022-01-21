@@ -472,7 +472,7 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 		fmt.Printf("  -C, --compression\n")
 		fmt.Printf("                  The type of compression to use when backing up this\n")
-		fmt.Printf("                  target. Valid values are `bzip2' and `none'. Defaults\n")
+		fmt.Printf("                  target. Valid values are `bzip2', 'gzip', and `none'. Defaults\n")
 		fmt.Printf("                  to `bzip2'.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  -d, --data      Configuration data for the target plugin, in the\n")

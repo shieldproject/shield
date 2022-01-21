@@ -5,7 +5,6 @@ go 1.13
 require (
 	github.com/Azure/azure-sdk-for-go v8.1.1-beta+incompatible
 	github.com/ErikDubbelboer/gspt v0.0.0-20180711091504-e39e726e09cc
-	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cloudfoundry-community/vaultkv v0.3.0
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
@@ -13,7 +12,6 @@ require (
 	github.com/fsouza/go-dockerclient v0.0.0-20151130162558-d750ee8aff39
 	github.com/go-sql-driver/mysql v1.2.1-0.20160602001021-3654d25ec346
 	github.com/gogo/protobuf v1.2.2-0.20190730201129-28a6bbf47e48 // indirect
-	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/go-github v0.0.0-20150605201353-af17a5fa8537
 	github.com/google/go-querystring v0.0.0-20150414214848-547ef5ac9797 // indirect
 	github.com/google/uuid v1.1.2-0.20190416172445-c2e93f3ae59f // indirect
@@ -40,7 +38,6 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/pborman/uuid v0.0.0-20150824212802-cccd189d45f7
 	github.com/prometheus/client_golang v1.1.0
-	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
 	github.com/prometheus/common v0.6.1-0.20190730175846-637d7c34db12 // indirect
 	github.com/prometheus/procfs v0.0.4-0.20190731153504-5da962fa40f1 // indirect
 	github.com/starkandwayne/goutils v0.0.0-20190115202530-896b8a6904be // indirect
@@ -60,7 +57,6 @@ require (
 	google.golang.org/api v0.0.0-20160107235428-77e7d383beb9
 	google.golang.org/cloud v0.0.0-20160324202040-eb47ba841d53 // indirect
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
-	google.golang.org/grpc v1.19.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc // indirect
 )

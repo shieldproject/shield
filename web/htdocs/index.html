@@ -1388,9 +1388,10 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                       <div class="x9">
                         <select name="target.compression">
                           <option value="bzip2">bzip2</option>
+                          <option value="gzip">gzip</option>
                           <option value="none">No Compression</option>
                         </select>
-                        <p class="help">What type of compression should SHIELD use to reduce the size of backup archives?  <em>bzip2</em> results in smaller archives, but may substantially increase time-to-backup (especially for large data sets).</p>
+                        <p class="help">What type of compression should SHIELD use to reduce the size of backup archives?  <em>bzip2</em> results in smaller archives, <em>gzip</em> results in faster backup speed (especially for large data sets).</p>
                       </div>
                     </div>
 
@@ -2218,9 +2219,10 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                       <div class="x9">
                         <select name="compression">
                           <option value="bzip2"[[ if (target.compression == 'bzip2') { ]] selected[[ } ]]>bzip2</option>
+                          <option value="gzip"[[ if (target.compression == 'gzip') { ]] selected[[ } ]]>gzip</option>
                           <option value="none"[[ if (target.compression == 'none') { ]] selected[[ } ]]>No Compression</option>
                         </select>
-                        <p class="help">What type of compression should SHIELD use to reduce the size of backup archives?  <em>bzip2</em> results in smaller archives, but may substantially increase time-to-backup (especially for large data sets).</p>
+                        <p class="help">What type of compression should SHIELD use to reduce the size of backup archives?  <em>bzip2</em> results in smaller archives, <em>gzip</em> results in faster backup speed (especially for large data sets).</p>
                       </div>
                     </div>
 
