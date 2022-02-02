@@ -242,7 +242,7 @@
         they are styled as buttons)
       ]]
           <div id="login" class="frontdoor">
-            <div[[ if (_.providers.length == 0) { ]] class="local-only"[[ } ]]>
+            <div [[ if (_.providers.length = 0) { ]] class="local-only"[[ } ]]>
               <h1>SHIELD<span style="color: [[= h(_.info.color || 'green') ]]">[[= h(_.info.env) ]]<span></h1>
               <div class="dialog">
                 [[ if (_.info.motd) { ]]<div class="motd">[[= md(_.info.motd) ]]</div>[[ } ]]
@@ -730,32 +730,32 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
       ]]
       <div class="roles-menu ephemeral">
         [[ if (_.type == 'tenant') { ]]
-        <div[[ if (_.current == "admin") { ]] class="current"[[ } ]] data-role="admin">
+        <div [[ if (_.current = "admin") { ]] class="current"[[ } ]] data-role="admin">
           <strong>Administrator</strong>
           <p>Full control over this tenant.</p>
         </div>
-        <div[[ if (_.current == "engineer") { ]] class="current"[[ } ]] data-role="engineer">
+        <div [[ if (_.current = "engineer") { ]] class="current"[[ } ]] data-role="engineer">
           <strong>Engineer</strong>
           <p>Can do everything except manage other peoples
              access to this tenant.</p>
         </div>
-        <div[[ if (_.current == "operator") { ]] class="current"[[ } ]] data-role="operator">
+        <div [[ if (_.current = "operator") { ]] class="current"[[ } ]] data-role="operator">
           <strong>Operator</strong>
           <p>View access to most things, with the ability to
              pause and unpause jobs, run ad hoc backups, and
              perform restore operations.</p>
         </div>
         [[ } else { ]]
-        <div[[ if (_.current == "admin") { ]] class="current"[[ } ]] data-role="admin">
+        <div [[ if (_.current = "admin") { ]] class="current"[[ } ]] data-role="admin">
           <strong>Administrator</strong>
           <p>Full control over SHIELD.</p>
         </div>
-        <div[[ if (_.current == "manager") { ]] class="current"[[ } ]] data-role="manager">
+        <div [[ if (_.current = "manager") { ]] class="current"[[ } ]] data-role="manager">
           <strong>Manager</strong>
           <p>Can create and edit tenants, manage tenant/user
              memberships, and manage user accounts and access rights.</p>
         </div>
-        <div[[ if (_.current == "engineer") { ]] class="current"[[ } ]] data-role="engineer">
+        <div [[ if (_.current = "engineer") { ]] class="current"[[ } ]] data-role="engineer">
           <strong>Engineer</strong>
           <p>Manages global configuration, namely shared cloud
              storage configurations.</p>
@@ -955,6 +955,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                       <th class="sortable">Name</th>
                       <th class="sortable">Type</th>
                       <th class="sortable">Retention</th>
+                      <th class="sortable">Retries</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -971,6 +972,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                       </td>
                       <td>[[= h(store.plugin) ]]</td>
                       <td class="retain">[[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]</td>
+                      <td class="retries">[[= pluralize(job.retries, 'time') ]]</td>
                       <td class="notes">
                         [[= md(store.summary) ]]
                       </td>
@@ -1022,6 +1024,14 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 <div class="x2"><label>Retention</label></div>
                 <div class="x7">
                   <p class="selected-elsewhere">[[= pluralize(job.keep_days, 'day') ]] <span>(expires [[= strftime("%A, %B %Oe, %Y", tnow() + job.keep_days * 86400) ]])</span>
+                  <a class="change-me" href="step:3">change</a></p>
+                </div>
+              </div>
+
+              <div class="c12 band">
+                <div class="x2"><label>Retries</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">[[= pluralize(job.retries, 'time') ]]
                   <a class="change-me" href="step:3">change</a></p>
                 </div>
               </div>
@@ -1542,10 +1552,10 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 <div class="error"></div>
                 <div class="scheduling">
                   <ul class="optgroup">[[#
-                    ]]<li data-subform="schedule-hourly"  data-retain="4">Hourly</li>[[#
-                    ]]<li data-subform="schedule-daily"   data-retain="14">Daily</li>[[#
-                    ]]<li data-subform="schedule-weekly"  data-retain="36">Weekly</li>[[#
-                    ]]<li data-subform="schedule-monthly" data-retain="90">Monthly</li>
+                    ]]<li data-subform="schedule-hourly"  data-retain="4" data-retries="3">Hourly</li>[[#
+                    ]]<li data-subform="schedule-daily"   data-retain="14" data-retries="3">Daily</li>[[#
+                    ]]<li data-subform="schedule-weekly"  data-retain="36" data-retries="3">Weekly</li>[[#
+                    ]]<li data-subform="schedule-monthly" data-retain="90" data-retries="3">Monthly</li>
                   </ul>
 
                   <div id="schedule-hourly" class="subform">
@@ -1587,6 +1597,13 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               <div class="x9">
                 <input type="text" size="3" name="job.keep_days" /> days
                 <p class="help">How long should SHIELD keep each backup archive?</p>
+              </div>
+            </div>[[# }}} ]]
+            <div class="field">[[# retries {{{ ]]
+              <div class="x3"><label for="job.retries">Retries</label></div>
+              <div class="x9">
+                <input type="text" size="3" name="job.retries" /> times
+                <p class="help">How many times do you want to retry the job if it fails?</p>
               </div>
             </div>[[# }}} ]]
             <div class="field required">[[# encryption {{{ ]]
@@ -1736,6 +1753,14 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 <div class="x2"><label>Retention</label></div>
                 <div class="x7">
                   <p class="selected-elsewhere">keep [[= pluralize(_.job.keep_days, 'day') ]] of backup archives
+                  <a class="change-me" href="step:4">change</a></p>
+                </div>
+              </div>
+
+              <div class="c12 band">
+                <div class="x2"><label>Retry</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">try [[= pluralize(_.job.retries, 'time') ]] if job fails
                   <a class="change-me" href="step:4">change</a></p>
                 </div>
               </div>
@@ -1931,6 +1956,11 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
                   [[ }); ]]
                 </td>
+                <td class="retries">
+                  [[ $.each(AEGIS.jobs({ system: target.uuid }), function (j, job) { ]]
+                  [[= pluralize(job.retries, 'time') ]]<br>
+                  [[ }); ]]
+                </td>
                 <td><a href="#!/systems/system:uuid:[[= target.uuid ]]">view details</a></td>
               </tr>
               [[ }); ]]
@@ -1954,6 +1984,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 <li><strong>[[= h(job.name) ]]</strong></li>
                 <li>runs [[= h(job.schedule) ]]</li>
                 <li>keep [[= pluralize(job.keep_n, 'backup') ]] ([[= pluralize(job.keep_days, 'day') ]])</li>
+                <li>retry [[= pluralize(job.retries, 'time') ]]</li>
               </ul>
               <div class="graph[[ if (!job.healthy) { ]] fail[[ } ]]">
                 <div class="from">[[= h(target ? target.plugin : false) || 'unknown' ]]</div>
@@ -2089,6 +2120,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   <th class="sortable">Schedule</th>
                   <th class="sortable">Cloud Storage</th>
                   <th class="sortable">Retention</th>
+                  <th class="sortable">Retries</th>
                   <th></th>
                 </tr>
               </thead>
@@ -2113,6 +2145,9 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   </td>
                   <td class="retain" data-sort="[[= job.keep_n ]]" data-sort-as="number">
                     [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
+                  </td>
+                  <td class="retries" data-sort="[[= job.retries ]]" data-sort-as="number">
+                    [[= pluralize(job.retries, 'time') ]]<br>
                   </td>
                     <td> <a href="delete:[[= job.uuid ]]">delete</a> | <a href="run:[[= job.uuid ]]">run</a> | 
                           [[ if (job.paused) { ]]

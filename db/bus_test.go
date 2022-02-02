@@ -165,6 +165,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 					Paused:   true,
 					FixedKey: false,
 					Healthy:  false,
+					Retries:  3,
 				}, "*")
 			})
 
@@ -183,6 +184,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(j.Paused).Should(Equal(true))
 				Ω(j.FixedKey).Should(Equal(false))
 				Ω(j.Healthy).Should(Equal(false))
+				Ω(j.Retries).Should(Equal(3))
 
 				close(done)
 			}, 2 /* timeout (in seconds) */)
@@ -201,6 +203,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 					Paused:   true,
 					FixedKey: false,
 					Healthy:  false,
+					Retries: 4,
 				}, "*")
 			})
 
@@ -219,6 +222,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(j.Paused).Should(Equal(true))
 				Ω(j.FixedKey).Should(Equal(false))
 				Ω(j.Healthy).Should(Equal(false))
+				Ω(j.Retries).Should(Equal(4))
 				/* etc. */
 
 				close(done)

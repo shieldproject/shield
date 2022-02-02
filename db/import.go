@@ -174,6 +174,7 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 		FixedKey   bool   `json:"fixed_key"`
 		Healthy    bool   `json:"healthy"`
 		Error      string `json:"error"`
+		Retries    int    `json:"retries"`
 	}
 
 	for ; n > 0; n-- {
@@ -191,14 +192,14 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 		  INSERT INTO jobs
 		    (uuid, target_uuid, store_uuid, tenant_uuid,
 		     name, summary, schedule, keep_n, keep_days,
-		     next_run, priority, paused, fixed_key, healthy)
+		     next_run, priority, paused, fixed_key, healthy, retries)
 		  VALUES
 		    (?, ?, ?, ?,
 		     ?, ?, ?, ?, ?,
-		     ?, ?, ?, ?, ?)`,
+		     ?, ?, ?, ?, ?, ?)`,
 			v.UUID, v.TargetUUID, v.StoreUUID, v.TenantUUID,
 			v.Name, v.Summary, v.Schedule, v.KeepN, v.KeepDays,
-			v.NextRun, v.Priority, v.Paused, v.FixedKey, v.Healthy)
+			v.NextRun, v.Priority, v.Paused, v.FixedKey, v.Healthy, v.Retries)
 		if err != nil {
 			return err
 		}
