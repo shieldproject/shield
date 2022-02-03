@@ -31,7 +31,7 @@ USAGE: @G{shield} create-job --tenant @Y{TENANT} [OPTIONS]
                   This field is @W{required}.
 
   --retries       How many times to retry the backup job if it fails.  Can be given
-                  in times (7d).
+                  in times (3).
 
   --paused        Don't schedule this job; in order for it to run,
                   an operator will have to manually kick it off.
@@ -54,7 +54,7 @@ USAGE: @G{shield} create-job --tenant @Y{TENANT} [OPTIONS]
       @Y{--store}     "Amazon S3"       \
       @Y{--schedule}  "daily 4am"       \
       @Y{--retain}    14d               \
-      @Y{--retries}    2
+      @Y{--retries}   3
 
 @B{Scheduling Syntax:}
 

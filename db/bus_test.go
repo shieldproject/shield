@@ -203,7 +203,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 					Paused:   true,
 					FixedKey: false,
 					Healthy:  false,
-					Retries: 4,
+					Retries:  4,
 				}, "*")
 			})
 
