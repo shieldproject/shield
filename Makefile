@@ -5,6 +5,7 @@ BUILD_TYPE   ?= build
 DOCKER_TAG   ?= dev
 EDGE         ?= edge
 
+
 # Everything; this is the default behavior
 all: build test
 build: format shieldd shield shield-agent shield-schema shield-crypt shield-report plugins
@@ -101,6 +102,7 @@ shipit: release
 release:
 	@echo "Checking that VERSION was defined in the calling environment"
 	@test -n "$(VERSION)"
+
 	@echo "OK.  VERSION=$(VERSION)"
 
 	@echo "Compiling SHIELD Linux Server Distribution..."

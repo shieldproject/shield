@@ -1,7 +1,7 @@
 FROM golang:1.13-stretch as build
 
 RUN apt-get update \
- && apt-get install -y bzip2 unzip curl openssh-client
+ && apt-get install -y bzip2 gzip unzip curl openssh-client
 
 RUN curl -sLo /bin/jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 \
  && chmod 0755 /bin/jq
@@ -28,6 +28,6 @@ RUN chmod 0755 /dist/init/*
 
 FROM ubuntu:18.04
 RUN apt-get update \
- && apt-get install -y bzip2 curl openssh-client \
+ && apt-get install -y bzip2 gzip curl openssh-client \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=build /dist /shield
