@@ -7,6 +7,7 @@ EDGE         ?= edge
 
 
 # Everything; this is the default behavior
+LDFLAGS := -X main.Version=$(VERSION)
 all: build test
 build: format shieldd shield shield-agent shield-schema shield-crypt shield-report plugins
 
@@ -119,6 +120,7 @@ release:
 	@echo "Compiling SHIELD CLI For Linux and macOS..."
 	GOOS=linux  GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-linux-amd64  ./cmd/shield
 	GOOS=darwin GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-darwin-amd64 ./cmd/shield
+	GOOS=darwin GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-darwin-arm64 ./cmd/shield
 	mkdir -p "$(ARTIFACTS)/cli"
 	cp artifacts/shield-linux-amd64 "$(ARTIFACTS)/cli/shield"
 
@@ -127,7 +129,8 @@ release:
 	cd artifacts && for x in shield-server-*; do \
 	  cp -a ../web/htdocs $$x/webui; \
 	  mkdir -p $$x/webui/cli/linux; cp ../artifacts/shield-linux-amd64   $$x/webui/cli/linux/shield; \
-	  mkdir -p $$x/webui/cli/mac;   cp ../artifacts/shield-darwin-amd64  $$x/webui/cli/mac/shield; \
+	  mkdir -p $$x/webui/cli/darwin/amd64;   cp ../artifacts/shield-darwin-amd64  $$x/webui/cli/darwin/amd64/shield; \
+	  mkdir -p $$x/webui/cli/darwin/arm64; cp ../artifacts/shield-darwin-arm64 $$x/webui/cli/darwin/arm64/shield; \
 	  cp ../bin/shield-pipe      $$x/daemon; \
 	  cp ../bin/shield-recover   $$x/daemon; \
 	  cp ../bin/shield-restarter $$x/daemon; \

@@ -1,4 +1,4 @@
-FROM golang:1.13-stretch as build
+FROM golang:1.16-stretch as build
 
 RUN apt-get update \
  && apt-get install -y bzip2 gzip unzip curl openssh-client
@@ -26,7 +26,7 @@ RUN mkdir -p /dist/bin /dist/plugins \
 ADD init /dist/init
 RUN chmod 0755 /dist/init/*
 
-FROM ubuntu:18.04
+FROM ubuntu:16.04
 RUN apt-get update \
  && apt-get install -y bzip2 gzip curl openssh-client \
  && rm -rf /var/lib/apt/lists/*
