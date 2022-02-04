@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
@@ -162,7 +163,7 @@ func (m *ImportManifest) Normalize() error {
 				if job.Retain == "" {
 					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `retain' attribute", tenant.Name, system.Name, job.Name)
 				}
-				if job.Retries == 0 {
+				if strconv.Itoa(job.Retries) == "" {
 					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `retries' attribute", tenant.Name, system.Name, job.Name)
 				}
 				if job.Storage == "" {

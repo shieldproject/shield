@@ -9,10 +9,6 @@ func (s v13Schema) Deploy(db *DB) error {
 	if err != nil {
 		return err
 	}
-	// err = db.Exec(`ALTER TABLE tasks ADD COLUMN retries INT NOT NULL DEFAULT 0`)
-	// if err != nil {
-	// 	return err
-	// }
 
 	err = db.Exec(`UPDATE schema_info set version = 13`)
 	if err != nil {

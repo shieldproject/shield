@@ -128,7 +128,7 @@ func (w *Worker) Execute(chore Chore) {
 			panic(fmt.Errorf("failed to retrieve job '%s' from database: %s", task.JobUUID, err))
 		}
 		retries := job.Retries
-		log.Errorf("Retries: %d", chore)
+		log.Infof("Retries: %d", chore)
 		if rc != 0 && retries > 0 {
 			for i := 0; i < retries || rc == 0; i++ {
 				w.db.UpdateTaskLog(chore.TaskUUID, "\n\n------\n\n")

@@ -2424,11 +2424,9 @@ tenants:
 			if opts.CreateJob.Retain == "" {
 				opts.CreateJob.Retain = prompt("@C{Retain}: ")
 			}
-			if opts.CreateJob.Retries == 0 {
-				i, err := strconv.Atoi(prompt("@C{Retries}: "))
-				if err == nil {
-					opts.CreateJob.Retries = i
-				}
+			if strconv.Itoa(opts.CreateJob.Retries) == "" {
+				opts.CreateJob.Retries, err = strconv.Atoi(prompt("@C{Retries}: "))
+				bail(err)
 			}
 
 			if opts.CreateJob.Summary == "" {
@@ -2515,11 +2513,8 @@ tenants:
 		if opts.UpdateJob.Retain != "" {
 			job.Retain = opts.UpdateJob.Retain
 		}
-		if opts.UpdateJob.Retries != 0 {
-			i, err := strconv.Atoi(prompt("@C{Retries}: "))
-			if err == nil {
-				job.Retries = i
-			}
+		if strconv.Itoa(opts.UpdateJob.Retries) != "" {
+			job.Retries = opts.UpdateJob.Retries
 		}
 
 		if opts.UpdateJob.FixedKey {
