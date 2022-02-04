@@ -26,6 +26,9 @@ USAGE: @G{shield} update-job --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}
   --retain        How long to keep backup archives.  Can be given
                   in days (7d) or weeks (5w).
 
+  --retries       How many times to retry the backup job if it fails.  Can be given
+                  in times (3).
+
   --fixed-key     Encrypt backup archives with the fixed key.
                   Backups of SHIELD itself should use this option
                   to enable recovery in a disaster scenario

@@ -215,12 +215,13 @@ func (db *DB) exportJobs(out *json.Encoder) error {
 		Paused     bool   `json:"paused"`
 		FixedKey   bool   `json:"fixed_key"`
 		Healthy    bool   `json:"healthy"`
+		Retries    int    `json:"retries"`
 	}
 
 	r, err := db.query(`
 	  SELECT uuid, target_uuid, store_uuid, tenant_uuid,
 	         name, summary, schedule, keep_n, keep_days,
-	         next_run, priority, paused, fixed_key, healthy
+	         next_run, priority, paused, fixed_key, healthy, retries
 	    FROM jobs`)
 	if err != nil {
 		return err
@@ -233,7 +234,7 @@ func (db *DB) exportJobs(out *json.Encoder) error {
 		if err = r.Scan(
 			&v.UUID, &v.TargetUUID, &v.StoreUUID, &v.TenantUUID,
 			&v.Name, &v.Summary, &v.Schedule, &v.KeepN, &v.KeepDays,
-			&v.NextRun, &v.Priority, &v.Paused, &v.FixedKey, &v.Healthy); err != nil {
+			&v.NextRun, &v.Priority, &v.Paused, &v.FixedKey, &v.Healthy, &v.Retries); err != nil {
 
 			return err
 		}
@@ -390,6 +391,7 @@ func (db *DB) exportTasks(out *json.Encoder, task_uuid string, vault *vault.Clie
 		Notes          string  `json:"notes"`
 		Clear          string  `json:"clear"`
 		Compression    string  `json:"compression"`
+		//Retries        string  `json:"retries"`
 	}
 
 	r, err := db.query(`

@@ -92,6 +92,7 @@ payload:
       "healthy"     : true,
       "keep_n"      : 90,
       "keep_days"   : 90,
+      "retries"     : 2,
       "schedule"    : "daily 3am",
       "paused"      : false,
       "fixed_key"   : false,

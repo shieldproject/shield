@@ -242,6 +242,7 @@ var opts struct {
 		Retain   string `cli:"--retain"`
 		Paused   bool   `cli:"--paused"`
 		FixedKey bool   `cli:"--fixed-key"`
+		Retries  int    `cli:"--retries"`
 	} `cli:"create-job"`
 	UpdateJob struct {
 		Name       string `cli:"-n, --name"`
@@ -252,6 +253,7 @@ var opts struct {
 		Retain     string `cli:"--retain"`
 		FixedKey   bool   `cli:"--fixed-key"`
 		NoFixedKey bool   `cli:"--no-fixed-key"`
+		Retries    int    `cli:"--retries"`
 	} `cli:"update-job"`
 
 	/* }}} */
@@ -802,12 +804,14 @@ tenants:
             paused:   no
             storage:  Local Storage
             retain:   4d
+            retries:  3
 
           - name:     Weekly
             when:     sundays at 2:45am
             paused:   yes
             storage:  Local Storage
             retain:   28d
+            retries:  2
 `)
 			return
 		}
@@ -2325,9 +2329,9 @@ tenants:
 			break
 		}
 
-		tbl := table.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Retention", "SHIELD Agent", "Target", "Store", "Fixed-Key")
+		tbl := table.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Retention", "SHIELD Agent", "Target", "Store", "Fixed-Key", "Retries")
 		for _, job := range jobs {
-			tbl.Row(job, uuid8full(job.UUID, opts.Long), job.Name, wrap(job.Summary, 35), job.Schedule, job.Status(), fmt.Sprintf("%dd (%d archives)", job.KeepDays, job.KeepN), job.Agent, job.Target.Name, job.Store.Name, job.FixedKey)
+			tbl.Row(job, uuid8full(job.UUID, opts.Long), job.Name, wrap(job.Summary, 35), job.Schedule, job.Status(), fmt.Sprintf("%dd (%d archives)", job.KeepDays, job.KeepN), job.Agent, job.Target.Name, job.Store.Name, job.FixedKey, job.Retries)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2357,6 +2361,7 @@ tenants:
 
 		r.Add("Schedule", job.Schedule)
 		r.Add("Keep", fmt.Sprintf("%d days (%d archives)", job.KeepDays, job.KeepN))
+		r.Add("Retries", fmt.Sprintf("%d tries", job.Retries))
 		r.Break()
 
 		r.Add("Data System", job.Target.Name)
@@ -2419,6 +2424,10 @@ tenants:
 			if opts.CreateJob.Retain == "" {
 				opts.CreateJob.Retain = prompt("@C{Retain}: ")
 			}
+			if strconv.Itoa(opts.CreateJob.Retries) == "" {
+				opts.CreateJob.Retries, err = strconv.Atoi(prompt("@C{Retries}: "))
+				bail(err)
+			}
 
 			if opts.CreateJob.Summary == "" {
 				opts.CreateJob.Summary = prompt("@C{Notes}: ")
@@ -2448,6 +2457,7 @@ tenants:
 			StoreUUID:  opts.CreateJob.Store,
 			Schedule:   opts.CreateJob.Schedule,
 			Retain:     opts.CreateJob.Retain,
+			Retries:    opts.CreateJob.Retries,
 			Paused:     opts.CreateJob.Paused,
 			FixedKey:   opts.CreateJob.FixedKey,
 		})
@@ -2502,6 +2512,9 @@ tenants:
 		}
 		if opts.UpdateJob.Retain != "" {
 			job.Retain = opts.UpdateJob.Retain
+		}
+		if strconv.Itoa(opts.UpdateJob.Retries) != "" {
+			job.Retries = opts.UpdateJob.Retries
 		}
 
 		if opts.UpdateJob.FixedKey {

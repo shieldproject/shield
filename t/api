@@ -1194,6 +1194,7 @@ try "Finding a single job" # {{{
 
  attr schedule        'daily at 11:24pm'
  attr keep_days       8
+ attr retries         8
 
  attr store.uuid      "$(uuidof store filesies)"
  attr store.name      filesies
@@ -1224,6 +1225,7 @@ try "Listing jobs" # {{{
 
  attr schedule        'daily at 11:24pm'
  attr keep_days       8
+ attr retries         8
 
  attr store.uuid      "$(uuidof store filesies)"
  attr store.name      filesies
@@ -1312,6 +1314,7 @@ try "Running through job lifecycle" # {{{
   attr summary        'A new job, suitable for editing'
   attr schedule       'daily 4am'
   attr keep_days      5
+  attr retries        5
   attr target.name    job-target
   attr store.name     job-store
 
@@ -1339,6 +1342,7 @@ try "Running through job lifecycle" # {{{
   attr target.name    job-target
   attr store.name     job-store
   attr keep_days      8
+  attr retries        8
 
  run update-job my-updated-job \
         --target shield \
@@ -1350,6 +1354,7 @@ try "Running through job lifecycle" # {{{
   attr target.name    shield
   attr store.name     s3
   attr keep_days      8
+  attr retries        8
 
  context 'is no longer in use by our test lifecycle job'
   can_delete target job-target

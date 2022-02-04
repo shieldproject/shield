@@ -19,6 +19,7 @@ type Job struct {
 	Summary  string `json:"summary"   mbus:"summary"`
 	KeepN    int    `json:"keep_n"    mbus:"keep_n"`
 	KeepDays int    `json:"keep_days" mbus:"keep_days"`
+	Retries  int    `json:"retries"   mbus:"retries"`
 	Schedule string `json:"schedule"  mbus:"schedule"`
 	Paused   bool   `json:"paused"    mbus:"paused"`
 	FixedKey bool   `json:"fixed_key" mbus:"fixed_key"`
@@ -136,7 +137,7 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	        )
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
-	          j.tenant_uuid, j.fixed_key, j.healthy, j.keep_n, j.keep_days,
+	          j.tenant_uuid, j.fixed_key, j.healthy, j.keep_n, j.keep_days, j.retries,
 	          s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
 	          t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression,
 	          k.started_at, k.status
@@ -175,7 +176,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		)
 		if err = r.Scan(
 			&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
-			&j.TenantUUID, &j.FixedKey, &j.Healthy, &j.KeepN, &j.KeepDays,
+			&j.TenantUUID, &j.FixedKey, &j.Healthy, &j.KeepN, &j.KeepDays, &j.Retries,
 			&j.Store.UUID, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
 			&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
 			&j.Agent, &j.Target.Compression, &last, &status); err != nil {
@@ -259,13 +260,13 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 		return db.exec(`
 		   INSERT INTO jobs (uuid, tenant_uuid,
 		                     name, summary, schedule, keep_n, keep_days, paused,
-		                     target_uuid, store_uuid, fixed_key, healthy)
+		                     target_uuid, store_uuid, fixed_key, healthy, retries)
 		             VALUES (?, ?,
 		                     ?, ?, ?, ?, ?, ?,
-		                     ?, ?, ?, ?)`,
+		                     ?, ?, ?, ?, ?)`,
 			job.UUID, job.TenantUUID,
 			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays, job.Paused,
-			job.TargetUUID, job.StoreUUID, job.FixedKey, job.Healthy)
+			job.TargetUUID, job.StoreUUID, job.FixedKey, job.Healthy, job.Retries)
 	})
 	if err != nil {
 		return nil, err
@@ -308,10 +309,11 @@ func (db *DB) UpdateJob(job *Job) error {
 		          keep_days      = ?,
 		          target_uuid    = ?,
 		          store_uuid     = ?,
-		          fixed_key      = ?
+		          fixed_key      = ?,
+				  retries        = ?
 		    WHERE uuid = ?`,
 			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays,
-			job.TargetUUID, job.StoreUUID, job.FixedKey,
+			job.TargetUUID, job.StoreUUID, job.FixedKey, job.Retries,
 			job.UUID)
 	})
 	if err != nil {

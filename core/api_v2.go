@@ -1455,6 +1455,7 @@ func (c *Core) v2API() *route.Router {
 				KeepDays int    `json:"keep_days"`
 				FixedKey bool   `json:"fixed_key"`
 				Paused   bool   `json:"paused"`
+				Retries  int    `json:"retries"`
 
 				KeepN int
 			} `json:"job"`
@@ -1559,6 +1560,7 @@ func (c *Core) v2API() *route.Router {
 			Schedule:   in.Job.Schedule,
 			KeepN:      in.Job.KeepN,
 			KeepDays:   in.Job.KeepDays,
+			Retries:    in.Job.Retries,
 			Paused:     in.Job.Paused,
 			StoreUUID:  store.UUID,
 			TargetUUID: target.UUID,
@@ -2679,6 +2681,7 @@ func (c *Core) v2API() *route.Router {
 			Target   string `json:"target"`
 			Retain   string `json:"retain"`
 			FixedKey bool   `json:"fixed_key"`
+			Retries  int    `json:"retries"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2709,6 +2712,8 @@ func (c *Core) v2API() *route.Router {
 		}
 		keepn := sched.KeepN(keepdays)
 
+		//retries := util.ParseRetain(in.Retries)
+
 		job, err := c.db.CreateJob(&db.Job{
 			TenantUUID: r.Args[1],
 			Name:       in.Name,
@@ -2720,6 +2725,7 @@ func (c *Core) v2API() *route.Router {
 			StoreUUID:  in.Store,
 			TargetUUID: in.Target,
 			FixedKey:   in.FixedKey,
+			Retries:    in.Retries,
 		})
 		if job == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new job"))
@@ -2762,6 +2768,7 @@ func (c *Core) v2API() *route.Router {
 			StoreUUID  string `json:"store"`
 			TargetUUID string `json:"target"`
 			FixedKey   *bool  `json:"fixed_key"`
+			Retries    int    `json:"retries"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2823,7 +2830,9 @@ func (c *Core) v2API() *route.Router {
 		if in.FixedKey != nil {
 			job.FixedKey = *in.FixedKey
 		}
-
+		if in.Retries >= 0 {
+			job.Retries = in.Retries
+		}
 		if err := c.db.UpdateJob(job); err != nil {
 			r.Fail(route.Oops(err, "Unable to update job"))
 			return

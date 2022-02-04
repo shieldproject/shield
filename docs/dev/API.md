@@ -223,6 +223,7 @@ This endpoint takes no query string parameters.
     
               "keep_n"    : 48,
               "keep_days" : 2,
+              "retries"   : 2,
     
               "schedule"  : "hourly at :05",
               "paused"    : true,

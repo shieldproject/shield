@@ -1,8 +1,10 @@
 package main
 
 import (
-	fmt "github.com/jhunt/go-ansi"
+	"strconv"
 	"strings"
+
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/shieldproject/shield/client/v2/shield"
 )
@@ -80,6 +82,7 @@ type ImportTenant struct {
 			Storage  string `yaml:"storage"`
 			FixedKey bool   `yaml:"fixed_key"`
 			Paused   bool   `yaml:"paused"`
+			Retries  int    `yaml:"retries"`
 		} `yaml:"jobs,omitempty"`
 	} `yaml:"systems,omitempty"`
 }
@@ -159,6 +162,9 @@ func (m *ImportManifest) Normalize() error {
 				}
 				if job.Retain == "" {
 					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `retain' attribute", tenant.Name, system.Name, job.Name)
+				}
+				if strconv.Itoa(job.Retries) == "" {
+					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `retries' attribute", tenant.Name, system.Name, job.Name)
 				}
 				if job.Storage == "" {
 					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `storage' attribute", tenant.Name, system.Name, job.Name)
@@ -402,6 +408,7 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 						Retain:     job.Retain,
 						FixedKey:   job.FixedKey,
 						Paused:     job.Paused,
+						Retries:    job.Retries,
 					})
 					if err != nil {
 						return fmt.Errorf("failed to configure job '%s' of data system '%s' for tenant '%s': %s", job.Name, system.Name, tenant.Name, err)
@@ -413,6 +420,7 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 					ll[0].StoreUUID = store.UUID
 					ll[0].Schedule = job.When
 					ll[0].Retain = job.Retain
+					ll[0].Retries = job.Retries
 					_, err := c.UpdateJob(t, ll[0])
 					if err != nil {
 						return fmt.Errorf("failed to reconfigure job '%s' of data system '%s' on tenant '%s': %s", job.Name, system.Name, tenant.Name, err)

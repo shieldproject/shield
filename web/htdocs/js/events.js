@@ -526,7 +526,11 @@
           if (!data.job.keep_days) {
             data.job.keep_days = $w.find('[data-step=4] [name="job.keep_days"]').attr('placeholder');
           }
+          if (!data.job.retries) {
+            data.job.retries = $w.find('[data-step=4] [name="job.retries"]').attr('placeholder');
+          }
           data.job.keep_days = parseInt(data.job.keep_days);
+          data.job.retries   = parseInt(data.job.retries);
           data.job.paused    = !!data.job.paused;
           data.job.fixed_key = !data.job.randomize_keys;
           delete data.job.randomize_keys;
@@ -564,6 +568,8 @@
         $w.find('.scheduling .subform#'+sub).show();
         $w.find('input[name="job.keep_days"]')
             .attr('placeholder', $(event.target).extract('retain'));
+        $w.find('input[name="job.retries"]')
+            .attr('placeholder', $(event.target).extract('retries'));
       }) /* }}} */
       .on('lean:selected', '.do-configure.wizard2', function (event, $tr) { /* {{{ */
         $tr.closest('[data-step]').attr('data-mode', 'choose');

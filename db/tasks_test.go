@@ -63,9 +63,9 @@ var _ = Describe("Task Management", func() {
 
 			// need a job
 			`INSERT INTO jobs (uuid, tenant_uuid, name, summary, paused,
-			                   target_uuid, store_uuid, schedule, keep_days)
+			                   target_uuid, store_uuid, schedule, keep_days, retries)
 			   VALUES ("`+SomeJob.UUID+`", "`+SomeTenant.UUID+`", "Some Job", "just a job...", 0,
-			           "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", "daily 3am", 7)`,
+			           "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", "daily 3am", 7, 7)`,
 
 			// need an archive
 			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason)

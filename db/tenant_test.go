@@ -71,11 +71,11 @@ var _ = Describe("tenant Management", func() {
 			`INSERT INTO stores (tenant_uuid, uuid, name, summary, plugin, endpoint)
 			VALUES ("`+Tenant3.UUID+`", "`+SomeStore2.UUID+`", "name", "", "plugin", "{}")`,
 			// need a job1
-			`INSERT INTO jobs (uuid, name, summary, paused, target_uuid, store_uuid, keep_n, keep_days, schedule, tenant_uuid)
-			  VALUES ("`+SomeJob.UUID+`", "Some Job", "A summary", 0, "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", 4, 4, "daily 3am", "`+Tenant2.UUID+`")`,
+			`INSERT INTO jobs (uuid, name, summary, paused, target_uuid, store_uuid, keep_n, keep_days, retries, schedule, tenant_uuid)
+			  VALUES ("`+SomeJob.UUID+`", "Some Job", "A summary", 0, "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", 4, 4, 4, "daily 3am", "`+Tenant2.UUID+`")`,
 			// need a job2
-			`INSERT INTO jobs (uuid, name, summary, paused, target_uuid, store_uuid, keep_n, keep_days, schedule, tenant_uuid)
-			  VALUES ("`+SomeJob2.UUID+`", "Some Job2", "A summary2", 0, "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", 4, 4, "daily 3am", "`+Tenant3.UUID+`")`,
+			`INSERT INTO jobs (uuid, name, summary, paused, target_uuid, store_uuid, keep_n, keep_days, retries, schedule, tenant_uuid)
+			  VALUES ("`+SomeJob2.UUID+`", "Some Job2", "A summary2", 0, "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", 4, 4, 4, "daily 3am", "`+Tenant3.UUID+`")`,
 			// need an archive1
 			`INSERT INTO archives (tenant_uuid, uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason)
 			    VALUES ("`+Tenant2.UUID+`", "`+SomeArchive.UUID+`", "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", "key", 0, 0, "(no notes)", "valid", "")`,

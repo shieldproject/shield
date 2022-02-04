@@ -20,6 +20,7 @@ type Job struct {
 	LastStatus string `json:"last_task_status"`
 	LastRun    int64  `json:"last_run"`
 	FixedKey   bool   `json:"fixed_key"`
+	Retries    int    `json:"retries"`
 
 	TargetUUID string `json:"-"`
 	Target     struct {
@@ -121,6 +122,7 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 		Store    string `json:"store"`
 		Target   string `json:"target"`
 		FixedKey bool   `json:"fixed_key"`
+		Retries  int    `json:"retries"`
 	}{
 		Name:     job.Name,
 		Summary:  job.Summary,
@@ -130,6 +132,7 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 		Target:   job.TargetUUID,
 		Store:    job.StoreUUID,
 		FixedKey: job.FixedKey,
+		Retries:  job.Retries,
 	}
 	if err := c.post(fmt.Sprintf("/v2/tenants/%s/jobs", parent.UUID), in, &out); err != nil {
 		return nil, err
@@ -147,6 +150,7 @@ func (c *Client) UpdateJob(parent *Tenant, job *Job) (*Job, error) {
 		Store    string `json:"store,omitempty"`
 		Target   string `json:"target,omitempty"`
 		FixedKey bool   `json:"fixed_key"`
+		Retries  int    `json:"retries"`
 	}{
 		Name:     job.Name,
 		Summary:  job.Summary,
@@ -155,6 +159,7 @@ func (c *Client) UpdateJob(parent *Tenant, job *Job) (*Job, error) {
 		Target:   job.TargetUUID,
 		Store:    job.StoreUUID,
 		FixedKey: job.FixedKey,
+		Retries:  job.Retries,
 	}
 	if err := c.put(fmt.Sprintf("/v2/tenants/%s/jobs/%s", parent.UUID, job.UUID), in, nil); err != nil {
 		return nil, err

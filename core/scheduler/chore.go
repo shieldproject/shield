@@ -116,8 +116,26 @@ func (w *Worker) Execute(chore Chore) {
 
 	log.Debugf("%s: spinning up [main] goroutine to execute chore `do' function...", chore)
 	wait.Add(1)
+	task, err := w.db.GetTask(chore.TaskUUID)
+	if err != nil {
+		panic(fmt.Errorf("failed to retrieve task '%s' from database: %s", chore.TaskUUID, err))
+	}
 	go func() {
 		chore.Do(chore)
+
+		job, err := w.db.GetJob(task.JobUUID)
+		if err != nil {
+			panic(fmt.Errorf("failed to retrieve job '%s' from database: %s", task.JobUUID, err))
+		}
+		retries := job.Retries
+		log.Infof("Retries: %d", chore)
+		if rc != 0 && retries > 0 {
+			for i := 0; i < retries || rc == 0; i++ {
+				w.db.UpdateTaskLog(chore.TaskUUID, "\n\n------\n\n")
+				w.db.UpdateTaskLog(chore.TaskUUID, fmt.Sprintf("RETRY: `%d`\n", i+1))
+				chore.Do(chore)
+			}
+		}
 		log.Debugf("%s: chore execution complete; [main] goroutine shutting down...", chore)
 
 		chore.UnixExit(0) /* catch-all */
@@ -129,11 +147,6 @@ func (w *Worker) Execute(chore Chore) {
 	log.Debugf("%s: waiting for chore to complete...", chore)
 	wait.Wait()
 	w.db.UpdateTaskLog(chore.TaskUUID, "\n\n------\n")
-
-	task, err := w.db.GetTask(chore.TaskUUID)
-	if err != nil {
-		panic(fmt.Errorf("failed to retrieve task '%s' from database: %s", chore.TaskUUID, err))
-	}
 
 	switch task.Op {
 	case db.BackupOperation:
