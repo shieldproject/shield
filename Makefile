@@ -127,8 +127,8 @@ release:
 	cd artifacts && for x in shield-server-*; do \
 	  cp -a ../web/htdocs $$x/webui; \
 	  mkdir -p $$x/webui/cli/linux; cp ../artifacts/shield-linux-amd64   $$x/webui/cli/linux/shield; \
-	  mkdir -p $$x/webui/cli/mac-amd64;   cp ../artifacts/shield-darwin-amd64  $$x/webui/cli/mac-amd64/shield; \
-	  mkdir -p $$x/webui/cli/mac-arm64; cp ../artifacts/shield-darwin-arm64 $$x/webui/cli/mac-arm64/shield; \
+	  mkdir -p $$x/webui/cli/darwin/amd64;   cp ../artifacts/shield-darwin-amd64  $$x/webui/cli/darwin/amd64/shield; \
+	  mkdir -p $$x/webui/cli/darwin/arm64; cp ../artifacts/shield-darwin-arm64 $$x/webui/cli/darwin/arm64/shield; \
 	  cp ../bin/shield-pipe      $$x/daemon; \
 	  cp ../bin/shield-recover   $$x/daemon; \
 	  cp ../bin/shield-restarter $$x/daemon; \
