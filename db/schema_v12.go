@@ -5,7 +5,7 @@ type v12Schema struct{}
 func (s v12Schema) Deploy(db *DB) error {
 	var err error
 
-	jobs, err := db.GetAllJobs(&JobFilter{})
+	jobs, err := db.GetAllJobsV6(&JobFilter{})
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func (s v12Schema) Deploy(db *DB) error {
 		return nil
 	}
 	for _, target := range targets {
-		jobs, err = db.GetAllJobs(&JobFilter{ForTarget: target.UUID})
+		jobs, err = db.GetAllJobsV6(&JobFilter{ForTarget: target.UUID})
 		if err != nil {
 			return nil
 		}

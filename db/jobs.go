@@ -197,6 +197,133 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 	return l, nil
 }
 
+//Adding separate V6 functions to support Schema6 and Schema12's getAllJobs() call
+//Schema V13 onwards has job.retries
+func (f *JobFilter) QueryV6() (string, []interface{}) {
+	wheres := []string{}
+	args := []interface{}{}
+
+	if f.UUID != "" {
+		if f.ExactMatch {
+			wheres = []string{"j.uuid = ?"}
+			args = append(args, f.UUID)
+		} else {
+			wheres = []string{"j.uuid LIKE ? ESCAPE '/'"}
+			args = append(args, PatternPrefix(f.UUID))
+		}
+	}
+
+	if f.SearchName != "" {
+		comparator := "LIKE"
+		toAdd := Pattern(f.SearchName)
+		if f.ExactMatch {
+			comparator = "="
+			toAdd = f.SearchName
+		}
+		wheres = append(wheres, fmt.Sprintf("j.name %s ?", comparator))
+		args = append(args, toAdd)
+	}
+
+	if len(wheres) == 0 {
+		wheres = []string{"1"}
+	} else if len(wheres) > 1 {
+		wheres = []string{strings.Join(wheres, " OR ")}
+	}
+
+	if f.ForTenant != "" {
+		wheres = append(wheres, "j.tenant_uuid = ?")
+		args = append(args, f.ForTenant)
+	}
+	if f.ForTarget != "" {
+		wheres = append(wheres, "j.target_uuid = ?")
+		args = append(args, f.ForTarget)
+	}
+	if f.ForStore != "" {
+		wheres = append(wheres, "j.store_uuid = ?")
+		args = append(args, f.ForStore)
+	}
+	if f.SkipPaused || f.SkipUnpaused {
+		wheres = append(wheres, "j.paused = ?")
+		if f.SkipPaused {
+			args = append(args, false)
+		} else {
+			args = append(args, true)
+		}
+	}
+	if f.Overdue {
+		wheres = append(wheres, "j.next_run <= ?")
+		args = append(args, time.Now().Unix())
+	}
+
+	return `
+	   WITH recent_tasks AS (
+	           SELECT uuid AS task_uuid, job_uuid, started_at, status
+	             FROM tasks
+	            WHERE stopped_at IS NOT NULL
+	         GROUP BY job_uuid
+	        )
+
+	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
+	          j.tenant_uuid, j.fixed_key, j.healthy, j.keep_n, j.keep_days,
+	          s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
+	          t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression,
+	          k.started_at, k.status
+
+	     FROM jobs j
+	          INNER JOIN stores       s  ON  s.uuid = j.store_uuid
+	          INNER JOIN targets      t  ON  t.uuid = j.target_uuid
+	          LEFT  JOIN recent_tasks k  ON  j.uuid = k.job_uuid
+
+	    WHERE ` + strings.Join(wheres, " AND ") + `
+	 ORDER BY j.name, j.uuid ASC`, args
+}
+
+func (db *DB) GetAllJobsV6(filter *JobFilter) ([]*Job, error) {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+
+	if filter == nil {
+		filter = &JobFilter{}
+	}
+
+	l := []*Job{}
+	query, args := filter.QueryV6()
+	r, err := db.query(query, args...)
+	if err != nil {
+		return l, err
+	}
+	defer r.Close()
+
+	for r.Next() {
+		j := &Job{}
+
+		var (
+			last   *int64
+			status sql.NullString
+		)
+		if err = r.Scan(
+			&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
+			&j.TenantUUID, &j.FixedKey, &j.Healthy, &j.KeepN, &j.KeepDays,
+			&j.Store.UUID, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
+			&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
+			&j.Agent, &j.Target.Compression, &last, &status); err != nil {
+			return l, err
+		}
+		if last != nil {
+			j.LastRun = *last
+		}
+		if status.Valid {
+			j.LastTaskStatus = status.String
+		}
+
+		j.StoreUUID = j.Store.UUID
+		j.TargetUUID = j.Target.UUID
+		l = append(l, j)
+	}
+
+	return l, nil
+}
+
 func (db *DB) GetJob(id string) (*Job, error) {
 	all, err := db.GetAllJobs(&JobFilter{UUID: id})
 	if err != nil {

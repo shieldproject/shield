@@ -54,7 +54,7 @@ func (s v6Schema) Deploy(db *DB) error {
 	}
 
 	/* fix keep_n on all jobs */
-	jobs, err := db.GetAllJobs(nil)
+	jobs, err := db.GetAllJobsV6(nil)
 	if err != nil {
 		return err
 	}
