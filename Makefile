@@ -120,7 +120,7 @@ release:
 	@echo "Compiling SHIELD CLI For Linux and macOS..."
 	GOOS=linux  GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-linux-amd64  ./cmd/shield
 	GOOS=darwin GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-darwin-amd64 ./cmd/shield
-	GOOS=darwin GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-darwin-arm64 ./cmd/shield
+	# GOOS=darwin GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-darwin-arm64 ./cmd/shield
 	mkdir -p "$(ARTIFACTS)/cli"
 	cp artifacts/shield-linux-amd64 "$(ARTIFACTS)/cli/shield"
 
