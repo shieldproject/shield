@@ -123,19 +123,36 @@ func (w *Worker) Execute(chore Chore) {
 	go func() {
 		chore.Do(chore)
 
-		job, err := w.db.GetJob(task.JobUUID)
-		if err != nil {
-			panic(fmt.Errorf("failed to retrieve job '%s' from database: %s", task.JobUUID, err))
-		}
-		retries := job.Retries
-		log.Infof("Retries: %d", chore)
-		if rc != 0 && retries > 0 {
-			for i := 0; i < retries || rc == 0; i++ {
-				w.db.UpdateTaskLog(chore.TaskUUID, "\n\n------\n\n")
-				w.db.UpdateTaskLog(chore.TaskUUID, fmt.Sprintf("RETRY: `%d`\n", i+1))
-				chore.Do(chore)
+		// job, err := w.db.GetJob(task.JobUUID)
+		// if err != nil {
+		// 	panic(fmt.Errorf("failed to retrieve job '%s' from database: %s", task.JobUUID, err))
+		// }
+		// retries := job.Retries
+		// log.Infof("Retries: %d", chore)
+		// if rc != 0 && retries > 0 {
+		// 	for i := 0; i < retries || rc == 0; i++ {
+		// 		w.db.UpdateTaskLog(chore.TaskUUID, "\n\n------\n\n")
+		// 		w.db.UpdateTaskLog(chore.TaskUUID, fmt.Sprintf("RETRY: `%d`\n", i+1))
+		// 		chore.Do(chore)
+		// 	}
+		// }
+
+		if rc != 0 {
+			job, err := w.db.GetJob(task.JobUUID)
+			if err != nil {
+				panic(fmt.Errorf("failed to retrieve job '%s' from database: %s", task.JobUUID, err))
+			}
+			retries := job.Retries
+			log.Infof("Retries: %d", chore)
+			if retries > 0 {
+				for i := 0; i < retries || rc == 0; i++ {
+					w.db.UpdateTaskLog(chore.TaskUUID, "\n\n------\n\n")
+					w.db.UpdateTaskLog(chore.TaskUUID, fmt.Sprintf("RETRY: `%d`\n", i+1))
+					chore.Do(chore)
+				}
 			}
 		}
+
 		log.Debugf("%s: chore execution complete; [main] goroutine shutting down...", chore)
 
 		chore.UnixExit(0) /* catch-all */
