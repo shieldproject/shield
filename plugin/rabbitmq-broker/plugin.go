@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
 
@@ -14,7 +15,7 @@ import (
 
 func main() {
 	p := RabbitMQBrokerPlugin{
-		Name:    "Pivotal RabbitMQ Broker Backup Plugin",
+		Name:    "RabbitMQ Broker Backup Plugin",
 		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
@@ -188,6 +189,7 @@ func getRabbitMQEndpoint(endpoint plugin.ShieldEndpoint) (RabbitMQEndpoint, erro
 	if err != nil {
 		return RabbitMQEndpoint{}, err
 	}
+	url = strings.TrimSuffix(url, "/")
 
 	user, err := endpoint.StringValue("rmq_username")
 	if err != nil {
