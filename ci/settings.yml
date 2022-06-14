@@ -7,7 +7,7 @@ meta:
   initial_version: 0.6.4
 
   go:
-    version:    "1.17"
+    version:    "shield"
     binary:     shield
     cmd_module: ./cmd/shield
 
@@ -15,7 +15,7 @@ meta:
     target:   ((bosh.url))
     username: ((bosh.username))
     password: ((bosh.password))
-    cacert:   ((bosh.ca-certificate))
+    cacert: ((bosh.ca-certificate))
 
   aws:
     access_key: ((aws.access_key_id))
