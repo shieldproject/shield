@@ -492,6 +492,7 @@ func (c *Core) TasksToChores() {
 			inflight[task.TargetUUID] = task
 
 		case db.RestoreOperation:
+
 			if op, ok := inflight[task.TargetUUID]; ok {
 				log.Infof("SCHEDULER: SKIPPING [%s] task %s, another %s operation is already in-flight for target [%s]", task.Op, task.UUID, op, task.TargetUUID)
 				continue
