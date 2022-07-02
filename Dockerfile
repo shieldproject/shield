@@ -21,7 +21,8 @@ RUN mkdir -p /dist/bin /dist/plugins \
  && for plugin in $(cat /go/src/github.com/shieldproject/shield/plugins); do \
       cp /go/src/github.com/shieldproject/shield/$plugin /dist/plugins; \
     done \
- && cp -R /go/src/github.com/shieldproject/shield/web/htdocs /dist/ui
+ && cp -R /go/src/github.com/shieldproject/shield/web/htdocs /dist/ui \
+ && mv /go/src/github.com/shieldproject/shield/shield /dist/bin/shield-client 
 
 ADD init /dist/init
 RUN chmod 0755 /dist/init/*
@@ -31,3 +32,4 @@ RUN apt-get update \
  && apt-get install -y bzip2 gzip curl openssh-client \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=build /dist /shield
+RUN cp /shield/bin/shield-client /usr/bin/shield

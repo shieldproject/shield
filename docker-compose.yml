@@ -32,17 +32,20 @@ services:
       - server
       - "-config"
       - "/vault/config/local.json"
+  
+
 
   core:
     depends_on:
       - vault
-    image: 'shieldproject/shield:8'
+    image: 'shieldproject/shield:dev'
     ports: ['9009:80']
     networks: [internal]
     command: ['/shield/init/core']
     environment:
       SHIELD_VAULT_ADDRESS: http://vault:8200
       SHIELD_API_BIND: core:80
+      SHIELD_CORE: localcore
     volumes:
       - 'shield-data:/var/shield'
       - 'shield-etc:/etc/shield'
@@ -51,17 +54,33 @@ services:
     depends_on:
       - core
       - webdav
-    image: 'shieldproject/demo:latest'
+    image: 'shieldproject/demo:dev'
     ports: ['9008:80']
     networks: [internal]
     volumes:
       - 'demo-data:/www'
 
+  rabbitmq-source:
+    image: shieldproject/rabbitmq:demo
+    hostname: rabbitmq-source
+    networks: [internal]
+    ports:
+      - 5672:5672
+      - 15672:15672
+
+  rabbitmq-dest:
+    image: rabbitmq:3-management
+    hostname: rabbitmq-dest
+    networks: [internal]
+    ports:
+      - 5673:5672
+      - 15673:15672
+
   agent:
     depends_on:
       - core
       - webdav
-    image: 'shieldproject/shield:8'
+    image: 'shieldproject/shield:dev'
     ports: [5444]
     networks: [internal]
     command: ['/shield/init/agent']
@@ -74,7 +93,7 @@ services:
       - 'demo-data:/www'
 
   webdav:
-    image: 'shieldproject/webdav:latest'
+    image: 'shieldproject/webdav:dev'
     ports: ['9007:80']
     networks: [internal]
     environment:
