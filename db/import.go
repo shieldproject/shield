@@ -159,22 +159,24 @@ func (db *DB) importFixups(n uint, in *json.Decoder) error {
 
 func (db *DB) importJobs(n uint, in *json.Decoder) error {
 	type job struct {
-		UUID       string `json:"uuid"`
-		TargetUUID string `json:"target_uuid"`
-		StoreUUID  string `json:"store_uuid"`
-		TenantUUID string `json:"tenant_uuid"`
-		Name       string `json:"name"`
-		Summary    string `json:"summary"`
-		Schedule   string `json:"schedule"`
-		KeepN      int    `json:"keep_n"`
-		KeepDays   int    `json:"keep_days"`
-		NextRun    int    `json:"next_run"`
-		Priority   int    `json:"priority"`
-		Paused     bool   `json:"paused"`
-		FixedKey   bool   `json:"fixed_key"`
-		Healthy    bool   `json:"healthy"`
-		Error      string `json:"error"`
-		Retries    int    `json:"retries"`
+		UUID          string `json:"uuid"`
+		TargetUUID    string `json:"target_uuid"`
+		RestoreToUUID string `json:"restoreto_uuid"`
+		StoreUUID     string `json:"store_uuid"`
+		TenantUUID    string `json:"tenant_uuid"`
+		Name          string `json:"name"`
+		Summary       string `json:"summary"`
+		Schedule      string `json:"schedule"`
+		KeepN         int    `json:"keep_n"`
+		KeepDays      int    `json:"keep_days"`
+		NextRun       int    `json:"next_run"`
+		Priority      int    `json:"priority"`
+		Paused        bool   `json:"paused"`
+		FixedKey      bool   `json:"fixed_key"`
+		Healthy       bool   `json:"healthy"`
+		Error         string `json:"error"`
+		Retries       int    `json:"retries"`
+		Restore       bool   `json:"restore"`
 	}
 
 	for ; n > 0; n-- {
@@ -190,16 +192,16 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 		log.Infof("IMPORT: inserting job %s...", v.UUID)
 		err := db.exec(`
 		  INSERT INTO jobs
-		    (uuid, target_uuid, store_uuid, tenant_uuid,
+		    (uuid, target_uuid, restoreto_uuid, store_uuid, tenant_uuid,
 		     name, summary, schedule, keep_n, keep_days,
-		     next_run, priority, paused, fixed_key, healthy, retries)
+		     next_run, priority, paused, fixed_key, healthy, retries, restore)
 		  VALUES
-		    (?, ?, ?, ?,
+		    (?, ?, ?, ?, ?,
 		     ?, ?, ?, ?, ?,
-		     ?, ?, ?, ?, ?, ?)`,
-			v.UUID, v.TargetUUID, v.StoreUUID, v.TenantUUID,
+		     ?, ?, ?, ?, ?, ?, ?)`,
+			v.UUID, v.TargetUUID, v.RestoreToUUID, v.StoreUUID, v.TenantUUID,
 			v.Name, v.Summary, v.Schedule, v.KeepN, v.KeepDays,
-			v.NextRun, v.Priority, v.Paused, v.FixedKey, v.Healthy, v.Retries)
+			v.NextRun, v.Priority, v.Paused, v.FixedKey, v.Healthy, v.Retries, v.Restore)
 		if err != nil {
 			return err
 		}

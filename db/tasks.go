@@ -12,6 +12,7 @@ import (
 
 const (
 	BackupOperation         = "backup"
+	BackupRestoreOperation  = "backuprestore"
 	RestoreOperation        = "restore"
 	ShieldRestoreOperation  = "shield-restore"
 	PurgeOperation          = "purge"
@@ -357,6 +358,13 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 			return fmt.Errorf("unable to create backup task: %s", err)
 		}
 
+		if job.Restore == true {
+			/* validate the target */
+			if err := db.targetShouldExist(job.RestoreToUUID); err != nil {
+				return fmt.Errorf("unable to create backup task: %s", err)
+			}
+		}
+
 		/* validate the store */
 		if err := db.storeShouldExist(job.StoreUUID); err != nil {
 			return fmt.Errorf("unable to create backup task: %s", err)
@@ -395,8 +403,30 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
 	}
 
+	log.Infof("Backup Completed. Restore is set as %t", job.Restore)
+
 	db.sendCreateObjectEvent(task, "tenant:"+job.TenantUUID)
+
+	//Create restore of just finished successful backup archive.
+	go db.WaitForRestore(owner, archive, job)
+
 	return task, nil
+}
+
+func (db *DB) WaitForRestore(owner string, archive string, job *Job) {
+	if job.Restore {
+		log.Infof("Restore is set as %t and will restore to %s", job.Restore, job.RestoreToUUID)
+		restore_target, err := db.GetTarget(job.RestoreToUUID)
+		if err != nil {
+			log.Errorf("Restore Error Restore Target: %s", err)
+			return
+		}
+		_, err = db.CreateRestoreTask(owner, archive, restore_target, true)
+		if err != nil {
+			log.Errorf("Restore Error Task: %s", err)
+			return
+		}
+	}
 }
 
 func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) {
@@ -454,15 +484,29 @@ func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) 
 	return task, nil
 }
 
-func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) (*Task, error) {
+func (db *DB) CreateRestoreTask(owner string, archive_uuid string, target *Target, pending_backup bool) (*Task, error) {
 	endpoint, err := target.ConfigJSON()
 	if err != nil {
 		return nil, err
 	}
 
+	archive, err := db.GetArchive(archive_uuid)
+
+	if pending_backup {
+		if archive == nil {
+			for archive == nil {
+				fmt.Println("Unable to create restore task: Archive is not yet found... waiting 5 seconds")
+				time.Sleep(time.Second)
+				archive, _ = db.GetArchive(archive_uuid)
+			}
+			fmt.Printf("Archive found to restore")
+		}
+	}
+
 	id := RandomID()
 	err = db.exclusively(func() error {
 		/* validate the archive */
+
 		if err := db.archiveShouldExist(archive.UUID); err != nil {
 			return fmt.Errorf("unable to create restore task: %s", err)
 		}

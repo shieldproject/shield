@@ -18,6 +18,11 @@ USAGE: @G{shield} create-job --tenant @Y{TENANT} [OPTIONS]
                   you want SHIELD to back up.
                   This field is @W{required}.
 
+  --to            An optional method to restore to another destination
+                  after a backup. Great for replication and DR.
+
+  --restore       True or Fault if this backup will also restore to the To
+
   --store         The name or UUID of the cloud storage system to
                   store backup archives in.
                   This field is @W{required}.

@@ -226,6 +226,7 @@ var opts struct {
 		Store    string `cli:"--store"`
 		Target   string `cli:"--target"`
 		Paused   bool   `cli:"--paused"`
+		Restore  bool   `cli:"--restore"`
 		Unpaused bool   `cli:"--unpaused"`
 	} `cli:"jobs"`
 	Job        struct{} `cli:"job"`
@@ -234,25 +235,29 @@ var opts struct {
 	UnpauseJob struct{} `cli:"unpause-job"`
 	RunJob     struct{} `cli:"run-job"`
 	CreateJob  struct {
-		Name     string `cli:"-n, --name"`
-		Summary  string `cli:"-s, --summary"`
-		Target   string `cli:"--target"`
-		Store    string `cli:"--store"`
-		Schedule string `cli:"--schedule"`
-		Retain   string `cli:"--retain"`
-		Paused   bool   `cli:"--paused"`
-		FixedKey bool   `cli:"--fixed-key"`
-		Retries  int    `cli:"--retries"`
+		Name      string `cli:"-n, --name"`
+		Summary   string `cli:"-s, --summary"`
+		Target    string `cli:"--target"`
+		RestoreTo string `cli:"--to"`
+		Store     string `cli:"--store"`
+		Schedule  string `cli:"--schedule"`
+		Retain    string `cli:"--retain"`
+		Paused    bool   `cli:"--paused"`
+		FixedKey  bool   `cli:"--fixed-key"`
+		Restore   bool   `cli:"--restore"`
+		Retries   int    `cli:"--retries"`
 	} `cli:"create-job"`
 	UpdateJob struct {
 		Name       string `cli:"-n, --name"`
 		Summary    string `cli:"-s, --summary"`
 		Target     string `cli:"--target"`
+		To         string `cli:"--to"`
 		Store      string `cli:"--store"`
 		Schedule   string `cli:"--schedule"`
 		Retain     string `cli:"--retain"`
 		FixedKey   bool   `cli:"--fixed-key"`
 		NoFixedKey bool   `cli:"--no-fixed-key"`
+		Restore    bool   `cli:"--restore"`
 		Retries    int    `cli:"--retries"`
 	} `cli:"update-job"`
 
@@ -2433,6 +2438,10 @@ tenants:
 				opts.CreateJob.Summary = prompt("@C{Notes}: ")
 			}
 
+			if opts.CreateJob.RestoreTo == "" {
+				opts.CreateJob.RestoreTo = prompt("@C{RestoreTo}: ")
+			}
+
 		} else {
 			if id := opts.CreateJob.Target; id != "" {
 				if target, err := c.FindTarget(tenant, id, !opts.Exact); err != nil {
@@ -2450,16 +2459,20 @@ tenants:
 			}
 		}
 
+		fmt.Printf("%s\n", asJSON(opts))
+
 		job, err := c.CreateJob(tenant, &shield.Job{
-			Name:       opts.CreateJob.Name,
-			Summary:    opts.CreateJob.Summary,
-			TargetUUID: opts.CreateJob.Target,
-			StoreUUID:  opts.CreateJob.Store,
-			Schedule:   opts.CreateJob.Schedule,
-			Retain:     opts.CreateJob.Retain,
-			Retries:    opts.CreateJob.Retries,
-			Paused:     opts.CreateJob.Paused,
-			FixedKey:   opts.CreateJob.FixedKey,
+			Name:          opts.CreateJob.Name,
+			Summary:       opts.CreateJob.Summary,
+			TargetUUID:    opts.CreateJob.Target,
+			StoreUUID:     opts.CreateJob.Store,
+			RestoreToUUID: opts.CreateJob.RestoreTo,
+			Schedule:      opts.CreateJob.Schedule,
+			Retain:        opts.CreateJob.Retain,
+			Retries:       opts.CreateJob.Retries,
+			Paused:        opts.CreateJob.Paused,
+			FixedKey:      opts.CreateJob.FixedKey,
+			Restore:       opts.CreateJob.Restore,
 		})
 		bail(err)
 

@@ -10,9 +10,10 @@ import (
 )
 
 type Job struct {
-	TenantUUID string `json:"-" mbus:"tenant_uuid"`
-	TargetUUID string `json:"-" mbus:"target_uuid"`
-	StoreUUID  string `json:"-" mbus:"store_uuid"`
+	TenantUUID    string `json:"-" mbus:"tenant_uuid"`
+	TargetUUID    string `json:"-" mbus:"target_uuid"`
+	RestoreToUUID string `json:"-" mbus:"restoreto_uuid"`
+	StoreUUID     string `json:"-" mbus:"store_uuid"`
 
 	UUID     string `json:"uuid"      mbus:"uuid"`
 	Name     string `json:"name"      mbus:"name"`
@@ -23,6 +24,7 @@ type Job struct {
 	Schedule string `json:"schedule"  mbus:"schedule"`
 	Paused   bool   `json:"paused"    mbus:"paused"`
 	FixedKey bool   `json:"fixed_key" mbus:"fixed_key"`
+	Restore  bool   `json:"restore" mbus:"restore"`
 
 	Target struct {
 		UUID        string `json:"uuid"`
@@ -34,6 +36,17 @@ type Job struct {
 		Endpoint string                 `json:"endpoint,omitempty"`
 		Config   map[string]interface{} `json:"config,omitempty"`
 	} `json:"target"`
+
+	RestoreTo struct {
+		UUID        string `json:"uuid"`
+		Name        string `json:"name"`
+		Agent       string `json:"agent"`
+		Plugin      string `json:"plugin"`
+		Compression string `json:"compression"`
+
+		Endpoint string                 `json:"endpoint,omitempty"`
+		Config   map[string]interface{} `json:"config,omitempty"`
+	} `json:"restoreto"`
 
 	Store struct {
 		UUID    string `json:"uuid"`
@@ -68,6 +81,7 @@ type JobFilter struct {
 
 	ForTenant  string
 	ForTarget  string
+	ForRestore string
 	ForStore   string
 	ExactMatch bool
 }
@@ -115,6 +129,10 @@ func (f *JobFilter) Query() (string, []interface{}) {
 		wheres = append(wheres, "j.store_uuid = ?")
 		args = append(args, f.ForStore)
 	}
+	if f.ForRestore != "" {
+		wheres = append(wheres, "j.restoreto_uuid = ?")
+		args = append(args, f.ForStore)
+	}
 	if f.SkipPaused || f.SkipUnpaused {
 		wheres = append(wheres, "j.paused = ?")
 		if f.SkipPaused {
@@ -137,14 +155,16 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	        )
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
-	          j.tenant_uuid, j.fixed_key, j.healthy, j.keep_n, j.keep_days, j.retries,
+	          j.tenant_uuid, j.fixed_key, j.healthy, j.keep_n, j.keep_days, j.retries, j.restore,
 	          s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
 	          t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression,
+			  r.uuid, r.name, r.plugin, r.endpoint, r.agent, r.compression,
 	          k.started_at, k.status
 
 	     FROM jobs j
 	          INNER JOIN stores       s  ON  s.uuid = j.store_uuid
 	          INNER JOIN targets      t  ON  t.uuid = j.target_uuid
+			  LEFT JOIN targets      r  ON  r.uuid = j.restoreto_uuid
 	          LEFT  JOIN recent_tasks k  ON  j.uuid = k.job_uuid
 
 	    WHERE ` + strings.Join(wheres, " AND ") + `
@@ -171,17 +191,35 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		j := &Job{}
 
 		var (
-			last   *int64
-			status sql.NullString
+			last                 *int64
+			status               sql.NullString
+			RestoreToUUID        sql.NullString
+			RestoreToName        sql.NullString
+			RestoreToPlugin      sql.NullString
+			RestoreToEndPoint    sql.NullString
+			RestoreToAgent       sql.NullString
+			RestoreToCompression sql.NullString
 		)
+
 		if err = r.Scan(
 			&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
-			&j.TenantUUID, &j.FixedKey, &j.Healthy, &j.KeepN, &j.KeepDays, &j.Retries,
+			&j.TenantUUID, &j.FixedKey, &j.Healthy, &j.KeepN, &j.KeepDays, &j.Retries, &j.Restore,
 			&j.Store.UUID, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
-			&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
-			&j.Agent, &j.Target.Compression, &last, &status); err != nil {
+			&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint, &j.Target.Agent, &j.Target.Compression,
+			&RestoreToUUID, &RestoreToName, &RestoreToPlugin, &RestoreToEndPoint, &RestoreToAgent, &RestoreToCompression,
+			&last, &status); err != nil {
 			return l, err
 		}
+
+		if RestoreToUUID.Valid {
+			j.RestoreTo.UUID = RestoreToUUID.String
+			j.RestoreTo.Name = RestoreToName.String
+			j.RestoreTo.Agent = RestoreToAgent.String
+			j.RestoreTo.Endpoint = RestoreToEndPoint.String
+			j.RestoreTo.Plugin = RestoreToPlugin.String
+			j.RestoreTo.Compression = RestoreToCompression.String
+		}
+
 		if last != nil {
 			j.LastRun = *last
 		}
@@ -191,6 +229,9 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 
 		j.StoreUUID = j.Store.UUID
 		j.TargetUUID = j.Target.UUID
+		j.RestoreToUUID = j.RestoreTo.UUID
+		j.Agent = j.Target.Agent
+
 		l = append(l, j)
 	}
 
@@ -384,16 +425,24 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 			return fmt.Errorf("unable to create job: %s", err)
 		}
 
+		// If restore requested, validate restore against targets
+		if job.Restore == true {
+			fmt.Printf("This job has a Restore Forwarder to another Target.")
+			if err := db.targetShouldExist(job.RestoreToUUID); err != nil {
+				return fmt.Errorf("unable to create job: %s", err)
+			}
+		}
+
 		return db.exec(`
-		   INSERT INTO jobs (uuid, tenant_uuid,
+		   INSERT INTO jobs (uuid, tenant_uuid, restoreto_uuid,
 		                     name, summary, schedule, keep_n, keep_days, paused,
-		                     target_uuid, store_uuid, fixed_key, healthy, retries)
-		             VALUES (?, ?,
+		                     target_uuid, store_uuid, fixed_key, healthy, retries, restore)
+		             VALUES (?, ?, ?,
 		                     ?, ?, ?, ?, ?, ?,
-		                     ?, ?, ?, ?, ?)`,
-			job.UUID, job.TenantUUID,
+		                     ?, ?, ?, ?, ?, ?)`,
+			job.UUID, job.TenantUUID, job.RestoreToUUID,
 			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays, job.Paused,
-			job.TargetUUID, job.StoreUUID, job.FixedKey, job.Healthy, job.Retries)
+			job.TargetUUID, job.StoreUUID, job.FixedKey, job.Healthy, job.Retries, job.Restore)
 	})
 	if err != nil {
 		return nil, err
@@ -435,13 +484,15 @@ func (db *DB) UpdateJob(job *Job) error {
 		          keep_n         = ?,
 		          keep_days      = ?,
 		          target_uuid    = ?,
+				  restoreto_uuid = ?,
 		          store_uuid     = ?,
 		          fixed_key      = ?,
-				  retries        = ?
+				  retries        = ?,
+				  restore		 = ?,
 		    WHERE uuid = ?`,
 			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays,
-			job.TargetUUID, job.StoreUUID, job.FixedKey, job.Retries,
-			job.UUID)
+			job.TargetUUID, job.RestoreToUUID, job.StoreUUID, job.FixedKey, job.Retries,
+			job.UUID, job.Restore)
 	})
 	if err != nil {
 		return err
