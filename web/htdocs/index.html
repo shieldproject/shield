@@ -243,7 +243,7 @@
         they are styled as buttons)
       ]]
           <div id="login" class="frontdoor">
-            <div [[ if (_.providers.length = 0) { ]] class="local-only"[[ } ]]>
+            <div [[ if (_.providers.length == 0) { ]] class="local-only"[[ } ]]>
               <h1>SHIELD<span style="color: [[= h(_.info.color || 'green') ]]">[[= h(_.info.env) ]]<span></h1>
               <div class="dialog">
                 [[ if (_.info.motd) { ]]<div class="motd">[[= md(_.info.motd) ]]</div>[[ } ]]
@@ -732,32 +732,32 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
       ]]
       <div class="roles-menu ephemeral">
         [[ if (_.type == 'tenant') { ]]
-        <div [[ if (_.current = "admin") { ]] class="current"[[ } ]] data-role="admin">
+        <div [[ if (_.current == "admin") { ]] class="current"[[ } ]] data-role="admin">
           <strong>Administrator</strong>
           <p>Full control over this tenant.</p>
         </div>
-        <div [[ if (_.current = "engineer") { ]] class="current"[[ } ]] data-role="engineer">
+        <div [[ if (_.current == "engineer") { ]] class="current"[[ } ]] data-role="engineer">
           <strong>Engineer</strong>
           <p>Can do everything except manage other peoples
              access to this tenant.</p>
         </div>
-        <div [[ if (_.current = "operator") { ]] class="current"[[ } ]] data-role="operator">
+        <div [[ if (_.current == "operator") { ]] class="current"[[ } ]] data-role="operator">
           <strong>Operator</strong>
           <p>View access to most things, with the ability to
              pause and unpause jobs, run ad hoc backups, and
              perform restore operations.</p>
         </div>
         [[ } else { ]]
-        <div [[ if (_.current = "admin") { ]] class="current"[[ } ]] data-role="admin">
+        <div [[ if (_.current == "admin") { ]] class="current"[[ } ]] data-role="admin">
           <strong>Administrator</strong>
           <p>Full control over SHIELD.</p>
         </div>
-        <div [[ if (_.current = "manager") { ]] class="current"[[ } ]] data-role="manager">
+        <div [[ if (_.current == "manager") { ]] class="current"[[ } ]] data-role="manager">
           <strong>Manager</strong>
           <p>Can create and edit tenants, manage tenant/user
              memberships, and manage user accounts and access rights.</p>
         </div>
-        <div [[ if (_.current = "engineer") { ]] class="current"[[ } ]] data-role="engineer">
+        <div [[ if (_.current == "engineer") { ]] class="current"[[ } ]] data-role="engineer">
           <strong>Engineer</strong>
           <p>Manages global configuration, namely shared cloud
              storage configurations.</p>
