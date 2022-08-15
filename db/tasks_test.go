@@ -134,7 +134,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can create a new restore task", func() {
-		task, err := db.CreateRestoreTask("owner-name", SomeArchive.UUID, SomeTarget, false)
+		task, err := db.CreateRestoreTask("owner-name", SomeArchive, SomeTarget)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(task).ShouldNot(BeNil())
 

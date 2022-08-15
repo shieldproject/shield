@@ -8,24 +8,22 @@ import (
 )
 
 type Job struct {
-	UUID          string `json:"uuid,omitempty"`
-	Name          string `json:"name"`
-	Summary       string `json:"summary"`
-	Schedule      string `json:"schedule"`
-	KeepDays      int    `json:"keep_days"`
-	KeepN         int    `json:"keep_n"`
-	Retain        string `json:"-"`
-	Paused        bool   `json:"paused"`
-	Agent         string `json:"agent"`
-	LastStatus    string `json:"last_task_status"`
-	LastRun       int64  `json:"last_run"`
-	FixedKey      bool   `json:"fixed_key"`
-	Retries       int    `json:"retries"`
-	TargetUUID    string `json:"-"`
-	RestoreToUUID string `json:"-"`
-	Restore       bool   `json:"restore"`
+	UUID       string `json:"uuid,omitempty"`
+	Name       string `json:"name"`
+	Summary    string `json:"summary"`
+	Schedule   string `json:"schedule"`
+	KeepDays   int    `json:"keep_days"`
+	KeepN      int    `json:"keep_n"`
+	Retain     string `json:"-"`
+	Paused     bool   `json:"paused"`
+	Agent      string `json:"agent"`
+	LastStatus string `json:"last_task_status"`
+	LastRun    int64  `json:"last_run"`
+	FixedKey   bool   `json:"fixed_key"`
+	Retries    int    `json:"retries"`
 
-	Target struct {
+	TargetUUID string `json:"-"`
+	Target     struct {
 		UUID   string `json:"uuid"`
 		Name   string `json:"name"`
 		Agent  string `json:"agent"`
@@ -34,16 +32,6 @@ type Job struct {
 		Endpoint string                 `json:"endpoint,omitempty"`
 		Config   map[string]interface{} `json:"config,omitempty"`
 	} `json:"target"`
-
-	RestoreTo struct {
-		UUID   string `json:"uuid"`
-		Name   string `json:"name"`
-		Agent  string `json:"agent"`
-		Plugin string `json:"plugin"`
-
-		Endpoint string                 `json:"endpoint,omitempty"`
-		Config   map[string]interface{} `json:"config,omitempty"`
-	} `json:"restoreto"`
 
 	StoreUUID string `json:"-"`
 	Store     struct {
@@ -126,29 +114,25 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 	var out *Job
 
 	in := struct {
-		Name      string `json:"name"`
-		Summary   string `json:"summary"`
-		Schedule  string `json:"schedule"`
-		Retain    string `json:"retain"`
-		Paused    bool   `json:"paused"`
-		Store     string `json:"store"`
-		Target    string `json:"target"`
-		RestoreTo string `json:"restoreto"`
-		FixedKey  bool   `json:"fixed_key"`
-		Retries   int    `json:"retries"`
-		Restore   bool   `json:"restore"`
+		Name     string `json:"name"`
+		Summary  string `json:"summary"`
+		Schedule string `json:"schedule"`
+		Retain   string `json:"retain"`
+		Paused   bool   `json:"paused"`
+		Store    string `json:"store"`
+		Target   string `json:"target"`
+		FixedKey bool   `json:"fixed_key"`
+		Retries  int    `json:"retries"`
 	}{
-		Name:      job.Name,
-		Summary:   job.Summary,
-		Schedule:  job.Schedule,
-		Retain:    job.Retain,
-		Paused:    job.Paused,
-		Target:    job.TargetUUID,
-		Store:     job.StoreUUID,
-		RestoreTo: job.RestoreToUUID,
-		FixedKey:  job.FixedKey,
-		Retries:   job.Retries,
-		Restore:   job.Restore,
+		Name:     job.Name,
+		Summary:  job.Summary,
+		Schedule: job.Schedule,
+		Retain:   job.Retain,
+		Paused:   job.Paused,
+		Target:   job.TargetUUID,
+		Store:    job.StoreUUID,
+		FixedKey: job.FixedKey,
+		Retries:  job.Retries,
 	}
 	if err := c.post(fmt.Sprintf("/v2/tenants/%s/jobs", parent.UUID), in, &out); err != nil {
 		return nil, err

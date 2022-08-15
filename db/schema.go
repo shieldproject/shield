@@ -22,7 +22,6 @@ var Schemas = map[int]Schema{
 	11: v11Schema{},
 	12: v12Schema{},
 	13: v13Schema{},
-	14: v14Schema{},
 }
 
 type Schema interface {

@@ -15,9 +15,6 @@
 /bin/vault
 /bin/.init
 
-# ignore vscode
-/.vscode
-
 # ignore the plugin
 /azure
 /backblaze

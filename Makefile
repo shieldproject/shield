@@ -154,10 +154,6 @@ docker-edge:
 	docker build -t shieldproject/shield:$(EDGE) . --build-arg VERSION=$(VERSION)
 	docker push shieldproject/shield:$(EDGE)
 
-docker-rabbitmq:
-
-	docker build -t shieldproject/rabbitmq:demo docker/rabbitmq-demo
-
 docker-release:
 	@echo "Checking that VERSION was defined in the calling environment"
 	@test -n "$(VERSION)"

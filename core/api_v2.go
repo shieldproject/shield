@@ -1438,17 +1438,6 @@ func (c *Core) v2API() *route.Router {
 				Config map[string]interface{} `json:"config"`
 			} `json:"target"`
 
-			RestoreTo struct {
-				UUID        string `json:"uuid"`
-				Name        string `json:"name"`
-				Summary     string `json:"summary"`
-				Plugin      string `json:"plugin"`
-				Agent       string `json:"agent"`
-				Compression string `json:"compression"`
-
-				Config map[string]interface{} `json:"config"`
-			} `json:"restoreto"`
-
 			Store struct {
 				UUID      string `json:"uuid"`
 				Name      string `json:"name"`
@@ -1467,8 +1456,8 @@ func (c *Core) v2API() *route.Router {
 				FixedKey bool   `json:"fixed_key"`
 				Paused   bool   `json:"paused"`
 				Retries  int    `json:"retries"`
-				Restore  bool   `json:"restore"`
-				KeepN    int
+
+				KeepN int
 			} `json:"job"`
 		}
 		if !r.Payload(&in) {
@@ -1500,9 +1489,8 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		var (
-			target    *db.Target
-			store     *db.Store
-			restoreto *db.Target
+			target *db.Target
+			store  *db.Store
 		)
 
 		if in.Target.UUID != "" {
@@ -1514,18 +1502,6 @@ func (c *Core) v2API() *route.Router {
 			if target == nil || target.TenantUUID != r.Args[1] {
 				r.Fail(route.NotFound(nil, "No such system"))
 				return
-			}
-
-			if in.RestoreTo.UUID != "" {
-				restoreto, err = c.db.GetTarget(in.RestoreTo.UUID)
-				if err != nil {
-					r.Fail(route.Oops(err, "Unable to retrieve system information"))
-					return
-				}
-				if restoreto == nil || restoreto.TenantUUID != r.Args[1] {
-					r.Fail(route.NotFound(nil, "No such system"))
-					return
-				}
 			}
 
 		} else {
@@ -1579,18 +1555,16 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		job, err := c.db.CreateJob(&db.Job{
-			TenantUUID:    r.Args[1],
-			Name:          in.Job.Name,
-			Schedule:      in.Job.Schedule,
-			KeepN:         in.Job.KeepN,
-			KeepDays:      in.Job.KeepDays,
-			Retries:       in.Job.Retries,
-			Paused:        in.Job.Paused,
-			StoreUUID:     store.UUID,
-			TargetUUID:    target.UUID,
-			RestoreToUUID: restoreto.UUID,
-			Restore:       in.Job.Restore,
-			FixedKey:      in.Job.FixedKey,
+			TenantUUID: r.Args[1],
+			Name:       in.Job.Name,
+			Schedule:   in.Job.Schedule,
+			KeepN:      in.Job.KeepN,
+			KeepDays:   in.Job.KeepDays,
+			Retries:    in.Job.Retries,
+			Paused:     in.Job.Paused,
+			StoreUUID:  store.UUID,
+			TargetUUID: target.UUID,
+			FixedKey:   in.Job.FixedKey,
 		})
 		if job == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new job"))
@@ -2699,17 +2673,15 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		var in struct {
-			Name      string `json:"name"`
-			Summary   string `json:"summary"`
-			Schedule  string `json:"schedule"`
-			Paused    bool   `json:"paused"`
-			Store     string `json:"store"`
-			Target    string `json:"target"`
-			RestoreTo string `json:"restoreto"`
-			Retain    string `json:"retain"`
-			FixedKey  bool   `json:"fixed_key"`
-			Retries   int    `json:"retries"`
-			Restore   bool   `json:"restore"`
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Schedule string `json:"schedule"`
+			Paused   bool   `json:"paused"`
+			Store    string `json:"store"`
+			Target   string `json:"target"`
+			Retain   string `json:"retain"`
+			FixedKey bool   `json:"fixed_key"`
+			Retries  int    `json:"retries"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2743,19 +2715,17 @@ func (c *Core) v2API() *route.Router {
 		//retries := util.ParseRetain(in.Retries)
 
 		job, err := c.db.CreateJob(&db.Job{
-			TenantUUID:    r.Args[1],
-			Name:          in.Name,
-			Summary:       in.Summary,
-			Schedule:      in.Schedule,
-			KeepDays:      keepdays,
-			KeepN:         keepn,
-			Paused:        in.Paused,
-			StoreUUID:     in.Store,
-			TargetUUID:    in.Target,
-			RestoreToUUID: in.RestoreTo,
-			FixedKey:      in.FixedKey,
-			Retries:       in.Retries,
-			Restore:       in.Restore,
+			TenantUUID: r.Args[1],
+			Name:       in.Name,
+			Summary:    in.Summary,
+			Schedule:   in.Schedule,
+			KeepDays:   keepdays,
+			KeepN:      keepn,
+			Paused:     in.Paused,
+			StoreUUID:  in.Store,
+			TargetUUID: in.Target,
+			FixedKey:   in.FixedKey,
+			Retries:    in.Retries,
 		})
 		if job == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new job"))
@@ -2795,12 +2765,10 @@ func (c *Core) v2API() *route.Router {
 			Schedule string `json:"schedule"`
 			Retain   string `json:"retain"`
 
-			StoreUUID     string `json:"store"`
-			TargetUUID    string `json:"target"`
-			RestoreToUUID string `json:"restoreto"`
-			FixedKey      *bool  `json:"fixed_key"`
-			Retries       int    `json:"retries"`
-			Restore       *bool  `json:"restore"`
+			StoreUUID  string `json:"store"`
+			TargetUUID string `json:"target"`
+			FixedKey   *bool  `json:"fixed_key"`
+			Retries    int    `json:"retries"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2855,10 +2823,6 @@ func (c *Core) v2API() *route.Router {
 		if in.TargetUUID != "" {
 			job.TargetUUID = in.TargetUUID
 		}
-		job.RestoreToUUID = job.RestoreTo.UUID
-		if in.RestoreToUUID != "" {
-			job.RestoreToUUID = in.RestoreToUUID
-		}
 		job.StoreUUID = job.Store.UUID
 		if in.StoreUUID != "" {
 			job.StoreUUID = in.StoreUUID
@@ -2869,9 +2833,6 @@ func (c *Core) v2API() *route.Router {
 		if in.Retries >= 0 {
 			job.Retries = in.Retries
 		}
-
-		job.Restore = *in.Restore
-
 		if err := c.db.UpdateJob(job); err != nil {
 			r.Fail(route.Oops(err, "Unable to update job"))
 			return
@@ -3252,7 +3213,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		user, _ := c.AuthenticatedUser(r)
-		task, err := c.db.CreateRestoreTask(fmt.Sprintf("%s@%s", user.Account, user.Backend), archive.UUID, target, false)
+		task, err := c.db.CreateRestoreTask(fmt.Sprintf("%s@%s", user.Account, user.Backend), archive, target)
 		if task == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to schedule a restore task"))
 			return
