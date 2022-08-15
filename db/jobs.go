@@ -422,14 +422,14 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 
 		/* validate the target */
 		if err := db.targetShouldExist(job.TargetUUID); err != nil {
-			return fmt.Errorf("unable to create job: %s", err)
+			return fmt.Errorf("unable to create job target: %s", err)
 		}
 
 		// If restore requested, validate restore against targets
 		if job.Restore == true {
 			fmt.Printf("This job has a Restore Forwarder to another Target.")
 			if err := db.targetShouldExist(job.RestoreToUUID); err != nil {
-				return fmt.Errorf("unable to create job: %s", err)
+				return fmt.Errorf("unable to creater restore job: %s", err)
 			}
 		}
 
