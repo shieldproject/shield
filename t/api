@@ -1311,7 +1311,8 @@ try "Running through job lifecycle" # {{{
         --target job-target \
         --store  job-store \
         --retain 5 \
-        --retries 3 
+        --retries 3 \
+        --restore 0
  run job my-new-job
  context 'a newly-created job'
   attr summary        'A new job, suitable for editing'
