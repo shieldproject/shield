@@ -584,9 +584,14 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "curl": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} curl [@Y{METHOD}] @Y{RELATIVE-URL} [@Y{BODY}]\n")
+		fmt.Printf("USAGE: @G{shield} curl [OPTIONS] [@Y{METHOD}] @Y{RELATIVE-URL} [@Y{BODY}]\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Issues raw HTTP requests to the targeted SHIELD Core.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Options:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  --file      Use the contents of an input file to supply a request \n")
+		fmt.Printf("              body.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Any valid HTTP method can be provided, but shield will default to\n")
 		fmt.Printf("  using @M{GET}.  Some HTTP methods, like POST and PUT, may require\n")
