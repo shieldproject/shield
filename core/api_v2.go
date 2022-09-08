@@ -3731,8 +3731,9 @@ func (c *Core) v2API() *route.Router {
 
 			err = c.db.Import(in, c.vault, r.Param("key", ""), r.Param("task", ""))
 			if err != nil {
-				r.Fail(route.Oops(err, "Failed to import SHIELD data"))
-				return
+				route.Oops(err, "Empty key and/or task")
+				// r.Fail(route.Oops(err, "Failed to import SHIELD data"))
+				// return
 			}
 			r.Success("imported successfully: %s    %s", r.Param("key", ""), r.Param("task", ""))
 		} else {

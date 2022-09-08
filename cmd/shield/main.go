@@ -49,7 +49,9 @@ var opts struct {
 		List bool `cli:"--list"`
 	} `cli:"commands"`
 
-	Curl     struct{} `cli:"curl"`
+	Curl struct {
+		File string `cli:"--file"`
+	} `cli:"curl"`
 	TimeSpec struct{} `cli:"timespec"`
 
 	Status struct {
@@ -1064,7 +1066,7 @@ tenants:
 
 	case "curl": /* {{{ */
 		if len(args) < 1 || len(args) > 3 {
-			fail(2, "Usage: shield %s [METHOD] RELATIVE-URL [BODY]\n", command)
+			fail(2, "Usage: shield %s [OPTIONS] [METHOD] RELATIVE-URL [BODY]\n", command)
 		}
 
 		var method, path, body string
@@ -1083,6 +1085,12 @@ tenants:
 
 		if body == "-" {
 			b, err := ioutil.ReadAll(os.Stdin)
+			bail(err)
+			body = string(b)
+		}
+
+		if opts.Curl.File != "" {
+			b, err := ioutil.ReadFile(opts.Curl.File)
 			bail(err)
 			body = string(b)
 		}
