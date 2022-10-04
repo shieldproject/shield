@@ -50,14 +50,11 @@ func (v *Client) List(path string) ([]string, error) {
 	return ret, err
 }
 
-//Set puts the values in the given map at the given path. The keys in the map
-//become the keys at the path, and the values in the map become the values of
-//those keys. The Vault must be unsealed and initialized for this endpoint to
-//work. No assumptions are made about the mounting point of your Key/Value
-//backend.
-func (v *Client) Set(path string, values map[string]string) error {
-	//TODO: This function should be changed to accept a map[string]interface{}
-	//Then tests should be written for cases other than map[string]string
+//Set puts the values in the given object at the given path. The given object
+//must marshal into a JSON hash from string->anything (see: a golang map or
+//struct). The Vault must be unsealed and initialized for this endpoint to work.
+//No assumptions are made about the mounting point of your Key/Value backend.
+func (v *Client) Set(path string, values interface{}) error {
 	return v.doRequest("PUT", path, &values, nil)
 }
 

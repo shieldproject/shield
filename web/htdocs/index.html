@@ -2965,7 +2965,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               </li>
               <li><a href="#!/admin/auth">Authentication Providers</a>
                 <p>SHIELD can authenticate (and authorize) users against 3rd party OAuth2
-                implementations like Github and UAA.  These authentication <em>providers</em>
+                implementations like Github, Okta and UAA.  These authentication <em>providers</em>
                 are configured in the SHIELD Core configuration file, but you can review their
                 configuration here.</p>
               </li>
@@ -3184,6 +3184,24 @@ for job <em>[[= _.task.job_uuid ]]</em>
 
             <p>These <strong>must</strong> match the values you configure
             in the SHIELD Core configuration YAML file.</p>
+            
+            [[ } else if (_.provider.type == 'okta') { ]]
+              <p>This is an <strong>Okta</strong>-backed authentication provider, targeting
+                [[ if (!p.OktaIssuer || p.OktaIssuer == "" || p.OktaIssuer.match(/okta\.com/)) { ]]
+                public Okta.
+                [[ } else { ]]
+                a private, on-premise Okta Enterprise (<a href="[[= p.OktaIssuer ]]">[[= p.OktaIssuer ]]</a>).
+                [[ } ]]</p>
+                <h3>Configuring Okta</h3>
+                <p>First, you will need
+                to <a href="https://help.okta.com/en-us/Content/Topics/Apps/Apps_App_Integration_Wizard_OIDC.htm">register a new
+                OAuth2 application</a> for this SHIELD:</p>
+    
+                <p>Once your application is registered, Okta will provide you
+                with a new Client ID and Client Secret. You will also need the SHIELD deployment address, Okta Domain and the Authorization Server with a groups claim.</p>
+    
+                <p>These <strong>must</strong> match the values you configure
+                in the SHIELD Core configuration YAML file.</p>
 
             [[ } else { ]]
             <p>This is a <strong>UAA</strong>-backed authentication provider.</p>

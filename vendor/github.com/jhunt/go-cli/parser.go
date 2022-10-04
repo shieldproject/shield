@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/jhunt/go-snapshot"
@@ -75,6 +74,12 @@ func (p *Parser) Next() bool {
 	cmd := []string{}  // sub-command stack
 	lvl := p.c         // where we are in the sub-command depth
 	for {
+		if lvl.Stop {
+			args = append(args, rest...)
+			rest = []string{}
+			break
+		}
+
 		if rest, err = parse(&p.c, cmd, rest); err != nil {
 			p.err = err
 			return false
@@ -131,7 +136,7 @@ func parse(c *context, cmd, args []string) ([]string, error) {
 			     - bool receivers do not take value args
 			     - everything else takes a value arg
 			*/
-			if opt.Kind == reflect.Bool {
+			if opt.enableable() {
 				opt.enable(!strings.HasPrefix(name, "no-"))
 
 			} else {
@@ -154,7 +159,7 @@ func parse(c *context, cmd, args []string) ([]string, error) {
 				if err != nil {
 					return args, err
 				}
-				if opt.Kind == reflect.Bool {
+				if opt.enableable() {
 					opt.enable(true)
 
 				} else {
