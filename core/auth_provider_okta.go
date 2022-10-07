@@ -147,17 +147,27 @@ func (p *OktaAuthProvider) HandleRedirect(r *route.Request) *db.User {
 
 	authHeader := base64.StdEncoding.EncodeToString([]byte(p.ClientID + ":" + p.ClientSecret))
 
-	req, _ := http.NewRequest("POST", url, bytes.NewReader([]byte("")))
+	req, err := http.NewRequest("POST", url, bytes.NewReader([]byte("")))
+	if err != nil {
+		p.Errorf("failed to create NewRequest for Okta endpoint %s: %s", url, err)
+		return nil
+	}
 	h := req.Header
 	h.Add("Authorization", "Basic "+authHeader)
 	h.Add("Accept", "application/json")
 	h.Add("Content-Type", "application/x-www-form-urlencoded")
-	h.Add("Connection", "close")
-	h.Add("Content-Length", "0")
 
 	client := &http.Client{}
-	resp, _ := client.Do(req)
-	body, _ := ioutil.ReadAll(resp.Body)
+	resp, err := client.Do(req)
+	if err != nil {
+		p.Errorf("failed to POST authcode to the Okta endpoint %s: %s", url, err)
+		return nil
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		p.Errorf("failed to read response from POST %s: %s", url, err)
+		return nil
+	}
 	defer resp.Body.Close()
 	var exchange Exchange
 	json.Unmarshal(body, &exchange)
@@ -171,13 +181,15 @@ func (p *OktaAuthProvider) HandleRedirect(r *route.Request) *db.User {
 	// Next we verify the token(s) and extract our okta claims from it (i.e. groups)
 	// Goal is to get {name, account, and orgs} from this token to do the mapping. 
 
-	id_token, verificationError := p.verifyToken(exchange.IdToken, "id")
-	if verificationError != nil {
-		fmt.Println(verificationError)
+	id_token, err := p.verifyToken(exchange.IdToken, "id")
+	if err != nil {
+		p.Errorf("Verification Failed: %s", err)
+		return nil
 	}
 	access_token, verificationError := p.verifyToken(exchange.AccessToken, "access")
-	if verificationError != nil {
-		fmt.Println(verificationError)
+	if err != nil {
+		p.Errorf("Verification Failed: %s", err)
+		return nil
 	}
 
 	groups_claim := id_token.Claims["groups"]
@@ -198,10 +210,16 @@ func (p *OktaAuthProvider) HandleRedirect(r *route.Request) *db.User {
 
 	g, err := json.Marshal(groups_claim) 					//ex: g-[["Everyone","User","Admin"]] - [[]uint8]
 	if err != nil {
-		fmt.Println(err)
+		p.Errorf("failed to marshal groups claim: %s", err)
+		return nil
 	}
+
 	groups_list :=  make([]string, 0)
-	json.Unmarshal(g, &groups_list)							//ex: groups_list-[[Everyone User Admin]] - [[]string]
+	err = json.Unmarshal(g, &groups_list)					//ex: groups_list-[[Everyone User Admin]] - [[]string]
+	if err != nil {
+		p.Errorf("failed to unmarshal groups list: %s", err)
+		return nil
+	}
 
 	for _, groups := range groups_list {
 		orgs["okta"] = append(orgs["okta"], groups)			//ex: orgs- [map[okta:[Everyone User Admin]]]
