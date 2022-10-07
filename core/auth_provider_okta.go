@@ -186,7 +186,7 @@ func (p *OktaAuthProvider) HandleRedirect(r *route.Request) *db.User {
 		p.Errorf("Verification Failed: %s", err)
 		return nil
 	}
-	access_token, verificationError := p.verifyToken(exchange.AccessToken, "access")
+	access_token, err := p.verifyToken(exchange.AccessToken, "access")
 	if err != nil {
 		p.Errorf("Verification Failed: %s", err)
 		return nil
