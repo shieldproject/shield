@@ -363,8 +363,17 @@ func Configure(file string, config Config) (*Core, error) {
 					Type:       auth.Backend,
 				},
 			}
+		case "okta":
+			c.providers[id] = &OktaAuthProvider{
+				/* we will provide a link back to core in c.WireUpAuthenticationProviders() */
+				AuthProviderBase: AuthProviderBase{
+					Name:       auth.Name,
+					Identifier: id,
+					Type:       auth.Backend,
+				},
+			}
 		default:
-			return nil, fmt.Errorf("%s authentication provider has an unrecognized `backend' of '%s'; must be one of github or uaa", id, auth.Backend)
+			return nil, fmt.Errorf("%s authentication provider has an unrecognized `backend' of '%s'; must be one of github, uaa or okta", id, auth.Backend)
 		}
 
 		if err := c.providers[id].Configure(auth.Properties); err != nil {

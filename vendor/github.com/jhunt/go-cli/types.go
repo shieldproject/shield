@@ -9,6 +9,7 @@ import (
 
 type option struct {
 	Init    bool
+	Type    reflect.Type
 	Kind    reflect.Kind
 	Value   *reflect.Value
 	Default *string
@@ -18,6 +19,7 @@ type option struct {
 
 type context struct {
 	Command string /* canonical name */
+	Stop    bool
 	Options []*option
 	Subs    map[string]context
 }
@@ -66,8 +68,17 @@ func (c context) findShort(subs []string, name string) (*option, error) {
 	return nil, fmt.Errorf("unrecognized sub-command `%s`", subs[0])
 }
 
+func (o *option) enableable() bool {
+	return o.Kind == reflect.Bool || (o.Kind == reflect.Ptr && o.Type.Elem().Kind() == reflect.Bool)
+}
+
 func (o *option) enable(on bool) {
-	o.Value.Set(reflect.ValueOf(on))
+	if o.Kind == reflect.Ptr {
+		o.Value.Set(reflect.New(o.Type.Elem()))
+		o.Value.Elem().Set(reflect.ValueOf(on))
+	} else {
+		o.Value.Set(reflect.ValueOf(on))
+	}
 }
 
 func (o *option) set(raw string) error {
@@ -84,6 +95,8 @@ func (o *option) set(raw string) error {
 		} else {
 			v = reflect.Append(*o.Value, v)
 		}
+	} else if o.Kind == reflect.Ptr {
+		v, err = valify(raw, o.Value.Type().Elem().Kind())
 	} else {
 		v, err = valify(raw, o.Kind)
 	}

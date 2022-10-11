@@ -3,7 +3,7 @@ package vaultkv
 import (
 	"encoding/json"
 	"errors"
-	"net/http"
+	"io/ioutil"
 	"net/url"
 	"strings"
 )
@@ -170,6 +170,12 @@ func (v *Client) Unseal(key string) (out *SealState, err error) {
 		&out,
 	)
 
+	if IsInternalServer(err) {
+		if strings.Contains(err.Error(), "message authentication failed") {
+			err = &ErrBadRequest{message: err.Error()}
+		}
+	}
+
 	return
 }
 
@@ -193,35 +199,34 @@ func (v *Client) ResetUnseal() (err error) {
 
 //Health gives information about the current state of the Vault. If standbyok
 //is set to true, no error will be returned in the case that the targeted vault
-//is a standby node. If the targeted node is a standby and standbyok is false,
-//then ErrStandby will be returned. If the Vault is not yet initialized,
-//ErrUninitialized will be returned. If the Vault is initialized but sealed,
-//then ErrSealed will be returned. If none of these are the case, no error is
-//returned.
+//is a standby node or a performance standby node. If the targeted node is a
+//standby and standbyok is false, then ErrStandby will be returned. If the
+//Vault is not yet initialized, ErrUninitialized will be returned. If the Vault
+//is initialized but sealed, then ErrSealed will be returned. If none of these
+//are the case, no error is returned.
 func (v *Client) Health(standbyok bool) error {
 	//Don't call doRequest from Health because ParseError calls Health
 	query := url.Values{}
-	boolStr := "false"
-	if standbyok == true {
-		boolStr = "true"
+	if standbyok {
+		query.Add("standbyok", "true")
+		query.Add("perfstandbyok", "true")
 	}
-	query.Add("standbyok", boolStr)
-	u := *v.VaultURL
-	u.Path = "/v1/sys/health"
-	u.RawQuery = query.Encode()
-	req, err := http.NewRequest("GET", u.String(), nil)
+
+	resp, err := v.Curl("GET", "/sys/health", query, nil)
 	if err != nil {
 		return err
 	}
 
-	req.Header.Add("X-Vault-Token", v.AuthToken)
-	resp, err := v.Client.Do(req)
+	errorsStruct := apiError{}
+	err = json.NewDecoder(resp.Body).Decode(&errorsStruct)
 	if err != nil {
-		return &ErrTransport{message: err.Error()}
+		return err
+	}
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
 	}
 
-	errorsStruct := apiError{}
-	json.NewDecoder(resp.Body).Decode(&errorsStruct)
 	errorMessage := strings.Join(errorsStruct.Errors, "\n")
 
 	switch resp.StatusCode {
@@ -229,6 +234,10 @@ func (v *Client) Health(standbyok bool) error {
 		err = nil
 	case 429:
 		err = &ErrStandby{message: errorMessage}
+	case 472:
+		err = &ErrDRSecondary{message: errorMessage}
+	case 473:
+		err = &ErrPerfStandby{message: errorMessage}
 	case 501:
 		err = &ErrUninitialized{message: errorMessage}
 	case 503:

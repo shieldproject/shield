@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable"
 	"github.com/onsi/ginkgo/types"
 )
 
@@ -37,7 +36,8 @@ const (
 type Stenographer interface {
 	AnnounceSuite(description string, randomSeed int64, randomizingAll bool, succinct bool)
 	AnnounceAggregatedParallelRun(nodes int, succinct bool)
-	AnnounceParallelRun(node int, nodes int, specsToRun int, totalSpecs int, succinct bool)
+	AnnounceParallelRun(node int, nodes int, succinct bool)
+	AnnounceTotalNumberOfSpecs(total int, succinct bool)
 	AnnounceNumberOfSpecs(specsToRun int, total int, succinct bool)
 	AnnounceSpecRunCompletion(summary *types.SuiteSummary, succinct bool)
 
@@ -47,9 +47,9 @@ type Stenographer interface {
 
 	AnnounceCapturedOutput(output string)
 
-	AnnounceSuccesfulSpec(spec *types.SpecSummary)
-	AnnounceSuccesfulSlowSpec(spec *types.SpecSummary, succinct bool)
-	AnnounceSuccesfulMeasurement(spec *types.SpecSummary, succinct bool)
+	AnnounceSuccessfulSpec(spec *types.SpecSummary)
+	AnnounceSuccessfulSlowSpec(spec *types.SpecSummary, succinct bool)
+	AnnounceSuccessfulMeasurement(spec *types.SpecSummary, succinct bool)
 
 	AnnouncePendingSpec(spec *types.SpecSummary, noisy bool)
 	AnnounceSkippedSpec(spec *types.SpecSummary, succinct bool, fullTrace bool)
@@ -61,7 +61,7 @@ type Stenographer interface {
 	SummarizeFailures(summaries []*types.SpecSummary)
 }
 
-func New(color bool, enableFlakes bool) Stenographer {
+func New(color bool, enableFlakes bool, writer io.Writer) Stenographer {
 	denoter := "•"
 	if runtime.GOOS == "windows" {
 		denoter = "+"
@@ -71,7 +71,7 @@ func New(color bool, enableFlakes bool) Stenographer {
 		denoter:      denoter,
 		cursorState:  cursorStateTop,
 		enableFlakes: enableFlakes,
-		w:            colorable.NewColorableStdout(),
+		w:            writer,
 	}
 }
 
@@ -98,17 +98,15 @@ func (s *consoleStenographer) AnnounceSuite(description string, randomSeed int64
 	s.printNewLine()
 }
 
-func (s *consoleStenographer) AnnounceParallelRun(node int, nodes int, specsToRun int, totalSpecs int, succinct bool) {
+func (s *consoleStenographer) AnnounceParallelRun(node int, nodes int, succinct bool) {
 	if succinct {
 		s.print(0, "- node #%d ", node)
 		return
 	}
 	s.println(0,
-		"Parallel test node %s/%s. Assigned %s of %s specs.",
+		"Parallel test node %s/%s.",
 		s.colorize(boldStyle, "%d", node),
 		s.colorize(boldStyle, "%d", nodes),
-		s.colorize(boldStyle, "%d", specsToRun),
-		s.colorize(boldStyle, "%d", totalSpecs),
 	)
 	s.printNewLine()
 }
@@ -140,6 +138,20 @@ func (s *consoleStenographer) AnnounceNumberOfSpecs(specsToRun int, total int, s
 	s.printNewLine()
 }
 
+func (s *consoleStenographer) AnnounceTotalNumberOfSpecs(total int, succinct bool) {
+	if succinct {
+		s.print(0, "- %d specs ", total)
+		s.stream()
+		return
+	}
+	s.println(0,
+		"Will run %s specs",
+		s.colorize(boldStyle, "%d", total),
+	)
+
+	s.printNewLine()
+}
+
 func (s *consoleStenographer) AnnounceSpecRunCompletion(summary *types.SuiteSummary, succinct bool) {
 	if succinct && summary.SuiteSucceeded {
 		s.print(0, " %s %s ", s.colorize(greenColor, "SUCCESS!"), summary.RunTime)
@@ -165,7 +177,7 @@ func (s *consoleStenographer) AnnounceSpecRunCompletion(summary *types.SuiteSumm
 	}
 
 	s.print(0,
-		"%s -- %s | %s | %s | %s ",
+		"%s -- %s | %s | %s | %s\n",
 		status,
 		s.colorize(greenColor+boldStyle, "%d Passed", summary.NumberOfPassedSpecs),
 		s.colorize(redColor+boldStyle, "%d Failed", summary.NumberOfFailedSpecs)+flakes,
@@ -233,12 +245,12 @@ func (s *consoleStenographer) AnnounceCapturedOutput(output string) {
 	s.midBlock()
 }
 
-func (s *consoleStenographer) AnnounceSuccesfulSpec(spec *types.SpecSummary) {
+func (s *consoleStenographer) AnnounceSuccessfulSpec(spec *types.SpecSummary) {
 	s.print(0, s.colorize(greenColor, s.denoter))
 	s.stream()
 }
 
-func (s *consoleStenographer) AnnounceSuccesfulSlowSpec(spec *types.SpecSummary, succinct bool) {
+func (s *consoleStenographer) AnnounceSuccessfulSlowSpec(spec *types.SpecSummary, succinct bool) {
 	s.printBlockWithMessage(
 		s.colorize(greenColor, "%s [SLOW TEST:%.3f seconds]", s.denoter, spec.RunTime.Seconds()),
 		"",
@@ -247,7 +259,7 @@ func (s *consoleStenographer) AnnounceSuccesfulSlowSpec(spec *types.SpecSummary,
 	)
 }
 
-func (s *consoleStenographer) AnnounceSuccesfulMeasurement(spec *types.SpecSummary, succinct bool) {
+func (s *consoleStenographer) AnnounceSuccessfulMeasurement(spec *types.SpecSummary, succinct bool) {
 	s.printBlockWithMessage(
 		s.colorize(greenColor, "%s [MEASUREMENT]", s.denoter),
 		s.measurementReport(spec, succinct),

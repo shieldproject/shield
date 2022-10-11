@@ -3,6 +3,7 @@ package vaultkv
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -14,7 +15,7 @@ type ErrBadRequest struct {
 }
 
 func (e *ErrBadRequest) Error() string {
-	return e.message
+	return fmt.Sprintf("400 Bad Request: %s", e.message)
 }
 
 //IsBadRequest returns true if the error is an ErrBadRequest
@@ -31,7 +32,7 @@ type ErrForbidden struct {
 }
 
 func (e *ErrForbidden) Error() string {
-	return e.message
+	return fmt.Sprintf("403 Forbidden: %s", e.message)
 }
 
 //IsForbidden returns true if the error is an ErrForbidden
@@ -49,7 +50,7 @@ type ErrNotFound struct {
 }
 
 func (e *ErrNotFound) Error() string {
-	return e.message
+	return fmt.Sprintf("404 Not Found: %s", e.message)
 }
 
 //IsNotFound returns true if the error is an ErrNotFound
@@ -65,13 +66,51 @@ type ErrStandby struct {
 }
 
 func (e *ErrStandby) Error() string {
-	return e.message
+	return fmt.Sprintf("429 Standby: %s", e.message)
 }
 
 //IsErrStandby returns true if the error is an ErrStandby
 func IsErrStandby(err error) bool {
 	_, is := err.(*ErrStandby)
 	return is
+}
+
+//ErrDRSecondary is only returned from Health() if standbyok is set to false
+//and the node you're querying is a secondary disaster recovery node.
+type ErrDRSecondary struct {
+	message string
+}
+
+func (e *ErrDRSecondary) Error() string {
+	return fmt.Sprintf("472 DRSecondary: %s", e.message)
+}
+
+//IsErrDRSecondary returns true if the error is an ErrDRSecondary
+func IsErrDRSecondary(err error) bool {
+	_, is := err.(*ErrDRSecondary)
+	return is
+}
+
+//ErrPerfStandby is only returned from Health() if standbyok is set to false
+//and the node you're querying is a performance standby node.
+type ErrPerfStandby struct {
+	message string
+}
+
+func (e *ErrPerfStandby) Error() string {
+	return fmt.Sprintf("473 PerfStandby %s", e.message)
+}
+
+//IsErrPerfStandby returns true if the error is an ErrPerfStandby
+func IsErrPerfStandby(err error) bool {
+	_, is := err.(*ErrPerfStandby)
+	return is
+}
+
+//IsAnyStandbyErr returns true if the error is that the node is a standby or a
+//performance standby
+func IsAnyStandbyErr(err error) bool {
+	return IsErrStandby(err) || IsErrPerfStandby(err)
 }
 
 //ErrInternalServer represents 500 status codes that are returned from the API.
@@ -81,7 +120,7 @@ type ErrInternalServer struct {
 }
 
 func (e *ErrInternalServer) Error() string {
-	return e.message
+	return fmt.Sprintf("500 Internal Server Error: %s", e.message)
 }
 
 //IsInternalServer returns true if the error is an ErrInternalServer
@@ -98,7 +137,7 @@ type ErrSealed struct {
 }
 
 func (e *ErrSealed) Error() string {
-	return e.message
+	return fmt.Sprintf("503 Sealed: %s", e.message)
 }
 
 //IsSealed returns true if the error is an ErrSealed
@@ -114,7 +153,7 @@ type ErrUninitialized struct {
 }
 
 func (e *ErrUninitialized) Error() string {
-	return e.message
+	return fmt.Sprintf("503 Uninitialized: %s", e.message)
 }
 
 //IsUninitialized returns true if the error is an ErrUninitialized
@@ -130,7 +169,7 @@ type ErrTransport struct {
 }
 
 func (e *ErrTransport) Error() string {
-	return e.message
+	return fmt.Sprintf("Transport Error: %s", e.message)
 }
 
 //IsTransport returns true if the error is an ErrTransport
@@ -147,7 +186,7 @@ type ErrKVUnsupported struct {
 }
 
 func (e *ErrKVUnsupported) Error() string {
-	return e.message
+	return fmt.Sprintf("Operation unsupported by KV version: %s", e.message)
 }
 
 //IsErrKVUnsupported returns true if the error is an ErrKVUnsupported
@@ -164,6 +203,9 @@ func (v *Client) parseError(r *http.Response) (err error) {
 	errorsStruct := apiError{}
 	err = json.NewDecoder(r.Body).Decode(&errorsStruct)
 	if err != nil {
+		if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
+			return fmt.Errorf("Could not parse response body as JSON, and returned Content-Type is `%s'. Client may not be reaching Vault", contentType)
+		}
 		return err
 	}
 	errorMessage := strings.Join(errorsStruct.Errors, "\n")
@@ -187,5 +229,22 @@ func (v *Client) parseError(r *http.Response) (err error) {
 }
 
 func (v *Client) parse503(message string) (err error) {
-	return v.Health(true)
+	err = v.Health(true)
+	if err == nil {
+		return nil
+	}
+
+	switch e := err.(type) {
+	case *ErrStandby:
+		e.message = message
+		err = e
+	case *ErrUninitialized:
+		e.message = message
+		err = e
+	case *ErrSealed:
+		e.message = message
+		err = e
+	}
+
+	return err
 }

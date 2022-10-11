@@ -41,7 +41,8 @@ func (c *Client) Lookup() (string, string, map[string][]string, error) {
 		return "", "", nil, fmt.Errorf("no login name found in Github profile...")
 	}
 
-	orgs, _, err := c.gh.Organizations.List("", nil)
+	//not passing username below only works in github enterprise.
+	orgs, _, err := c.gh.Organizations.List(*user.Login, nil)
 	if err != nil {
 		return "", "", nil, err
 	}
@@ -49,6 +50,7 @@ func (c *Client) Lookup() (string, string, map[string][]string, error) {
 		m[*org.Login] = make([]string, 0)
 	}
 
+	//below function is from v3, latest is v47, hence it prints empty output (in debugging) without read:org in authentication.
 	teams, _, err := c.gh.Organizations.ListUserTeams(nil)
 	if err != nil {
 		return "", "", nil, err

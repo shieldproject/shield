@@ -525,7 +525,7 @@ func ShowHelp(command string) {
 		fmt.Printf("  Create a new local SHIELD User.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  SHIELD supports a several 3rd party authentication providers,\n")
-		fmt.Printf("  including Github and Cloud Foundry UAA, but for sheer simplicity,\n")
+		fmt.Printf("  including Github, Okta and Cloud Foundry UAA, but for sheer simplicity,\n")
 		fmt.Printf("  nothing beats local users.  Local SHIELD users exist inside the\n")
 		fmt.Printf("  SHIELD database, and can be assigned tenant- and system-roles\n")
 		fmt.Printf("  arbitrarily.\n")

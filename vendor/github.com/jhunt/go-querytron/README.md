@@ -1,6 +1,8 @@
 Querytron
 =========
 
+![Travis CI](https://travis-ci.org/jhunt/go-querytron.svg?branch=master)
+
 Following hot on the successes of [Envirotron][env], **Querytron**
 is here to save the day!
 
@@ -51,7 +53,7 @@ A call to `qs.Generate(&Example{...})` will generate a
 `url.Values` object and return it, such that:
 
 - **q=...** is set if `Query` is anything besides the empty string
-= **limit=...** is set if `Limit` is a non-nil int pointer
+- **limit=...** is set if `Limit` is a non-nil int pointer
 - **fuzzy=y** is set if `Fuzzy` is non-nil and points to true
 
 This should make query-string based API client interfaces easier

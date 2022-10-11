@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strings"
 )
 
 func reflectOnIt(thing interface{}) (context, error) {
@@ -42,9 +43,16 @@ func reflectSomeMore(c context, t reflect.Type, v *reflect.Value) (context, erro
 
 		tag := field.Tag.Get("cli")
 
-		switch field.Type.Kind() {
+		t := field.Type
+		v := v.Field(i)
+		for t.Kind() == reflect.Ptr && !v.IsNil() {
+			t = v.Elem().Type()
+			v = v.Elem()
+		}
+
+		switch t.Kind() {
 		case reflect.Slice:
-			if !v.Field(i).IsValid() {
+			if !v.IsValid() {
 				return c, fmt.Errorf("go-cli requires slice ([]thing) options to be initialized first")
 			}
 			fallthrough
@@ -54,26 +62,40 @@ func reflectSomeMore(c context, t reflect.Type, v *reflect.Value) (context, erro
 			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 			reflect.Float32, reflect.Float64:
 
-			vfield := v.Field(i)
-			o, err := newOption(field.Type.Kind(), &vfield, tag)
+			o, err := newOption(t, t.Kind(), &v, tag)
 			if err != nil {
 				return c, err
 			}
 			c.Options = append(c.Options, o)
 			break
 
+		case reflect.Ptr:
+			if t.Elem().Kind() == reflect.Bool {
+				o, err := newOption(t, t.Kind(), &v, tag)
+				if err != nil {
+					return c, err
+				}
+				c.Options = append(c.Options, o)
+			} else {
+				return c, fmt.Errorf("go-cli cannot operate on this type of thing")
+			}
+			break
+
 		case reflect.Struct:
-			vfield := v.Field(i)
 			sub := context{
 				Options: make([]*option, 0),
 				Subs:    make(map[string]context),
 			}
-			sub, err := reflectSomeMore(sub, vfield.Type(), &vfield)
+			sub, err := reflectSomeMore(sub, v.Type(), &v)
 			if err != nil {
 				return c, err
 			}
 
 			for _, cmd := range regexp.MustCompile(" *, *").Split(tag, -1) {
+				if strings.HasSuffix(cmd, "!") {
+					sub.Stop = true
+					cmd = cmd[:len(cmd)-1]
+				}
 				if sub.Command == "" {
 					sub.Command = cmd
 				}
@@ -89,13 +111,14 @@ func reflectSomeMore(c context, t reflect.Type, v *reflect.Value) (context, erro
 	return c, nil
 }
 
-func newOption(kind reflect.Kind, value *reflect.Value, tag string) (*option, error) {
+func newOption(typ reflect.Type, kind reflect.Kind, value *reflect.Value, tag string) (*option, error) {
 	splitter := regexp.MustCompile(" *, *")
 	short := regexp.MustCompile("^-([a-zA-Z0-9?])$")
 	long := regexp.MustCompile("^--([a-zA-Z0-9?][a-zA-Z0-9?-]+)$")
 
 	o := &option{
 		Init:   false,
+		Type:   typ,
 		Kind:   kind,
 		Value:  value,
 		Shorts: "",
