@@ -17,6 +17,9 @@ type RaftServer struct {
 	// Leader is true if this server is the current cluster leader.
 	Leader bool
 
+	// Protocol version is the raft protocol version used by the server
+	ProtocolVersion string
+
 	// Voter is true if this server has a vote in the cluster. This might
 	// be false if the server is staging and still coming online, or if
 	// it's a non-voting server, which will be added in a future release of
@@ -24,7 +27,7 @@ type RaftServer struct {
 	Voter bool
 }
 
-// RaftConfigration is returned when querying for the current Raft configuration.
+// RaftConfiguration is returned when querying for the current Raft configuration.
 type RaftConfiguration struct {
 	// Servers has the list of servers in the Raft configuration.
 	Servers []*RaftServer
@@ -41,7 +44,7 @@ func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, e
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var out RaftConfiguration
 	if err := decodeBody(resp, &out); err != nil {
@@ -57,14 +60,14 @@ func (op *Operator) RaftRemovePeerByAddress(address string, q *WriteOptions) err
 	r := op.c.newRequest("DELETE", "/v1/operator/raft/peer")
 	r.setWriteOptions(q)
 
-	r.params.Set("address", string(address))
+	r.params.Set("address", address)
 
 	_, resp, err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return err
 	}
 
-	resp.Body.Close()
+	closeResponseBody(resp)
 	return nil
 }
 
@@ -74,13 +77,13 @@ func (op *Operator) RaftRemovePeerByID(id string, q *WriteOptions) error {
 	r := op.c.newRequest("DELETE", "/v1/operator/raft/peer")
 	r.setWriteOptions(q)
 
-	r.params.Set("id", string(id))
+	r.params.Set("id", id)
 
 	_, resp, err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return err
 	}
 
-	resp.Body.Close()
+	closeResponseBody(resp)
 	return nil
 }
