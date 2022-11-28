@@ -635,7 +635,7 @@ The following error messages can be returned:
 
 Retrieve public configuration of SHIELD Authentication Providers,
 which can be used by client systems to initiate authentication
-against 3rd party systems like Github and Cloud Foundry UAA.
+against 3rd party systems like Github, Okta and Cloud Foundry UAA.
 
 
 **Request**
