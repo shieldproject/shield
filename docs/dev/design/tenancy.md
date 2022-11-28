@@ -187,7 +187,7 @@ some form of UAA, etc.  It would be desirable for SHIELD to align
 with those authentication systems, rather than provide yet another
 set of credentials for operators and their customers to manage.
 
-To that end, SHIELD (as of 0.10.8) supports Github and CF UAA
+To that end, SHIELD (as of 0.10.8) supports Github, Okta and CF UAA
 (although there are [issues][cf-uaa] with that) OAuth2 systems for
 authentication.
 
@@ -196,7 +196,7 @@ some changes to support role-based access control.
 
 Primarily, SHIELD will be able to support multiple authentication
 backends concurrently.  This does not make much sense with the
-big OAuth2 systems like Github and CF/UAA, but it starts to make
+big OAuth2 systems like Github, Okta and CF/UAA, but it starts to make
 sense when we add API Key and Local Authentication as
 authentication backends.
 

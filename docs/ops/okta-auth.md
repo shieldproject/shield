@@ -58,6 +58,7 @@ configuration file:
           okta_domain:          YOUR-OKTA-DOMAIN       
           authorization_server: YOUR-OKTA-AUTH-SERVER
           deployment_uri:       SHIELD-DEPLOYMENT-URL
+          token_verification:   true/false                #OPTIONAL
 
           mapping:  []    # more on this later
 
@@ -100,6 +101,8 @@ The `properties` key has the following sub-keys:
 
   - **deployment\uri** -  The address at which your SHIELD is deployed. This is used to construct the redirect URI for OKTA OAuth redirect handling. 
 
+  - **token_verification** -  OPTIONAL - This value tells SHIELD to add further validation of the access and id token it receives from Okta after authentication. 
+
   - **mapping** - A list of rules for mapping Okta organizations
     and groups to SHIELD tenants and roles.
 
@@ -140,6 +143,7 @@ Here's an example:
           okta_domain:          YOUR-OKTA-DOMAIN       
           authorization_server: YOUR-OKTA-AUTH-SERVER
           deployment_uri:       SHIELD-DEPLOYMENT-URL
+          token_verification:   true/false                #OPTIONAL
 
           mapping: 
             - okta: okta-org
