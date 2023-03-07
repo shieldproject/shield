@@ -1,0 +1,10 @@
+builds:
+  -
+    skip: true
+release:
+  github:
+    owner: okta
+    name: okta-jwt-verifier-golang
+  draft: true
+changelog:
+  skip: true
