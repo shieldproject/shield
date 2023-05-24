@@ -1,4 +1,4 @@
-FROM nginx:mainline
+FROM nginx:1-bullseye
 MAINTAINER James Hunt <james@niftylogic.com>
 
 ADD nginx.conf /etc/nginx/
