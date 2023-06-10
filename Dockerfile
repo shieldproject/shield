@@ -26,7 +26,7 @@ RUN mkdir -p /dist/bin /dist/plugins \
 ADD init /dist/init
 RUN chmod 0755 /dist/init/*
 
-FROM ubuntu:16.04
+FROM ubuntu:xenial-20210416
 RUN apt-get update \
  && apt-get install -y bzip2 gzip curl openssh-client \
  && rm -rf /var/lib/apt/lists/*
