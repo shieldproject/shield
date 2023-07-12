@@ -1,0 +1,64 @@
+jobs:
+  - name: test-pr
+    public: true
+    serial: true
+    plan:
+    - { get: pull-requests, trigger: true, version: every }
+    - put: pull-requests
+      params:
+        path: pull-requests
+        status: pending
+    - task: test
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: (( grab meta.image.name ))
+            tag:        (( grab meta.image.tag ))
+        inputs:
+          - name: pull-requests
+            path: (( concat "gopath/src/" meta.go.module ))
+        run:
+          path: (( concat "./gopath/src/" meta.go.module "/ci/scripts/test" ))
+          args: []
+        params:
+          MODULE: (( grab meta.go.module ))
+      on_success:
+        put: pull-requests
+        params:
+          path: pull-requests
+          status: success
+      on_failure:
+        put: pull-requests
+        params:
+          path: pull-requests
+          status: failure
+    - task: pr-success-message
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: (( grab meta.image.name ))
+            tag:        (( grab meta.image.tag ))
+        inputs:
+          - { name: pull-requests }
+        outputs:
+          - { name: message }
+        run:
+          path: sh
+          args:
+          - -ce
+          - |
+            cd pull-requests
+            pr_url=$(git config --get pullrequest.url)
+            cd -
+            echo "<${pr_url}|Pull request passed test> Merge when ready: ${pr_url}" > message/body
+    on_failure:
+      put: notify
+      params:
+        username: (( grab meta.slack.username ))
+        icon_url: (( grab meta.slack.icon ))
+        text:    '(( concat meta.slack.fail_url " " meta.pipeline ": test job failed" ))'
+

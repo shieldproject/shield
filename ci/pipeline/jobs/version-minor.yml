@@ -1,0 +1,29 @@
+jobs:
+- name: minor
+  public: true
+  plan:
+  - { get: version, trigger: false, params: {bump: minor} }
+  - { put: version,                 params: {file: version/number} }
+
+  on_failure:
+    put: notify
+    params:
+      username: (( grab meta.slack.username ))
+      icon_url: (( grab meta.slack.icon ))
+      text:     '(( concat meta.slack.fail_url " " meta.pipeline ": update version minor job failed" ))'
+
+# Shout-based - will use in future when shout is jammy-compatable
+#  on_success:
+#    put: notify
+#    params:
+#      topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+#      message: minor version bump job '$BUILD_JOB_NAME' succeeded.
+#      ok:      yes
+#      link:    (( grab meta.shout.links.build ))
+#  on_failure:
+#    put: notify
+#    params:
+#      topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+#      message: minor version bump job '$BUILD_JOB_NAME' failed (which is unusual).
+#      ok:      no
+#      link:    (( grab meta.shout.links.build ))

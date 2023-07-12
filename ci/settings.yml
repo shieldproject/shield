@@ -1,114 +1,48 @@
 ---
 meta:
-  name:   shield
-  target: shield@pipes
-  url:    https://pipes.starkandwayne.com
+  name:    shield
+  target:  pipes/shield
+  url:     https://pipes.scalecf.net
+  exposed: false
 
   initial_version: 0.6.4
 
   go:
-    version:    "shield"
+    version:    "latest"
     binary:     shield
     cmd_module: ./cmd/shield
 
-  bosh-lite:
-    target:   ((bosh.url))
-    username: ((bosh.username))
-    password: ((bosh.password))
-    cacert: ((bosh.ca-certificate))
+  bosh:
+    target:   ((thunder-dome.url))
+    username: ((thunder-dome.username))
+    password: ((thunder-dome.password))
+    cacert:   ((thunder-dome.ca-certificate))
 
   aws:
-    access_key: ((aws.access_key_id))
-    secret_key: ((aws.secret_access_key))
+    access_key: ((cloudfoundry-community-aws.access_key_id))
+    secret_key: ((cloudfoundry-community-aws.secret_access_key))
 
   git:
-    name: Stark & Wayne CI Bot
-    email: ci@starkandwayne.com
+    email: ((github.email))
+    name:  ((github.name))
 
   github:
-    owner: shieldproject
-    repo:  shield
-    private_key:  ((github.private_key))
-    access_token: ((github.access_token))
+    owner:           shieldproject
+    repo:            shield
+    branch:          develop
+    main-branch:     main
+    private_key:     ((github.private_key))
+    access_token:    ((github.access_token))
+    access_token_rw: ((github.access_token_rw))
 
   shout:
     url:      ((shout.url))
     username: ((shout.username))
     password: ((shout.password))
 
-#################################################################################
-
 groups:
-  - name: (( grab meta.pipeline ))
-    jobs:
-      - (( append ))
-      - phalanx
+- name: (( grab meta.pipeline ))
+  jobs:
+  - (( append ))
+  - phalanx
 
-resources:
-  - name: phalanx
-    type: git
-    source:
-      uri:    https://github.com/shieldproject/shield-phalanx
-      branch: master
-
-jobs:
-  - name: phalanx
-    public: true
-    serial: true
-    plan:
-      - do:
-        - in_parallel:
-          - { get: git,     trigger: true, passed: [testflight] }
-          - { get: phalanx, trigger: true }
-          - { get: version }
-        - task: phalanx
-          config:
-            platform: linux
-            image_resource:
-              type: docker-image
-              source:
-                repository: (( grab meta.image.name ))
-                tag: (( grab meta.go.version ))
-            inputs:
-              - name: git
-                path: gopath/src/github.com/shieldproject/shield
-              - name: phalanx
-              - name: version
-            run:
-              path: ./phalanx/ci/run
-              args: []
-            params:
-              SHIELD:  gopath/src/github.com/shieldproject/shield
-              PHALANX: phalanx
-              VERSION: version
-              OUTPUT:  out
-              BOSH_ENVIRONMENT:     (( grab meta.bosh-lite.target ))
-              BOSH_CLIENT:          (( grab meta.bosh-lite.username ))
-              BOSH_CLIENT_SECRET:   (( grab meta.bosh-lite.password ))
-              BOSH_DEPLOYMENT:      shield-phalanx-tests
-              BOSH_CA_CERT:         (( grab meta.bosh-lite.cacert ))
-              AWS_ACCESS_KEY:       (( grab meta.aws.access_key ))
-              AWS_SECRET_KEY:       (( grab meta.aws.secret_key ))
-        on_success:
-          put: notify
-          params:
-            topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
-            message: Phalanx tests succeeded.
-            ok:      yes
-            link:    (( grab meta.shout.links.build ))
-        on_failure:
-          put: notify
-          params:
-            topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
-            message: Phalanx tests failed.  Latest master of SHIELD is not deployable.
-            ok:      no
-            link:    (( grab meta.shout.links.build ))
-
-  - name: pre
-    plan:
-      - do:
-        - in_parallel:
-          - get: git
-            passed:
-              - (( replace ))
-              - phalanx

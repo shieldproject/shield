@@ -1,0 +1,108 @@
+#!/bin/bash
+set -eu
+
+header() {
+	echo
+	echo "================================================================================"
+	echo "$1"
+	echo "--------------------------------------------------------------------------------"
+	echo
+}
+
+bail() {
+	echo >&2 "$*  Did you misconfigure Concourse?"
+	exit 2
+}
+test -n "${APP_NAME:-}"         || bail "APP_NAME must be set to the name of this package."
+test -n "${MODULE:-}"           || bail "MODULE must be set to the Go Module path of this package."
+test -n "${GOPATH:-}"           || bail "Expecting GOPATH to be set -- make sure correct image is specified."
+
+test -f "${VERSION_FROM}"       || bail "Version file (${VERSION_FROM}) not found."
+VERSION=$(cat "${VERSION_FROM}")
+test -n "${VERSION}"            || bail "Version file (${VERSION_FROM}) was empty."
+
+test -f "${SHIELD}"             || bail "SHIELD must be set -- check pipeline configuration"
+test -f "${PHALANX}"            || bail "PHALANX must be set -- check pipeline configuration"
+test -f "${VERSION}"            || bail "VERSION must be set -- check pipeline configuration"
+test -f "${OUTPUT}"             || bail "OUTPUT must be set -- check pipeline configuration"
+test -f "${BOSH_DEPLOYMENT}"    || bail "BOSH_DEPLOYMENT must be set -- check pipeline configuration"
+test -f "${AWS_ACCESS_KEY}"     || bail "AWS_ACCESS_KEY must be set -- check pipeline configuration"
+test -f "${AWS_SECRET_KEY}"     || bail "AWS_SECRET_KEY must be set -- check pipeline configuration"
+test -f "${BOSH_ENVIRONMENT}"   || bail "BOSH_ENVIRONMENT must be set -- check pipeline configuration"
+test -f "${BOSH_CLIENT}"        || bail "BOSH_CLIENT must be set -- check pipeline configuration"
+test -f "${BOSH_CLIENT_SECRET}" || bail "BOSH_CLIENT_SECRET must be set -- check pipeline configuration"
+test -f "${BOSH_CA_CERT}"       || bail "BOSH_CA_CERT must be set -- check pipeline configuration"
+
+# Resource Directories
+export ROOT_PATH="$(pwd)"
+
+mkdir -p "$(dirname ${GOPATH}/src/${MODULE})"
+mv ${ROOT_PATH}/git "${GOPATH}/src/${MODULE}
+ln -snf "${GOPATH}/src/${MODULE} ${ROOT_PATH}/git
+export PATH=${PATH}:${GOPATH}/bin
+export REPO_ROOT="${GOPATH}/src/${MODULE}"
+
+export BUILD_ROOT="${ROOT_PATH}/build"
+export CI_ROOT="${ROOT_PATH}/git-ci"
+export VERSION_FROM="version/number"
+export RELEASE_ROOT="${REPO_ROOT}/artifacts"
+export PHALANX_ROOT="${ROOT_PATH}/${PHALANX}"
+
+OS=$(uname -s | tr A-Z a-z)
+ARCH=$(uname -m | sed -e 's/^x86_/amd/')
+
+[[ -e "$BUILD_ROOT/$APP_NAME-$OS-$ARCH" ]] || \
+  bail "Cannot find app executable for v$VERSION on $OS/$ARCH"
+
+header "Testing $APP_NAME v$VERSION ($OS/$ARCH)"
+
+cd "$REPO_ROOT"
+make test 
+cd $ROOT_PATH
+
+header "Running phalanx tests"
+
+cd $BUILD_ROOT
+tar -zxvf $APP_NAME-$VERSION.tar.gz
+
+cp ${BUILD_ROOT}/shield-server-linux-amd64.tar.gz \
+   ${PHALANX_ROOT}/src/shield-rc/shield-server-linux-amd64.tar.gz
+
+cd $PHALANX_ROOT
+header "Deploying Phalanx for SHIELD v${VERSION}..."
+
+echo "Cleaning up from any previous deployments..."
+bosh delete-deployment -n || echo "continuing on..."
+
+echo "Creating candidate BOSH release..."
+bosh create-release --force --timestamp-version
+bosh upload-release || echo "continuing on..."
+
+header "Deploying to BOSH..."
+cat <<EOF | spruce merge --prune meta ci/manifest.yml - > .ci.yml
+meta:
+  aws:
+    access_key: (( grab \$AWS_ACCESS_KEY ))
+    secret_key: (( grab \$AWS_SECRET_KEY ))
+stemcells:
+- ((merge on alias))
+- alias: default
+  os: ubuntu-jammy
+  version: latest
+EOF
+
+bosh -n deploy .ci.yml
+rm -f .ci.yml
+
+header "Running the Phalanx test errand..."
+bosh run-errand phalanx-tests
+
+header "Cleaning up..."
+bosh delete-deployment -n || echo "continuing on..."
+bosh clean-up -n || echo "continuing on..."
+
+echo
+echo "================================================================================"
+echo "SUCCESS!"
+exit 0
+

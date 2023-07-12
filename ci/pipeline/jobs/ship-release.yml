@@ -1,0 +1,69 @@
+jobs:
+- name: ship-release
+  public: true
+  serial: true
+  plan:
+  - do:
+    - in_parallel:
+      - { get: version, resource: version, passed: [prepare], params: {bump: final} }
+      - { get: git,                        passed: [prepare] }
+      - { get: git-ci }
+      - { get: git-main }
+      - { get: git-latest-tag }
+      - { get: release-notes}
+    - task: build-kit
+      file: git-ci/ci/tasks/build.yml
+      params:
+        APP_NAME:         (( grab meta.name ))
+    - task: release
+      file: git-ci/ci/tasks/release.yml
+      params:
+        APP_NAME:         (( grab meta.name ))
+        DEVELOP_BRANCH:   (( grab meta.github.branch ))
+        RELEASE_BRANCH:   (( grab meta.github.main-branch ))
+        RELEASE_ROOT:     gh
+        RELEASE_NOTES:    (( grab meta.github.release_notes.file ))
+        NOTIFICATION_OUT: notifications
+        GITHUB_OWNER:     (( grab meta.github.owner ))
+        GIT_EMAIL:        (( grab meta.git.email ))
+        GIT_NAME:         (( grab meta.git.name ))
+    - put: git-main
+      params:
+        merge: false
+        tag: gh/tag
+        repository: git-main
+    - put: github
+      params:
+        name:   gh/name
+        tag:    gh/tag
+        body:   gh/notes.md
+        globs: [gh/artifacts/*]
+    - put: version
+      params:
+        bump: patch
+    - put: notify
+      params:
+        username: (( grab meta.slack.username ))
+        icon_url: (( grab meta.slack.icon ))
+        text_file: notifications/message
+    on_failure:
+      put: notify
+      params:
+        username: (( grab meta.slack.username ))
+        icon_url: (( grab meta.slack.icon ))
+        text:    '(( concat meta.slack.fail_url " " meta.pipeline ": prepare job failed" ))'
+# Shout notification - not currently available
+#    on_success:
+#      put: notify
+#      params:
+#        topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+#        message: release job '$BUILD_JOB_NAME' succeeded.
+#        ok:      yes
+#        link:    (( grab meta.shout.links.build ))
+#    on_failure:
+#      put: notify
+#      params:
+#        topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+#        message: release job '$BUILD_JOB_NAME' failed.
+#        ok:      no
+#        link:    (( grab meta.shout.links.build ))

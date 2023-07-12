@@ -1,0 +1,33 @@
+jobs:
+- name: phalanx
+  public: true
+  serial: true
+  plan:
+  - in_parallel:
+    - { get: git,     trigger: true, passed: [testflight] }
+    - { get: phalanx, trigger: true }
+    - { get: version }
+  - task: phalanx
+    file: git-ci/ci/tasks/phalanx.yml
+    params:
+      AWS_ACCESS_KEY:       (( grab meta.aws.access_key ))
+      AWS_SECRET_KEY:       (( grab meta.aws.secret_key ))
+      BOSH_ENVIRONMENT:     (( grab meta.bosh.target ))
+      BOSH_CLIENT:          (( grab meta.bosh.username ))
+      BOSH_CLIENT_SECRET:   (( grab meta.bosh.password ))
+      BOSH_CA_CERT:         (( grab meta.bosh.cacert ))
+      BOSH_DEPLOYMENT:      shield-phalanx-tests
+  on_success:
+    put: notify
+    params:
+      topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+      message: Phalanx tests succeeded.
+      ok:      yes
+      link:    (( grab meta.shout.links.build ))
+  on_failure:
+    put: notify
+    params:
+      topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+      message: Phalanx tests failed.  Latest master of SHIELD is not deployable.
+      ok:      no
+      link:    (( grab meta.shout.links.build ))

@@ -1,0 +1,82 @@
+---
+#
+# ci/pipeline/base.yml
+#
+# Pipeline structure file for a Go Project pipeline
+#
+# DO NOT MAKE CHANGES TO THIS FILE.  Instead, modify
+# ci/settings.yml and override what needs overridden.
+# This uses spruce, so you have some options there.
+#
+# author:  Dennis Bell  <dbell@fivetwenty.io>
+#          Wayne Seguin <wayneeseguin@fivetwenty.io>
+# created: 2023-05-30
+
+groups:
+  - name: (( concat "build-" meta.pipeline "-releases" ))
+    jobs:
+      - build
+      - ship-prerelease
+      - test
+      - prepare
+      - ship-release
+  - name: (( concat "test-" meta.pipeline "-pull-requests" ))
+    jobs:
+      - test-pr
+  - name: version
+    jobs:
+      - major
+      - minor
+      - patch
+
+meta:
+  name:     (( param "Please name your pipeline" ))
+  release:  (( concat meta.name " Release" ))
+  target:   (( param "Please identify the name of the target Concourse CI" ))
+  pipeline: (( grab meta.name ))
+  url:      (( param "What is the URL for the Concourse instance this pipeline is located on?" ))
+
+  git:
+    email:  (( param "Please provide the git email for automated commits" ))
+    name:   (( param "Please provide the git name for automated commits" ))
+
+  go:
+    module:  (( concat "github.com/" meta.github.owner "/" meta.github.repo ))
+    cmd_module: (( grab meta.go.module ))
+    binary:  (( grab meta.github.repo ))
+    force_static_binary: false
+    image_tag: ((concourse_go_image_tag))
+
+  image:
+    name: ((concourse_go_image_repository))
+    tag:  (( grab meta.go.image_tag ))
+
+  aws:
+    bucket:     (( concat meta.pipeline "-pipeline" ))
+    region_name: us-east-1
+    access_key: (( param "Please set your AWS Access Key ID" ))
+    secret_key: (( param "Please set your AWS Secret Key ID" ))
+
+  github:
+    uri:          (( concat "git@github.com:" meta.github.owner "/" meta.github.repo ))
+    owner:        (( param "Please specify the name of the user / organization that owns the Github repository" ))
+    repo:         (( param "Please specify the name of the Github repository" ))
+    branch:       develop
+    private_key:  (( param "Please generate an SSH Deployment Key for this repo and specify it here" ))
+    access_token: (( param "Please generate a Personal Access Token and specify it here" ))
+    release_notes:
+      repo:       "ci-release-notes"
+      branch:     "main"
+      file:       (( concat meta.name "-release-notes.md" ))
+      uri:        (( concat "git@github.com:"  meta.github.owner "/" meta.github.release_notes.repo ))
+      edit:       (( concat "https://github.com/" meta.github.owner "/"  meta.github.release_notes.repo "/edit/"  meta.github.release_notes.branch "/" meta.github.release_notes.file ))
+
+  slack:
+    webhook:       (( param "Please specify your Slack Incoming Webhook Integration URL" ))
+    notification: '(( concat ":sadpanda: " meta.pipeline " build failed!<br>URL-GOES-HERE" ))'
+    username:      concourse
+    icon:          http://cl.ly/image/3e1h0H3H2s0P/concourse-logo.png
+    fail_moji:     ":airplane_arriving:"
+    success_moji:  ":airplane_departure:"
+    upset_moji:    ":sad_panda:"
+    fail_url: '(( concat "<" meta.url "/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME| Concourse Failure! " meta.slack.upset_moji ">" ))'

@@ -1,0 +1,6 @@
+resources:
+- name: phalanx
+  type: git
+  source:
+    uri:    https://github.com/shieldproject/shield-phalanx
+    branch: master
