@@ -18,7 +18,7 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-//global variables
+// global variables
 var (
 	RoleBasedAuthentication   = "Role-Based Authentication"
 	CertificateAuthentication = "Certificate-Based Authentication"
@@ -254,7 +254,7 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 	}, nil
 }
 
-//Validate user input
+// Validate user input
 func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
