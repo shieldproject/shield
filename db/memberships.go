@@ -94,7 +94,7 @@ func (db *DB) RemoveUserFromTenant(user, tenant string) error {
 	return nil
 }
 
-//GetTenantsForUser given a user's uuid returns a slice of Tenants that the user has membership with
+// GetTenantsForUser given a user's uuid returns a slice of Tenants that the user has membership with
 func (db *DB) GetTenantsForUser(user string) ([]*Tenant, error) {
 	l := make([]*Tenant, 0)
 	return l, db.exclusively(func() error {

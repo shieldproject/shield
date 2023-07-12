@@ -83,7 +83,7 @@ func (b *Bus) Register(queues []string) (chan Event, int64, error) {
 	return nil, -1, fmt.Errorf("too many message bus clients")
 }
 
-//Unregister causes the bus to stop routing events to the handler with the given ID.
+// Unregister causes the bus to stop routing events to the handler with the given ID.
 // The channel returned from the matching call to register is closed. Multiple calls
 // to Unregister with the same id are idempotent.
 func (b *Bus) Unregister(id int64) {

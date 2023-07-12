@@ -25,7 +25,7 @@ type Request struct {
 	bt    []string
 }
 
-//NewRequest initializes and returns a new request object. Setting debug to
+// NewRequest initializes and returns a new request object. Setting debug to
 // true will cause errors to be logged.
 func NewRequest(w http.ResponseWriter, r *http.Request, debug bool) *Request {
 	return &Request{
@@ -145,7 +145,7 @@ func (r *Request) JSONEncoder() *json.Encoder {
 	return json.NewEncoder(r.w)
 }
 
-//Payload unmarshals the JSON body of this request into the given interface.
+// Payload unmarshals the JSON body of this request into the given interface.
 // Returns true if successful and false otherwise.
 func (r *Request) Payload(v interface{}) bool {
 	if r.Req.Body == nil {

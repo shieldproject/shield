@@ -1,45 +1,43 @@
 // The `consul` plugin for SHIELD is intended to be a generic
 // backup/restore plugin for a consul server.
 //
-// PLUGIN FEATURES
+// # PLUGIN FEATURES
 //
 // This plugin implements functionality suitable for use with the following
 // SHIELD Job components:
 //
-//   Target: yes
-//   Store:  no
+//	Target: yes
+//	Store:  no
 //
-// PLUGIN CONFIGURATION
+// # PLUGIN CONFIGURATION
 //
 // The endpoint configuration passed to this plugin is used to identify
 // what consul instance to back up, and how to connect to it. Your
 // endpoint JSON should look something like this:
 //
-//    {
-//        "address":"consul.service.consul:8500",                    # optional - can also be prefixed with http:// or https://
-//        "ca-path":"/var/vcap/jobs/consul/consul/ca.cert",          # optional - required for connecting via https
-//        "client-cert":"/var/vcap/jobs/consul/consul/consul.cert",  # optional - required when verify_incoming is set to true
-//        "client-key":"/var/vcap/jobs/consul/consul/consul.key"     # optional - required when verify_incoming is set to true
-//    }
+//	{
+//	    "address":"consul.service.consul:8500",                    # optional - can also be prefixed with http:// or https://
+//	    "ca-path":"/var/vcap/jobs/consul/consul/ca.cert",          # optional - required for connecting via https
+//	    "client-cert":"/var/vcap/jobs/consul/consul/consul.cert",  # optional - required when verify_incoming is set to true
+//	    "client-key":"/var/vcap/jobs/consul/consul/consul.key"     # optional - required when verify_incoming is set to true
+//	}
 //
 // Default Configuration
 //
-//    {
-//         "address" : "http://127.0.0.1:8500"
-//         "consul" : "/var/vcap/packages/consul/bin/consul"
-//    }
+//	{
+//	     "address" : "http://127.0.0.1:8500"
+//	     "consul" : "/var/vcap/packages/consul/bin/consul"
+//	}
 //
-// BACKUP DETAILS
+// # BACKUP DETAILS
 //
 // The `consul` plugin makes uses the consul api to back up the entire kv store.
 //
-// RESTORE DETAILS
+// # RESTORE DETAILS
 //
 // The `consul` plugin will also restore the entire kv store.
 //
 // DEPENDENCIES
-//
-//
 package main
 
 import (

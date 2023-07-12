@@ -696,8 +696,8 @@ func expandVersionList(secret exportSecret) []exportVersion {
 	return append(ret, secret.Versions...)
 }
 
-//this is the value that gets written for secret versions that need to be
-//destroyed
+// this is the value that gets written for secret versions that need to be
+// destroyed
 var placeholderDestroyedValue = map[string]interface{}{"placeholder": "garbage"}
 
 func writeSecret(v *vaultkv.KV, path string, versions []exportVersion) error {

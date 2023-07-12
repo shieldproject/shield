@@ -197,8 +197,8 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 	return l, nil
 }
 
-//Adding separate V6 functions to support Schema6 and Schema12's getAllJobs() call
-//Schema V13 onwards has job.retries
+// Adding separate V6 functions to support Schema6 and Schema12's getAllJobs() call
+// Schema V13 onwards has job.retries
 func (f *JobFilter) QueryV6() (string, []interface{}) {
 	wheres := []string{}
 	args := []interface{}{}

@@ -686,7 +686,7 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 	return false, nil
 }
 
-//The caller must Lock the db mutex
+// The caller must Lock the db mutex
 func (db *DB) taskQueue(id string) string {
 	r, err := db.query(`SELECT tenant_uuid FROM tasks WHERE uuid = ?`, id)
 	if err != nil {
@@ -974,8 +974,8 @@ func (db *DB) RedactAllTaskLogs(tasks []*Task) {
 	}
 }
 
-//UnscheduleAllTasks takes all tasks which are in the scheduled state and puts
-//them back in a pending state.
+// UnscheduleAllTasks takes all tasks which are in the scheduled state and puts
+// them back in a pending state.
 func (db *DB) UnscheduleAllTasks() error {
 	return db.Exec(`UPDATE tasks SET status = 'pending' WHERE status = 'scheduled'`)
 }

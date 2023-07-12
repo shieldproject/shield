@@ -296,10 +296,10 @@ Mapping:
 func (p *OktaAuthProvider) verifyToken(t string, category string) (*verifier.Jwt, error) {
 	toValidate := map[string]string{}
 
-	if category == "id" {							//id_token
+	if category == "id" { //id_token
 		// toValidate["nonce"] = "{NONCE}"
 		toValidate["aud"] = p.ClientID
-	} else {										//access_token
+	} else { //access_token
 		toValidate["aud"] = "api://" + p.AuthorizationServer
 		toValidate["cid"] = "" //p.ClientID
 	}
@@ -311,27 +311,25 @@ func (p *OktaAuthProvider) verifyToken(t string, category string) (*verifier.Jwt
 
 	verifier := jwtVerifierSetup.New()
 
-	if category == "id"{
+	if category == "id" {
 		token, err := verifier.VerifyIdToken(t)
 		if err != nil && p.TokenVerification {
 			return nil, fmt.Errorf("%s", err)
 		}
-	
+
 		if token != nil {
 			return token, nil
 		}
-	}else {
+	} else {
 		token, err := verifier.VerifyAccessToken(t)
 		if err != nil && p.TokenVerification {
 			return nil, fmt.Errorf("%s", err)
 		}
-	
+
 		if token != nil {
 			return token, nil
 		}
 	}
-
-	
 
 	return nil, fmt.Errorf("%s token could not be verified: %s", category, "")
 }
