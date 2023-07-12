@@ -1,0 +1,41 @@
+jobs:
+- name: prepare
+  public: true
+  serial: true
+  plan:
+  - do:
+    - in_parallel:
+      - { get: version,    passed: [test], params: {bump: final} }
+      - { get: git,        passed: [test], trigger: true }
+      - { get: git-ci }
+      - { get: git-latest-tag }
+      - { get: release-notes }
+    - task: generate-release-notes
+      file: git-ci/ci/tasks/generate-release-notes.yml
+      params:
+        RELEASE_NOTES_WEB_URL:  (( grab meta.github.release_notes.edit ))
+        RELEASE_NOTES_FILE:     (( grab meta.github.release_notes.file ))
+        GIT_NAME:               (( grab meta.git.name ))
+        GIT_EMAIL:              (( grab meta.git.email ))
+        APP_NAME:               (( grab meta.name ))
+        NO_UPSTREAM_SYNC:       true
+        NO_RELEASE_VERSIONS:    true
+    - put: release-notes
+      params:
+        rebase: true
+        repository: release-notes
+    on_failure:
+      put: notify
+      params:
+        username: (( grab meta.slack.username ))
+        icon_url: (( grab meta.slack.icon ))
+        text:    '(( concat meta.slack.fail_url " " meta.pipeline ": prepare job failed" ))'
+
+#  Shout-based notification when its working again
+#    on_failure:
+#      put: notify
+#      params:
+#        topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+#        message: release candidate job 'pre' failed (which is unusual).
+#        ok:      no
+#        link:    (( grab meta.shout.links.build ))

@@ -1,0 +1,31 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: registry.ops.scalecf.net/genesis-community/genesis
+    tag: latest
+
+inputs:
+- name: version
+- name: git
+- name: git-ci
+- name: build
+
+outputs:
+- name: gh
+- name: notifications
+
+params:
+  PRERELEASE:       1
+  RELEASE_ROOT:     gh
+  NOTIFICATION_OUT: notifications
+  DEVELOP_BRANCH:   develop
+  RELEASE_BRANCH:   main
+  GITHUB_OWNER:     cloudfoundry-community
+  GIT_EMAIL:        ci@cloudfoundry-community.org
+  GIT_NAME:         Cloudfoundry Community CI Bot
+
+run:
+  path: git-ci/ci/scripts/release

@@ -1,0 +1,9 @@
+resources:
+- name: github-prerelease
+  type: github-release
+  source:
+    user:         (( grab meta.github.owner ))
+    repository:   (( grab meta.github.repo ))
+    access_token: (( grab meta.github.access_token_rw || meta.github.access_token ))
+    pre_release:  true
+    release:      false

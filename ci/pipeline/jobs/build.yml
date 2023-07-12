@@ -1,0 +1,26 @@
+jobs:
+- name: build
+  public: true
+  serial: false
+  plan:
+  - in_parallel:
+    - { get: version, params: {pre: rc} }
+    - { get: git, trigger: true }
+    - { get: git-ci }
+  - task: build
+    file: git-ci/ci/tasks/build.yml
+    params:
+      APP_NAME: (( grab meta.name ))
+  - put: build
+    params:
+      file: build/*.tar.gz
+      acl: public-read
+  - put: version
+    params: {file: version/number}
+
+  on_failure:
+    put: notify
+    params:
+      username: (( grab meta.slack.username ))
+      icon_url: (( grab meta.slack.icon ))
+      text:    '(( concat meta.slack.fail_url " " meta.pipeline ": test job failed" ))'

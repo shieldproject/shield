@@ -1,0 +1,10 @@
+resources:
+  - name: release-notes
+    type: git
+    check_every: 1h
+    source:
+      uri:         (( grab meta.github.release_notes.uri ))
+      branch:      (( grab meta.github.release_notes.branch ))
+      private_key: (( grab meta.github.release_notes.private_key || meta.github.private_key ))
+      paths:       [ (( grab meta.github.release_notes.file )) ]
+      disable_ci_skip: true

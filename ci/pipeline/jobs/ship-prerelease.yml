@@ -1,0 +1,49 @@
+jobs:
+- name: ship-prerelease
+  public: true
+  serial: false
+  plan:
+  - do:
+    - in_parallel:
+      - { get: build,   passed: [build]}
+      - { get: version, passed: [build]}
+      - { get: git,     passed: [build]}
+      - { get: git-ci }
+
+    - task: ship-prerelease
+      file: git-ci/ci/tasks/prerelease.yml
+      params:
+        PRERELEASE:       1
+        APP_NAME:         (( grab meta.name ))
+        DEVELOP_BRANCH:   (( grab meta.github.branch ))
+        RELEASE_BRANCH:   (( grab meta.github.branch ))
+        RELEASE_ROOT:     gh
+        RELEASE_NOTES:    (( grab meta.github.release_notes.file ))
+        NOTIFICATION_OUT: notifications
+        GITHUB_OWNER:     (( grab meta.github.owner ))
+        GIT_EMAIL:        (( grab meta.git.email ))
+        GIT_NAME:         (( grab meta.git.name ))
+
+    - put: github-prerelease
+      params:
+        name:      gh/name
+        tag:       gh/tag
+        body:      gh/notes.md
+        commitish: gh/commit
+        globs:     [gh/artifacts/*]
+
+    on_failure:
+      put: notify
+      params:
+        username: (( grab meta.slack.username ))
+        icon_url: (( grab meta.slack.icon ))
+        text:    '(( concat meta.slack.fail_url " " meta.pipeline ": ship prerelease job failed" ))'
+
+# Shout-based notification - currently not available 
+#    on_failure:
+#      put: notify
+#      params:
+#        topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+#        message: tests job '$BUILD_JOB_NAME' failed.
+#        ok:      no
+#        link:    (( grab meta.shout.links.build ))

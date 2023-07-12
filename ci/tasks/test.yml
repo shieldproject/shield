@@ -1,0 +1,21 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: ((concourse_go_image_repository))
+    tag:        ((concourse_go_image_tag))
+
+inputs:
+- name: git
+- name: git-ci
+- name: version
+- name: build
+- name: phalanx
+
+outputs:
+- name: work
+
+run:
+  path: git-ci/ci/scripts/test-all

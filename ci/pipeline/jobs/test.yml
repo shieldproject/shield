@@ -1,0 +1,28 @@
+jobs:
+- name: test
+  public: true
+  serial: false
+  plan:
+  - in_parallel:
+      steps:
+      - { get: build,   passed: [build], trigger: true, params: {unpack: true}}
+      - { get: version, passed: [build]}
+      - { get: git,     passed: [build]}
+      - { get: git-ci}
+      - { get: phalanx}
+  - task: test
+    file: git-ci/ci/tasks/test.yml
+    params:
+      APP_NAME: (( grab meta.name ))
+      AWS_ACCESS_KEY:       (( grab meta.aws.access_key ))
+      AWS_SECRET_KEY:       (( grab meta.aws.secret_key ))
+      BOSH_ENVIRONMENT:     (( grab meta.bosh.target ))
+      BOSH_CLIENT:          (( grab meta.bosh.username ))
+      BOSH_CLIENT_SECRET:   (( grab meta.bosh.password ))
+      BOSH_CA_CERT:         (( grab meta.bosh.cacert ))
+  on_failure:
+    put: notify
+    params:
+      username: (( grab meta.slack.username ))
+      icon_url: (( grab meta.slack.icon ))
+      text:    '(( concat meta.slack.fail_url " " meta.pipeline ": test job failed" ))'

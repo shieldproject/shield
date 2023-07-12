@@ -1,0 +1,11 @@
+resources:
+  - name: build
+    type: s3
+    source:
+      endpoint:              (( grab meta.aws.endpoint || ~ ))
+      skip_ssl_verification: (( grab meta.aws.insecure || false ))
+      access_key_id:         (( grab meta.aws.access_key ))
+      secret_access_key:     (( grab meta.aws.secret_key ))
+      region_name:           (( grab meta.aws.region_name ))
+      bucket:                (( grab meta.aws.bucket ))
+      regexp:                (( concat meta.name "/build/(.*)\.tar\.gz" ))

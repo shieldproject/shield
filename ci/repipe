@@ -8,11 +8,13 @@
 # author:  James Hunt <james@niftylogic.com>
 #          Dennis Bell <dennis.j.bell@gmail.com>
 
+set -ue
+
 need_command() {
   local cmd=${1:?need_command() - no command name given}
   local url=${2:-}
 
-  if [[ ! -x "$(command -v $cmd)" ]]; then
+  if [[ ! -x "$(type -p "$cmd")" ]]; then
     echo >&2 "${cmd} is not installed."
     if [[ -n "$url" ]]; then
       echo >&2 "Please download it from ${url}"
@@ -21,54 +23,220 @@ need_command() {
   fi
 }
 
-cd $(dirname $BASH_SOURCE[0])
-echo "Working in $(pwd)"
+error() {
+  echo >&2 "${1:-"Error\!"}"
+  exit "${2:-1}"
+}
+
+run_cmd() {
+  if (( DRYRUN > 0 )) ; then
+    (( DRYRUN >= 2 )) && echo >&2 "$@"
+  else
+    set +e
+    "$@"
+    rc="$?"
+    set -e
+    return $rc
+  fi
+}
+
+open_url() {
+  local url
+  url="$1";
+	if [[ -x /usr/bin/open ]]; then
+		exec /usr/bin/open "$url"
+	else
+		echo "Sorry, but I was not able to automagically open"
+		echo "your Concourse Pipeline in the browser."
+		echo
+		echo "Here's a link you can click on, though:"
+		echo
+		echo "  $url"
+		echo
+		exit 0;
+	fi
+}
+
+preface_cmds() {
+  action="$1"
+  echo >&2
+  if (( DRYRUN >= 2 )) ; then
+    [[ -n "$persistent_file" ]] \
+      && echo >&2 "Run these commands to $action the pipeline:" \
+      || echo >&2 "These commands would be run to $action the pipeline:"
+  fi
+}
+
+usage() {
+  rc=0
+  c=""
+  if [[ -z "${1:-""}" ]] ; then
+    msg="repipe - recreate the genesis kit release engineering pipeline"
+  else
+    msg="$1"
+    c=";31"
+    rc=1
+  fi
+  \cat >&2 <<EOF
+
+[1${c}m${msg}[0m
+
+USAGE: repipe [-P] [-H|-X] [-v[v]] [-y] [-n[n]] [-o[o]] [--fly <path/to/fly>]
+
+OPTIONS:
+  -v         Validate pipeline instead of uploading it to Concourse.  Specify
+             twice to validate with strict mode.
+  -y         Treat all prompts with affirmative action automatically.
+  -n         No change, just a dry-run that outputs to stdout.  Specify twice
+             to print the commands that would be run to stderr.
+  -P         Will pause the pipeline after uploading it (default is to unpause)
+  -H|-X      Will hide or expose the pipeline to the public (default is based on
+             whatever is set in 'meta.exposed' in the settings.yml file)
+  -o         Open pipeline in browser if os supports it (mac only currently)
+             after applying changes. Specify twice to not do anything else.
+  --fly <x>  Path to fly command, otherwise will use $(type -p fly)
+
+EOF
+  exit $rc
+}
+
+# == MAIN =====================================================================
+
+settings_file="settings.yml"
+PAUSE='unpause'
+EXPOSE=''
+DRYRUN=0
+VALIDATE=0
+OPEN=0
+OPTCOUNT=0
+YES=''
+fly=''
+call_dir="$(pwd)"
+
+# -- Parse options ------------------------------------------------------------
+while [[ -n "${1:-""}" ]] ; do
+  arg="$1" ; shift
+  case "$arg" in
+    --fly)
+        fly="${1:-}"
+        if [[ -z "$fly" ]] ; then
+          error "No argument given to --fly"
+        elif [[ ! -x "$fly" ]] ; then
+          error "File '$fly' does not seem to be executable.  Cannot use it as 'fly'"
+        fi
+        fly="$(realpath "$fly")"
+        shift 1 ;;
+    -*) for (( i=0; i<${#arg}; i++ )); do
+          (( OPTCOUNT++ ))
+          opt="${arg:$i:1}"
+          case "$opt" in
+            y) YES=1;;
+            v) (( VALIDATE++ ));;
+            n) (( DRYRUN++ ));;
+            P) PAUSE="pause" ;;
+            X) EXPOSE="expose" ;;
+            H) EXPOSE="hide" ;;
+            h) usage; exit 0;;
+            o) (( OPEN++ )) ;;
+            -) ;; # ignore -- TBD: if we ever need to support --, ...
+            *) usage "Unknown option '$opt'";;
+          esac
+        done;;
+    *)  usage "$0 does not take any arguments";;
+  esac
+done
+
+# -- Validate options ---------------------------------------------------------
+if [[ $VALIDATE -ge 1 || $DRYRUN -ge 1 ]] ; then
+  if [[ "$DRYRUN" -eq 1 ]] && [[ -n $EXPOSE || $PAUSE == "pause" ]] ; then
+    echo >&2 "Warning: -y, -P, -X, and -E options are ignored if -v or -n is specified"
+  fi
+  if (( OPEN >= 2 && OPTCOUNT > OPEN )) ; then
+    error "-oo cannot be used with any other options (as it only opens the web page)"
+  fi
+fi
+
+# -- Validate environment -----------------------------------------------------
+[[ -z "${GENESIS_CI_DIR:-""}" ]] && GENESIS_CI_DIR="$(dirname "${BASH_SOURCE[0]}")"
+cd "$GENESIS_CI_DIR"
+echo >&2 "Working in $(pwd)"
 need_command spruce "https://github.com/geofffranks/spruce/releases"
 need_command jq
 
-# Allow for target-specific settings
-settings_file="$(ls -1 settings.yml ${CONCOURSE_TARGET:+"settings-${CONCOURSE_TARGET}.yml"} 2>/dev/null | tail -n1)"
-if [[ -z "$settings_file" ]]; then
-  echo >&2 "Missing local settings in ci/settings.yml${CONCOURSE_TARGET:+" or ci/settings-${CONCOURSE_TARGET}.yml"}!"
-  exit 1
+if [[ -z "$fly" ]] ; then
+  need_command fly;
+  fly="$(type -p fly)"
 fi
 
+# -- Get settings file --------------------------------------------------------
+# Target-based settings file cannot have / or spaces in it, convert to - and _ respectively
+target_settings_file="${CONCOURSE_TARGET:+"settings-$(sed -e 's#/#-#g' -e 's/ /_/g' <<<"${CONCOURSE_TARGET}").yml"}"
+[[ -n $target_settings_file && -f $target_settings_file ]] && \
+  settings_file="$target_settings_file"
+[[ ! -f "$settings_file" ]] && \
+  error "Missing local settings in ci/settings.yml${CONCOURSE_TARGET:+" or ci/${target_settings_file}"}!"
 echo >&2 "Using settings found in ${settings_file}"
 
+# --  Extract pipeline target information and compare -------------------------
 set -e
 trap "rm -f .deploy.yml" QUIT TERM EXIT INT
-spruce merge pipeline.yml ${settings_file} > .deploy.yml
-PIPELINE=$(spruce json .deploy.yml | jq -r '.meta.pipeline // ""')
-if [[ -z ${PIPELINE} ]]; then
-  echo >&2 "Missing pipeline name in ci/settings.yml!"
-  exit 1
+config="$(spruce merge --fallback-append pipeline/base.yml pipeline/*/*.yml "${settings_file}")"
+meta="$(spruce merge --skip-eval --cherry-pick meta <<<"$config" | spruce json)"
+spruce merge --skip-eval --prune meta <<<"$config" > .deploy.yml
+target=$(jq -r --arg t "${CONCOURSE_TARGET:-}" '.meta.target // $t' <<<"$meta")
+[[ -n "${target:-}" ]] || error "Settings file missing meta.target value"
+[[ -n "${CONCOURSE_TARGET:-}" && "$CONCOURSE_TARGET" != "$target" ]] && \
+  error "Target '$target' from settings file conflicts with CONCOURSE_TARGET env var ('$CONCOURSE_TARGET')"
+
+pipeline_url="$(jq -r '.meta.url // ""' <<<"$meta")"
+target_url="$(spruce json ~/.flyrc | jq -r --arg t "$target" '.targets[$t].api')"
+[[ -n "${pipeline_url:-}" && "$pipeline_url" != "$target_url" ]] && \
+  error "Target '$target' does not match the url specified in the pipeline: found '$target_url', got '$pipeline_url'"
+
+pipeline_team="$(jq -r '.meta.team // ""' <<<"$meta")"
+target_team="$(spruce json ~/.flyrc | jq -r --arg t "$target" '.targets[$t].team')"
+[[ -n "${pipeline_team:-}" && "$pipeline_team" != "$target_team" ]] && \
+  error "Target '$target' does not match the team specified in the pipeline: found '$target_team', got '$pipeline_team'"
+
+pipeline=$(jq -r '.meta.pipeline // .meta.name' <<<"$meta")
+[[ -z ${pipeline:-} ]] && error "Missing pipeline name in ci/settings.yml!"
+pipeline_url="$target_url/teams/$target_team/pipelines/$pipeline"
+
+# -- DO THE THINGS!!! ---------------------------------------------------------
+if (( OPEN >= 2 )) ; then
+  open_url "$pipeline_url"
+  exit $?
 fi
 
-TARGET_FROM_SETTINGS=$(spruce json .deploy.yml | jq -r '.meta.target // ""')
-if [[ -z ${CONCOURSE_TARGET} ]]; then
-  TARGET=${TARGET_FROM_SETTINGS}
-elif [[ "$CONCOURSE_TARGET" != "$TARGET_FROM_SETTINGS" ]]
-then
-  echo >&2 "Target in {$settings_file} differs from target in \$CONCOURSE_TARGET"
-  echo >&2 "  \$CONCOURSE_TARGET: $CONCOURSE_TARGET"
-  echo >&2 "  Target in file:    $TARGET_FROM_SETTINGS"
-  exit 1
+persistent_file=""
+if (( DRYRUN > 0 )) ; then
+  cat .deploy.yml
+  if [ ! -t 1 ] ; then
+    pid="$$"
+    persistent_file="$(/usr/sbin/lsof -p "$pid" -a -d 1 | tail -n 1 | awk '{print $NF}')"
+    if [[ -n "${persistent_file}" && -n "$(type -p realpath || true)" ]] ; then
+      persistent_file="$(realpath --relative-to="$call_dir" "$persistent_file")"
+    fi
+  fi
+fi
+
+declare -a cmd
+cmd=( "$fly" --target "$target" )
+if (( VALIDATE > 0 )) ; then
+  cmd+=( validate-pipeline )
+  (( VALIDATE >= 2 )) && cmd+=( --strict )
+  cmd+=( --config "${persistent_file:-".deploy.yml"}" )
+  preface_cmds validate
+  run_cmd "${cmd[@]}"
+  exit 0
 else
-  TARGET=${CONCOURSE_TARGET}
+  [[ -z "$EXPOSE" ]] && EXPOSE=$(jq -r '.meta.exposed // false | if . then "expose" else "hide" end' <<<"$meta")
+  set_cmd=( "${cmd[@]}" set-pipeline --pipeline "${pipeline}" --config "${persistent_file:-".deploy.yml"}" )
+  [[ -n "$YES" ]] && set_cmd+=( --non-interactive )
+  preface_cmds upload
+  run_cmd "${set_cmd[@]}"
+  run_cmd "${cmd[@]}" "${PAUSE}-pipeline"  --pipeline "${pipeline}"
+  run_cmd "${cmd[@]}" "${EXPOSE}-pipeline" --pipeline "${pipeline}"
 fi
-
-if [[ -z ${TARGET} ]]; then
-  echo >&2 "Missing Concourse Target in ci/settings.yml!"
-  exit 1
-fi
-
-EXPOSED=$(spruce json .deploy.yml | jq -r '.meta.exposed // false')
-EXPOSE=expose
-if [[ ${EXPOSED} == "true" ]]; then
-  EXPOSE=hide
-fi
-
-set +x
-fly --target ${TARGET} set-pipeline       --pipeline ${PIPELINE} --config .deploy.yml
-fly --target ${TARGET} unpause-pipeline   --pipeline ${PIPELINE}
-fly --target ${TARGET} ${EXPOSE}-pipeline --pipeline ${PIPELINE}
+echo
+(( OPEN > 0 )) && open_url "$pipeline_url"

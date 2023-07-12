@@ -1,0 +1,25 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: ((concourse_go_image))
+    tag: ((concourse_go_tag))
+
+inputs:
+- name: git
+  path: gopath/src/github.com/shieldproject/shield
+- name: phalanx
+- name: version
+
+run:
+  path: ./phalanx/ci/run
+  args: []
+
+params:
+  SHIELD:          gopath/src/github.com/shieldproject/shield
+  PHALANX:         phalanx
+  VERSION:         version
+  OUTPUT:          out
+  BOSH_DEPLOYMENT: shield-phalanx-tests

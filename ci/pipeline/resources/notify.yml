@@ -1,0 +1,12 @@
+resource_types:
+  - name: slack-notification
+    type: registry-image
+    source:
+      repository: cfcommunity/slack-notification-resource
+
+resources:
+- name: notify
+  check_every: 24h
+  type: slack-notification
+  source:
+    url: (( grab meta.slack.webhook ))

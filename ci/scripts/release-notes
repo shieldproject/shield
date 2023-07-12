@@ -1,0 +1,357 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
+use YAML qw(Load LoadFile);
+use JSON::PP qw(decode_json);
+use File::Find;
+use FindBin;
+
+sub header {
+	print  STDERR  "\n================================================================================\n";
+	printf STDERR  "%s", join(' ',@_);
+	print  STDERR  "\n--------------------------------------------------------------------------------\n\n";
+}
+
+sub bail {
+	print STDERR "\n";
+	printf STDERR @_;
+	print STDERR "\nDid you misconfigure Concourse?\n\n";
+	exit 2;
+}
+
+sub uniq {
+	my %items;
+	$items{$_} = 1 for (@_);
+	sort keys %items;
+}
+
+sub get_new_commits {
+	my ($path, $since_commit) = @_;
+	my %lookup = (
+		author => '%aN',
+		author_email => '%aE',
+		author_date => '%at',
+		author_since => '%ar',
+		committer => '%cN',
+		committer_email => '%cE',
+		commit_date => '%ct',
+		commit_since => '%cr',
+		body => '%b'
+	);
+	my @commits = map {
+		my ($c,@s) = split(' ');
+		{commit => $c, subject => join(' ', @s)}
+	} qx(git -C "$path" log --reverse $since_commit...HEAD --pretty=format:'%H %s');
+
+	print STDERR "  - fetching commit details";
+	for my $commit (@commits) {
+		print STDERR '.';
+		for my $detail (keys %lookup) {
+			$commit->{$detail} = join("", qx(git -C "$path" log -n1 --pretty=format:'$lookup{$detail}' $commit->{commit}));
+			chomp $commit->{$detail};
+		}
+	}
+	print STDERR "\n";
+	return @commits;
+}
+
+sub get_latest_commit_ref {
+	my ($path) = @_;
+	chomp(my $ref = qx(git -C $path rev-parse HEAD));
+	$ref
+}
+
+sub get_latest_commit_tag {
+	my ($path) = @_;
+	my $tag;
+	if (-f "$path/.git/ref") {
+		$tag = qx(cat "$path/.git/ref");
+	} else {
+		$tag = qx(git -C $path describe --tag --abbrev=0);
+	}
+	chomp $tag;
+	return $tag
+}
+
+sub parse_commits {
+	my ($path, $last_release_path) = @_;
+	my @commits = get_new_commits($path, get_latest_commit_ref($last_release_path));
+
+	# Remove all merges with no bodies
+	@commits = grep {$_->{body} || $_->{subject} !~ /^Merge .* into .*/} @commits;
+
+	my $last_update;
+  my $updates=0;
+	unless ($ENV{NO_UPSTREAM_SYNC}) {
+		print STDERR "  - determining upstream synchronization\n";
+		@commits = grep {
+			if ($_->{subject} =~ /^Update to ([^\/]*)\/(.*)@(.*)$/) {
+				$last_update = $_; $updates++; 0;
+			} else {
+				1;
+			}
+		} @commits;
+	}
+
+	my %messages;
+	if ($last_update) {
+		$last_update->{subject} =~ /Update to ([^\/]*)\/(.*)@(.*)$/;
+		$messages{'Upstream Convergence'} = [
+			sprintf(
+				'* Synchronized embedded %s to [@%s](https://github.com/%s/%s/tree/%s)',
+				$2, $3, $1, $2, $3
+			)
+		];
+	}
+	print STDERR "  - parsing commits for release notes.";
+	my $re=qr/(?:(?:\A|\n\n)\[([^\]\n]*)\]\n\n)/;
+	my ($header,$note,@data);
+	for my $commit (@commits) {
+		$commit->{body} =~ s/\r//g; # Remove windows CR characters
+		(undef, @data) = split($re, $commit->{body}||'');
+		print STDERR (@data ? "!" : ".");
+		while (@data) {
+			$commit->{used} = 1;
+			($header, $note, @data) = @data;
+			# Notes can be stopped with a --- on a new line
+			($note) = split("\n+---",$note);
+			if ($note !~ /\* /) {
+				# Auto-bullet
+				$note = "* ".join("\n  ",split("\n", $note));
+			}
+			$messages{$header} ||= [];
+			push @{$messages{$header}}, $note
+		}
+	}
+	print STDERR "\n";
+	my @entries;
+	push(@entries, "# $_\n\n".join("\n\n",@{$messages{$_}})) for (sort keys %messages);
+	my $release_notes = join("\n\n", @entries);
+	return ($release_notes, \@commits); # TBD: Maybe filter out commits that contained release notes
+}
+
+sub get_releases {
+	my ($path) = @_;
+	my $filter = "$path/spec/results/*.yml";
+	my @entries = qx(for x in $filter ; do spruce json \$x | jq -r '.releases[] | "\\(.name) \\(.version) \\(.url)"' 2>/dev/null ; done | sort | uniq);
+	my %releases;
+	for my $entry (@entries) {
+		my ($release, $version, $url) = split(' ',$entry);
+		push( @{$releases{$release}{$version} ||= []}, $url);
+	}
+	return \%releases;
+}
+
+my @months = qw(ignored January February March April May June July August September October November December);
+sub github {
+	my ($org, $repo, $versions, $type, $orig_url) = @_;
+	my ($url, $day, $mon, $year, $out, $tag);
+
+	unless ($org && $repo) {
+		if ($orig_url =~ m|https://bosh.io/d/github.com/([^/]*)/([^/]*)\?v=(.*)$|) {
+			$org = $1;
+			$repo = $2;
+		} elsif ($orig_url =~ m|https://github.com/([^/]*)/([^/]*)/releases|) {
+			$org = $1;
+			$repo = $2;
+		}
+		return ("-","") unless ($org && $repo);
+	}
+
+	# Try release - the preferred method
+	my $lookup_url="https://api.github.com/repos/$org/$repo/releases";
+	for (@$versions) {
+		$tag = $_;
+		$out = qx(curl -Ls -u "$ENV{GITHUB_ACCESS_TOKEN}:" "$lookup_url" | jq -r --arg t "$tag" '.[] | select(.tag_name == \$t)');
+		last if $out;
+	}
+	if ($out) {
+		printf STDERR "    - $org/$repo release $tag\n";
+		my $data = decode_json($out);
+		$url = $data->{html_url} || '';
+		return ('-', $url) unless $data->{published_at};
+		($year, $mon, $day) = ($data->{published_at} =~ m/^(\d{4})-(\d{2})-(\d{2})/);
+	} else {
+		# Next try tag
+		my $lookup_url="https://api.github.com/repos/$org/$repo/tags";
+		$out = qx(curl -Ls -u "$ENV{GITHUB_ACCESS_TOKEN}:" "$lookup_url");
+		my $target_tag;
+		if ($out) {
+			my $tags = decode_json($out);
+			for (@$versions) {
+				$tag = $_;
+				$target_tag = (grep {$_->{name} eq $tag} @$tags)[0];
+				last if $target_tag;
+			}
+		}
+		if ($target_tag) {
+			printf STDERR "    - $org/$repo tag $tag\n";
+			my $commit_url = $target_tag->{commit}{url};
+			$out = qx(curl -Ls -u "$ENV{GITHUB_ACCESS_TOKEN}:" "$commit_url");
+			my $data = decode_json($out);
+			($url = $data->{html_url}) =~ s#/commit/#/tree/#;
+			($year, $mon, $day) = ($data->{commit}{author}{date} =~ m/^(\d{4})-(\d{2})-(\d{2})/);
+
+		} else {
+			printf STDERR "    - $org/$repo version $tag not found!\n";
+			return ('-','');
+		}
+	}
+	return ("$day $months[$mon] $year", $url);
+}
+
+sub calculate_software_updates {
+	my ($path, $last_path) = @_;
+	printf STDERR "  - retrieving current releases found by spec tests...\n";
+	my $release_candidate_releases = get_releases($path);
+
+	printf STDERR "  - retrieving previous releases found by spec tests...\n";
+	my $last_release_releases = get_releases($last_path);
+
+	printf STDERR "  - checking ci/upstream.yml for more details...\n";
+	my $upstream = LoadFile($FindBin::Bin."/../upstream.yml");
+	my $sections = $upstream->{sections} || [];
+	my $default_section = (map {$_->{name}} grep {$_->{default}} @$sections)[0] || '-';
+	delete $upstream->{sections};
+
+	my %found;
+	print STDERR "  - retrieving release details:\n";
+	for my $name (uniq(keys %$release_candidate_releases, keys %$last_release_releases)) {
+
+		my @new_versions = keys %{$release_candidate_releases->{$name}||{}};
+		my @old_versions = keys %{$last_release_releases->{$name}||{}};
+
+		#There should never be more than one version in a release
+		# bail(
+		# 	"Somehow there are multiple versions of %s (%s) in release candidate",
+		# 	$name, join(', ',@new_versions)
+		# ) if (@new_versions > 1);
+		# bail(
+		# 	"Somehow there are multiple versions of %s (%s) in last release (%s)",
+		# 	$name, join(', ',@old_versions), get_latest_commit_tag($last_path)
+		# ) if (@old_versions > 1);
+		
+		next unless scalar(@new_versions);
+		for my $version (@new_versions) {
+
+			my $section = (grep {defined($upstream->{$_}{$name})} keys(%$upstream))[0] || $default_section;
+			for my $url (@{$release_candidate_releases->{$name}{$version} || []}) {
+				my ($type,$target);
+				if ($url =~ /$name-$version-([^-]*(?:-[^0-9][^-]*)*)-(\d*(?:\.\d*)*)-/) {
+					$type = 'compiled';
+					$target = "$1\@$2";
+				} else {
+					$type = 'source';
+				}
+				my @prefixes = defined($upstream->{$section}{$name}{tag_prefix}) ? ($upstream->{$section}{$name}{tag_prefix}) : ('v','');
+				my @suffixes = ($version =~ /^\d+$/) ? ('','.0','.0.0') : ('');
+
+				$found{$section} ||= {};
+				unless (defined($found{$section}{"$name/$version"})) {
+					my ($date,$release_url) = github(
+						$upstream->{$section}{$name}{org},
+						$upstream->{$section}{$name}{repo},
+						[map {my $p = $_; map {$p.$version.$_} @suffixes} @prefixes],
+						$upstream->{$section}{$name}{type},
+						$url
+					);
+					$found{$section}{"$name/$version"} = {
+						name => $name,
+						version => $version,
+						url => $release_url,
+						date => $date,
+						form => [],
+						label => $upstream->{$section}{$name}{label},
+						changed => (! scalar(@old_versions)) ? "NEW" :
+						           scalar(grep {$version eq $_} @old_versions) ? '' :
+						           sprintf('[X](## "was %s")', join(', ',@old_versions))
+					};
+				}
+				push(@{$found{$section}{"$name/$version"}{form}}, "compiled: $target") if $type eq 'compiled';
+				push(@{$found{$section}{"$name/$version"}{form}}, "source") if $type eq 'source';
+			}
+		}
+	}
+
+	push(@$sections, {name => '-', label => "Other Components"}) if (defined($found{'-'}));
+
+	my $software_notes = "# Software Components\n";
+	for (@$sections) {
+		my $s = $_->{name};
+		my $l = $_->{label} || uc($s)." Components";
+		$software_notes .=
+			"\n## $l\n\n".
+			"| Release | Version | Release Date | Type | Changed |\n".
+			"| ------- | ------- | ------------ | ---- | :-----: |\n";
+		for my $r (sort keys %{$found{$s}}) {
+			my $c = $found{$s}{$r};
+			$c->{label} ||= $c->{name};
+			$software_notes .= sprintf("| %s | %s | %s | %s | %s |\n",
+				$c->{label},
+				$c->{url} ? sprintf("[%s](%s)", $c->{version}, $c->{url}) : $c->{version},
+				$c->{date},
+				join("<br>", sort @{$c->{form}}),
+				$c->{changed}
+			);
+		}
+	}
+
+	return $software_notes;
+}
+
+sub build_commit_summaries {
+	my ($commits,$last_release, $url) = @_;
+	my $summary =
+		"---8<--- This line and everything below will be ignored ---8<---\n\n".
+		"### Raw commit messages since $last_release (oldest to latest)\n";
+
+	for (@$commits) {
+		$summary .= sprintf(
+			"\n\n\n----\n#### %s\n> *[%s](%s)*\n> *authored %s by %s (<%s>)*\n",
+			$_->{subject}, $_->{commit}, "$url/commit/$_->{commit}",
+			$_->{author_since}, $_->{author}, $_->{author_email}
+		);
+		$summary .= sprintf(
+			"> *committed %s by %s (<%s>)*\n",
+			$_->{commit_since}, $_->{committer}, $_->{committer_email}
+		) if $_->{author} ne $_->{committer};
+		$summary .= sprintf("\n```markdown\n%s\n```\n", $_->{body}) if $_->{body};
+	}
+
+	return $summary;
+}
+
+# ------------------------------------------------------------------------------
+# MAIN
+# ------------------------------------------------------------------------------
+my ($version, $rc_path, $last_release_path, $notes_path)=@ARGV;
+
+# Required Environment Variables
+my @missing = grep {! defined($ENV{$_->[0]})} (
+	['GITHUB_ACCESS_TOKEN',    'Access token needed to retrieve information about releases on Github'],
+);
+bail "[ERROR] Missing the following required environment variables:\n%s", join("", map {sprintf "- %s: %s\n", @{$_}} @missing)
+	if (@missing);
+
+my $last_release = get_latest_commit_tag($last_release_path);
+
+header "Building Release Notes from commit messages since $last_release";
+my ($release_notes,$commits) = parse_commits($rc_path, $last_release_path);
+
+my $software_updates = '';
+unless ($ENV{NO_RELEASE_VERSIONS}) {
+	header "Calculating Release Changes since $last_release";
+	$software_updates = calculate_software_updates($rc_path,$last_release_path);
+}
+
+qx(git -C $rc_path remote get-url origin) =~ /git\@github.com:(.*)$/;
+my $commit_summaries = build_commit_summaries($commits, $last_release, "https://github.com/$1");
+
+open(NOTES, '>', "$notes_path")
+	or bail "Cannot open $notes_path for writing.";
+
+printf NOTES "<!--- Release Notes for v%s -- Do not move --->\n%s\n\n%s\n%s",
+  $version, $release_notes, $software_updates, $commit_summaries;
+close NOTES;
+
+exit 0;
