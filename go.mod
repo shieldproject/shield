@@ -11,7 +11,7 @@ require (
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/fsouza/go-dockerclient v0.0.0-20151130162558-d750ee8aff39
 	github.com/go-sql-driver/mysql v1.2.1-0.20160602001021-3654d25ec346
-	github.com/gogo/protobuf v1.2.2-0.20190730201129-28a6bbf47e48 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-github v0.0.0-20150605201353-af17a5fa8537
 	github.com/google/go-querystring v1.1.0 // indirect
