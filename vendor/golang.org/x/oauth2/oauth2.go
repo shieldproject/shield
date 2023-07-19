@@ -10,13 +10,14 @@ package oauth2 // import "golang.org/x/oauth2"
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2/internal"
 )
 
@@ -26,17 +27,13 @@ import (
 // Deprecated: Use context.Background() or context.TODO() instead.
 var NoContext = context.TODO()
 
-// RegisterBrokenAuthHeaderProvider registers an OAuth2 server
-// identified by the tokenURL prefix as an OAuth2 implementation
-// which doesn't support the HTTP Basic authentication
-// scheme to authenticate with the authorization server.
-// Once a server is registered, credentials (client_id and client_secret)
-// will be passed as query parameters rather than being present
-// in the Authorization header.
-// See https://code.google.com/p/goauth2/issues/detail?id=31 for background.
-func RegisterBrokenAuthHeaderProvider(tokenURL string) {
-	internal.RegisterBrokenAuthHeaderProvider(tokenURL)
-}
+// RegisterBrokenAuthHeaderProvider previously did something. It is now a no-op.
+//
+// Deprecated: this function no longer does anything. Caller code that
+// wants to avoid potential extra HTTP requests made during
+// auto-probing of the provider's auth style should set
+// Endpoint.AuthStyle.
+func RegisterBrokenAuthHeaderProvider(tokenURL string) {}
 
 // Config describes a typical 3-legged OAuth2 flow, with both the
 // client application information and the server's endpoint URLs.
@@ -71,12 +68,37 @@ type TokenSource interface {
 	Token() (*Token, error)
 }
 
-// Endpoint contains the OAuth 2.0 provider's authorization and token
+// Endpoint represents an OAuth 2.0 provider's authorization and token
 // endpoint URLs.
 type Endpoint struct {
 	AuthURL  string
 	TokenURL string
+
+	// AuthStyle optionally specifies how the endpoint wants the
+	// client ID & client secret sent. The zero value means to
+	// auto-detect.
+	AuthStyle AuthStyle
 }
+
+// AuthStyle represents how requests for tokens are authenticated
+// to the server.
+type AuthStyle int
+
+const (
+	// AuthStyleAutoDetect means to auto-detect which authentication
+	// style the provider wants by trying both ways and caching
+	// the successful way for the future.
+	AuthStyleAutoDetect AuthStyle = 0
+
+	// AuthStyleInParams sends the "client_id" and "client_secret"
+	// in the POST body as application/x-www-form-urlencoded parameters.
+	AuthStyleInParams AuthStyle = 1
+
+	// AuthStyleInHeader sends the client_id and client_password
+	// using HTTP Basic Authorization. This is an optional style
+	// described in the OAuth2 RFC 6749 section 2.3.1.
+	AuthStyleInHeader AuthStyle = 2
+)
 
 var (
 	// AccessTypeOnline and AccessTypeOffline are options passed
@@ -96,7 +118,7 @@ var (
 	// ApprovalForce forces the users to view the consent dialog
 	// and confirm the permissions request at the URL returned
 	// from AuthCodeURL, even if they've already done so.
-	ApprovalForce AuthCodeOption = SetAuthURLParam("approval_prompt", "force")
+	ApprovalForce AuthCodeOption = SetAuthURLParam("prompt", "consent")
 )
 
 // An AuthCodeOption is passed to Config.AuthCodeURL.
@@ -119,12 +141,12 @@ func SetAuthURLParam(key, value string) AuthCodeOption {
 //
 // State is a token to protect the user from CSRF attacks. You must
 // always provide a non-empty string and validate that it matches the
-// the state query parameter on your redirect callback.
+// state query parameter on your redirect callback.
 // See http://tools.ietf.org/html/rfc6749#section-10.12 for more info.
 //
 // Opts may include AccessTypeOnline or AccessTypeOffline, as well
 // as ApprovalForce.
-// It can also be used to pass the PKCE challange.
+// It can also be used to pass the PKCE challenge.
 // See https://www.oauth.com/oauth2-servers/pkce/ for more info.
 func (c *Config) AuthCodeURL(state string, opts ...AuthCodeOption) string {
 	var buf bytes.Buffer
@@ -164,8 +186,7 @@ func (c *Config) AuthCodeURL(state string, opts ...AuthCodeOption) string {
 // and when other authorization grant types are not available."
 // See https://tools.ietf.org/html/rfc6749#section-4.3 for more info.
 //
-// The HTTP client to use is derived from the context.
-// If nil, http.DefaultClient is used.
+// The provided context optionally controls which HTTP client is used. See the HTTPClient variable.
 func (c *Config) PasswordCredentialsToken(ctx context.Context, username, password string) (*Token, error) {
 	v := url.Values{
 		"grant_type": {"password"},
@@ -183,8 +204,7 @@ func (c *Config) PasswordCredentialsToken(ctx context.Context, username, passwor
 // It is used after a resource provider redirects the user back
 // to the Redirect URI (the URL obtained from AuthCodeURL).
 //
-// The HTTP client to use is derived from the context.
-// If a client is not provided via the context, http.DefaultClient is used.
+// The provided context optionally controls which HTTP client is used. See the HTTPClient variable.
 //
 // The code will be in the *http.Request.FormValue("code"). Before
 // calling Exchange, be sure to validate FormValue("state").
@@ -271,6 +291,8 @@ type reuseTokenSource struct {
 
 	mu sync.Mutex // guards t
 	t  *Token
+
+	expiryDelta time.Duration
 }
 
 // Token returns the current token if it's still valid, else will
@@ -286,6 +308,7 @@ func (s *reuseTokenSource) Token() (*Token, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.expiryDelta = s.expiryDelta
 	s.t = t
 	return t, nil
 }
@@ -358,5 +381,32 @@ func ReuseTokenSource(t *Token, src TokenSource) TokenSource {
 	return &reuseTokenSource{
 		t:   t,
 		new: src,
+	}
+}
+
+// ReuseTokenSource returns a TokenSource that acts in the same manner as the
+// TokenSource returned by ReuseTokenSource, except the expiry buffer is
+// configurable. The expiration time of a token is calculated as
+// t.Expiry.Add(-earlyExpiry).
+func ReuseTokenSourceWithExpiry(t *Token, src TokenSource, earlyExpiry time.Duration) TokenSource {
+	// Don't wrap a reuseTokenSource in itself. That would work,
+	// but cause an unnecessary number of mutex operations.
+	// Just build the equivalent one.
+	if rt, ok := src.(*reuseTokenSource); ok {
+		if t == nil {
+			// Just use it directly, but set the expiryDelta to earlyExpiry,
+			// so the behavior matches what the user expects.
+			rt.expiryDelta = earlyExpiry
+			return rt
+		}
+		src = rt.new
+	}
+	if t != nil {
+		t.expiryDelta = earlyExpiry
+	}
+	return &reuseTokenSource{
+		t:           t,
+		new:         src,
+		expiryDelta: earlyExpiry,
 	}
 }
