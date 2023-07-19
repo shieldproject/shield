@@ -9,10 +9,8 @@ require (
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/fsouza/go-dockerclient v0.0.0-20151130162558-d750ee8aff39
 	github.com/go-sql-driver/mysql v1.2.1-0.20160602001021-3654d25ec346
-	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190730201129-28a6bbf47e48 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-github v0.0.0-20150605201353-af17a5fa8537
@@ -32,9 +30,7 @@ require (
 	github.com/jhunt/go-table v0.0.0-20181127194439-fcc252a20f4c
 	github.com/jmoiron/sqlx v0.0.0-20160615151803-bdae0c3219c3
 	github.com/kurin/blazer v0.5.1
-	github.com/lestrrat-go/blackmagic v1.0.1 // indirect
-	github.com/lestrrat-go/iter v1.0.2 // indirect
-	github.com/lestrrat-go/jwx v1.2.25 // indirect
+	github.com/lestrrat-go/jwx v1.2.26 // indirect
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-shellwords v1.0.0
 	github.com/mattn/go-sqlite3 v1.1.1-0.20161028142218-86681de00ade
@@ -51,13 +47,11 @@ require (
 	go.uber.org/atomic v1.4.1-0.20190731194737-ef0d20d85b01 // indirect
 	go.uber.org/multierr v1.1.1-0.20190429210458-bd075f90b08f // indirect
 	go.uber.org/zap v1.10.1-0.20190709142728-9a9fa7d4b5f0 // indirect
-	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
+	golang.org/x/crypto v0.9.0
 	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
-	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf // indirect
 	google.golang.org/api v0.0.0-20160107235428-77e7d383beb9
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	gopkg.in/yaml.v3 v3.0.0 // indirect
 )
