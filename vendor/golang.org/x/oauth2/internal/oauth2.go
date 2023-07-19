@@ -14,7 +14,7 @@ import (
 
 // ParseKey converts the binary contents of a private key file
 // to an *rsa.PrivateKey. It detects whether the private key is in a
-// PEM container or not. If so, it extracts the the private key
+// PEM container or not. If so, it extracts the private key
 // from PEM container before conversion. It only supports PEM
 // containers with no passphrase.
 func ParseKey(key []byte) (*rsa.PrivateKey, error) {
@@ -26,7 +26,7 @@ func ParseKey(key []byte) (*rsa.PrivateKey, error) {
 	if err != nil {
 		parsedKey, err = x509.ParsePKCS1PrivateKey(key)
 		if err != nil {
-			return nil, fmt.Errorf("private key should be a PEM or plain PKSC1 or PKCS8; parse error: %v", err)
+			return nil, fmt.Errorf("private key should be a PEM or plain PKCS1 or PKCS8; parse error: %v", err)
 		}
 	}
 	parsed, ok := parsedKey.(*rsa.PrivateKey)
