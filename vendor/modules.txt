@@ -47,7 +47,7 @@ github.com/coreos/etcd/raft/raftpb
 github.com/coreos/go-systemd/journal
 # github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 github.com/coreos/pkg/capnslog
-# github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0
+# github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0
 github.com/decred/dcrd/dcrec/secp256k1/v4
 # github.com/fatih/color v1.13.0
 github.com/fatih/color
@@ -76,7 +76,7 @@ github.com/fsouza/go-dockerclient/external/github.com/hashicorp/go-cleanhttp
 github.com/fsouza/go-dockerclient/external/github.com/opencontainers/runc/libcontainer/user
 # github.com/go-sql-driver/mysql v1.5.0
 github.com/go-sql-driver/mysql
-# github.com/goccy/go-json v0.9.11
+# github.com/goccy/go-json v0.10.2
 github.com/goccy/go-json
 github.com/goccy/go-json/internal/decoder
 github.com/goccy/go-json/internal/encoder
@@ -185,7 +185,7 @@ github.com/lestrrat-go/httpcc
 # github.com/lestrrat-go/iter v1.0.2
 github.com/lestrrat-go/iter/arrayiter
 github.com/lestrrat-go/iter/mapiter
-# github.com/lestrrat-go/jwx v1.2.25
+# github.com/lestrrat-go/jwx v1.2.26
 github.com/lestrrat-go/jwx/internal/base64
 github.com/lestrrat-go/jwx/internal/ecutil
 github.com/lestrrat-go/jwx/internal/iter
@@ -196,7 +196,7 @@ github.com/lestrrat-go/jwx/jwa
 github.com/lestrrat-go/jwx/jwk
 github.com/lestrrat-go/jwx/jws
 github.com/lestrrat-go/jwx/x25519
-# github.com/lestrrat-go/option v1.0.0
+# github.com/lestrrat-go/option v1.0.1
 github.com/lestrrat-go/option
 # github.com/mattn/go-colorable v0.1.12
 github.com/mattn/go-colorable
