@@ -40,7 +40,6 @@ require (
 	github.com/jhunt/go-table v0.0.0-20181127194439-fcc252a20f4c
 	github.com/jmoiron/sqlx v0.0.0-20160615151803-bdae0c3219c3
 	github.com/jonboulle/clockwork v0.1.0 // indirect
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kurin/blazer v0.5.1
 	github.com/lestrrat-go/jwx v1.2.26 // indirect
 	github.com/lib/pq v1.1.1 // indirect
@@ -55,7 +54,7 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pborman/uuid v1.2.0
-	github.com/prometheus/client_golang v1.4.0
+	github.com/prometheus/client_golang v1.11.1
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/thanhpk/randstr v1.0.4
