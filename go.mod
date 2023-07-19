@@ -45,16 +45,14 @@ require (
 	github.com/onsi/ginkgo v1.13.0
 	github.com/onsi/gomega v1.10.1
 	github.com/pborman/uuid v0.0.0-20150824212802-cccd189d45f7
-	github.com/prometheus/client_golang v1.1.0
-	github.com/prometheus/common v0.6.1-0.20190730175846-637d7c34db12 // indirect
-	github.com/prometheus/procfs v0.0.4-0.20190731153504-5da962fa40f1 // indirect
+	github.com/prometheus/client_golang v1.11.1
 	github.com/thanhpk/randstr v1.0.4
 	go.etcd.io/etcd v3.3.18+incompatible
 	go.uber.org/atomic v1.4.1-0.20190731194737-ef0d20d85b01 // indirect
 	go.uber.org/multierr v1.1.1-0.20190429210458-bd075f90b08f // indirect
 	go.uber.org/zap v1.10.1-0.20190709142728-9a9fa7d4b5f0 // indirect
 	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
-	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
+	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf // indirect
 	google.golang.org/api v0.0.0-20160107235428-77e7d383beb9
 	google.golang.org/appengine v1.6.7 // indirect
