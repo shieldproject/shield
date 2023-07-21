@@ -15,7 +15,6 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-github v0.0.0-20150605201353-af17a5fa8537
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/uuid v1.1.2-0.20190416172445-c2e93f3ae59f // indirect
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/consul v0.8.0
 	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
@@ -44,14 +43,12 @@ require (
 	github.com/prometheus/client_golang v1.11.1
 	github.com/thanhpk/randstr v1.0.4
 	go.etcd.io/etcd v3.3.18+incompatible
-	go.uber.org/atomic v1.4.1-0.20190731194737-ef0d20d85b01 // indirect
-	go.uber.org/multierr v1.1.1-0.20190429210458-bd075f90b08f // indirect
-	go.uber.org/zap v1.10.1-0.20190709142728-9a9fa7d4b5f0 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.9 // indirect
 	golang.org/x/crypto v0.9.0
-	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/api v0.0.0-20160107235428-77e7d383beb9
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.4.0
+	github.com/fsouza/go-dockerclient v1.9.7
 )
