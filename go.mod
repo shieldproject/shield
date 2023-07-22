@@ -2,6 +2,8 @@ module github.com/shieldproject/shield
 
 go 1.13
 
+replace github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.8.0
+
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230106234847-43070de90fa1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
@@ -10,7 +12,7 @@ require (
 	github.com/Microsoft/hcsshim v0.9.10 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/cloudfoundry-community/vaultkv v0.3.0
-	github.com/containerd/containerd v1.6.21 // indirect
+	github.com/containerd/containerd v1.6.19 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/docker/docker v24.0.4+incompatible // indirect
