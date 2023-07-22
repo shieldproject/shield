@@ -5,12 +5,14 @@ go 1.13
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/ErikDubbelboer/gspt v0.0.0-20180711091504-e39e726e09cc
+	github.com/Microsoft/hcsshim v0.10.0-rc.9 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/cloudfoundry-community/vaultkv v0.3.0
 	github.com/containerd/containerd v1.7.2 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/docker/docker v24.0.4+incompatible // indirect
 	github.com/fsouza/go-dockerclient v1.9.7
+	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/google/go-github v0.0.0-20150605201353-af17a5fa8537
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -30,11 +32,10 @@ require (
 	github.com/jmoiron/sqlx v0.0.0-20160615151803-bdae0c3219c3
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/kurin/blazer v0.5.1
-	github.com/lestrrat-go/jwx v1.2.26 // indirect
 	github.com/lib/pq v1.1.1 // indirect
-	github.com/mattn/go-isatty v0.0.16
+	github.com/mattn/go-isatty v0.0.17
 	github.com/mattn/go-shellwords v1.0.12
-	github.com/mattn/go-sqlite3 v1.14.14
+	github.com/mattn/go-sqlite3 v1.14.15
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/ncw/swift v1.0.48-0.20190410202254-753d2090bb62
@@ -46,13 +47,14 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pborman/uuid v1.2.0
 	github.com/prometheus/client_golang v1.14.0
-	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/thanhpk/randstr v1.0.4
 	go.etcd.io/etcd v3.3.18+incompatible // indirect
 	go.etcd.io/etcd/client/v3 v3.5.9
 	golang.org/x/crypto v0.11.0
-	golang.org/x/oauth2 v0.6.0
+	golang.org/x/oauth2 v0.8.0
 	golang.org/x/tools v0.11.0 // indirect
-	google.golang.org/api v0.110.0
+	google.golang.org/api v0.126.0
+	google.golang.org/genproto v0.0.0-20230720185612-659f7aaaa771 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230720185612-659f7aaaa771 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
