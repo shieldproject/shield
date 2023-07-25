@@ -34,28 +34,28 @@ race:
 shield: shieldd shield-agent shield-schema shield-crypt shield-report
 
 shield-crypt:
-	go $(BUILD_TYPE) ./cmd/shield-crypt
+	go $(BUILD_TYPE) -mod vendor ./cmd/shield-crypt
 shieldd:
-	go $(BUILD_TYPE) ./cmd/shieldd
+	go $(BUILD_TYPE) -mod vendor ./cmd/shieldd
 shield-agent:
-	go $(BUILD_TYPE) ./cmd/shield-agent
+	go $(BUILD_TYPE) -mod vendor ./cmd/shield-agent
 shield-schema:
-	go $(BUILD_TYPE) ./cmd/shield-schema
+	go $(BUILD_TYPE) -mod vendor ./cmd/shield-schema
 shield-report:
-	go $(BUILD_TYPE) ./cmd/shield-report
+	go $(BUILD_TYPE) -mod vendor ./cmd/shield-report
 
 shield: cmd/shield/help.go
-	go $(BUILD_TYPE) ./cmd/shield
+	go $(BUILD_TYPE) -mod vendor ./cmd/shield
 help.all: cmd/shield/main.go
 	grep case $< | grep '{''{{' | cut -d\" -f 2 | sort | xargs -n1 -I@ ./shield @ -h > $@
 
 # Building Plugins
 plugin: plugins
 plugins:
-	go $(BUILD_TYPE) ./plugin/dummy
+	go $(BUILD_TYPE) -mod vendor ./plugin/dummy
 	@for plugin in $$(cat plugins); do \
 		echo building plugin $$plugin...; \
-		go $(BUILD_TYPE) ./plugin/$$plugin; \
+		go $(BUILD_TYPE) -mod vendor ./plugin/$$plugin; \
 	done
 
 
@@ -109,18 +109,18 @@ release:
 	@echo "Compiling SHIELD Linux Server Distribution..."
 	export GOOS=linux GOARCH=amd64; \
 	for plugin in $$(cat plugins); do \
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"      ./plugin/$$plugin; \
+	              go build -mod vendor -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"      ./plugin/$$plugin; \
 	done; \
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/crypter/shield-crypt"  ./cmd/shield-crypt; \
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"    ./cmd/shield-agent; \
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-report"   ./cmd/shield-report; \
-	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema"  ./cmd/shield-schema; \
-	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"        ./cmd/shieldd; \
+	              go build -mod vendor -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/crypter/shield-crypt"  ./cmd/shield-crypt; \
+	              go build -mod vendor -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"    ./cmd/shield-agent; \
+	              go build -mod vendor -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-report"   ./cmd/shield-report; \
+	CGO_ENABLED=1 go build -mod vendor -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema"  ./cmd/shield-schema; \
+	CGO_ENABLED=1 go build -mod vendor -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"        ./cmd/shieldd; \
 
 	@echo "Compiling SHIELD CLI For Linux and macOS..."
-	GOOS=linux  GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-linux-amd64  ./cmd/shield
-	GOOS=darwin GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-darwin-amd64 ./cmd/shield
-	GOOS=darwin GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-darwin-arm64 ./cmd/shield
+	GOOS=linux  GOARCH=amd64 go build -mod vendor -ldflags="$(LDFLAGS)" -o artifacts/shield-linux-amd64  ./cmd/shield
+	GOOS=darwin GOARCH=amd64 go build -mod vendor -ldflags="$(LDFLAGS)" -o artifacts/shield-darwin-amd64 ./cmd/shield
+	GOOS=darwin GOARCH=arm64 go build -mod vendor -ldflags="$(LDFLAGS)" -o artifacts/shield-darwin-arm64 ./cmd/shield
 	mkdir -p "$(ARTIFACTS)/cli"
 	cp artifacts/shield-linux-amd64 "$(ARTIFACTS)/cli/shield"
 
