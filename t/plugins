@@ -365,7 +365,6 @@ with "Missing required --key flag") 2>&1 | indent
 ####################################################################################
 for x in s3 \
          fs \
-#         azure \
          consul \
          google \
          postgres docker-postgres \
