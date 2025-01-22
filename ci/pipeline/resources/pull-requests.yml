@@ -10,6 +10,6 @@ resources:
   check_every: 60m
   webhook_token: ((webhook.token))
   source:
-    access_token: (( grab meta.github.access_token ))
+    access_token: (( grab meta.github.access_token_rw ))
     repository:   (( concat meta.github.owner "/" meta.github.repo ))
     base_branch:  (( grab meta.github.branch ))

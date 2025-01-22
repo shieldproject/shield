@@ -1,6 +1,9 @@
 #!/bin/bash
 set -eu
 
+export VERSION_FROM="version/number"
+
+
 header() {
 	echo
 	echo "================================================================================"
@@ -22,29 +25,28 @@ VERSION=$(cat "${VERSION_FROM}")
 test -n "${VERSION}"            || bail "Version file (${VERSION_FROM}) was empty."
 
 test -f "${SHIELD}"             || bail "SHIELD must be set -- check pipeline configuration"
-test -f "${PHALANX}"            || bail "PHALANX must be set -- check pipeline configuration"
-test -f "${VERSION}"            || bail "VERSION must be set -- check pipeline configuration"
-test -f "${OUTPUT}"             || bail "OUTPUT must be set -- check pipeline configuration"
-test -f "${BOSH_DEPLOYMENT}"    || bail "BOSH_DEPLOYMENT must be set -- check pipeline configuration"
-test -f "${AWS_ACCESS_KEY}"     || bail "AWS_ACCESS_KEY must be set -- check pipeline configuration"
-test -f "${AWS_SECRET_KEY}"     || bail "AWS_SECRET_KEY must be set -- check pipeline configuration"
-test -f "${BOSH_ENVIRONMENT}"   || bail "BOSH_ENVIRONMENT must be set -- check pipeline configuration"
-test -f "${BOSH_CLIENT}"        || bail "BOSH_CLIENT must be set -- check pipeline configuration"
-test -f "${BOSH_CLIENT_SECRET}" || bail "BOSH_CLIENT_SECRET must be set -- check pipeline configuration"
-test -f "${BOSH_CA_CERT}"       || bail "BOSH_CA_CERT must be set -- check pipeline configuration"
+#test -n "${PHALANX}"            || bail "PHALANX must be set -- check pipeline configuration"
+#test -n "${VERSION}"            || bail "VERSION must be set -- check pipeline configuration"
+#test -f "${OUTPUT}"             || bail "OUTPUT must be set -- check pipeline configuration"
+#test -f "${BOSH_DEPLOYMENT}"    || bail "BOSH_DEPLOYMENT must be set -- check pipeline configuration"
+test -n "${AWS_ACCESS_KEY}"     || bail "AWS_ACCESS_KEY must be set -- check pipeline configuration"
+test -n "${AWS_SECRET_KEY}"     || bail "AWS_SECRET_KEY must be set -- check pipeline configuration"
+test -n "${BOSH_ENVIRONMENT}"   || bail "BOSH_ENVIRONMENT must be set -- check pipeline configuration"
+test -n "${BOSH_CLIENT}"        || bail "BOSH_CLIENT must be set -- check pipeline configuration"
+test -n "${BOSH_CLIENT_SECRET}" || bail "BOSH_CLIENT_SECRET must be set -- check pipeline configuration"
+test -n "${BOSH_CA_CERT}"       || bail "BOSH_CA_CERT must be set -- check pipeline configuration"
 
 # Resource Directories
 export ROOT_PATH="$(pwd)"
 
 mkdir -p "$(dirname ${GOPATH}/src/${MODULE})"
-mv ${ROOT_PATH}/git "${GOPATH}/src/${MODULE}
-ln -snf "${GOPATH}/src/${MODULE} ${ROOT_PATH}/git
+cp -a "${ROOT_PATH}/git" "${GOPATH}/src/${MODULE}"
+ln -snf "${GOPATH}/src/${MODULE}" "${ROOT_PATH}/git"
 export PATH=${PATH}:${GOPATH}/bin
 export REPO_ROOT="${GOPATH}/src/${MODULE}"
 
 export BUILD_ROOT="${ROOT_PATH}/build"
 export CI_ROOT="${ROOT_PATH}/git-ci"
-export VERSION_FROM="version/number"
 export RELEASE_ROOT="${REPO_ROOT}/artifacts"
 export PHALANX_ROOT="${ROOT_PATH}/${PHALANX}"
 
@@ -63,7 +65,7 @@ cd $ROOT_PATH
 header "Running phalanx tests"
 
 cd $BUILD_ROOT
-tar -zxvf $APP_NAME-$VERSION.tar.gz
+#tar -zxvf $APP_NAME-$VERSION.tar.gz
 
 cp ${BUILD_ROOT}/shield-server-linux-amd64.tar.gz \
    ${PHALANX_ROOT}/src/shield-rc/shield-server-linux-amd64.tar.gz

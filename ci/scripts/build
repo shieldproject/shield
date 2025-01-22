@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eu
 
+export VERSION_FROM="version/number"
+
 header() {
 	echo
 	echo "================================================================================"
@@ -25,14 +27,13 @@ test -n "${VERSION}"          || bail "Version file (${VERSION_FROM}) was empty.
 export ROOT_PATH="$(pwd)"
 
 mkdir -p "$(dirname ${GOPATH}/src/${MODULE})"
-mv ${ROOT_PATH}/git "${GOPATH}/src/${MODULE}
-ln -snf "${GOPATH}/src/${MODULE} ${ROOT_PATH}/git
+cp -a "${ROOT_PATH}/git" "${GOPATH}/src/${MODULE}"
+ln -snf "${GOPATH}/src/${MODULE}" "${ROOT_PATH}/git"
 export PATH=${PATH}:${GOPATH}/bin
 export REPO_ROOT="${GOPATH}/src/${MODULE}"
 
 export BUILD_ROOT="${ROOT_PATH}/build"
 export CI_ROOT="${ROOT_PATH}/git-ci"
-export VERSION_FROM="version/number"
 export RELEASE_ROOT="${REPO_ROOT}/artifacts"
 
 header "Building $APP_NAME v$VERSION..."
