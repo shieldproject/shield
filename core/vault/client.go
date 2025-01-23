@@ -125,6 +125,20 @@ func (c *Client) Initialize(crypt, master string) (string, error) {
 		return "", err
 	}
 
+	// Create the create mount "secret" as V2
+	var path = "secret"
+	var version = 2
+
+	err = c.vault.EnableSecretsMount(path, vaultkv.Mount{
+		Type:        "kv",
+		Description: fmt.Sprintf("A KV v%d Mount created by safe", version),
+		Options:     vaultkv.KVMountOptions{}.WithVersion(version),
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to create secret mount: %s", err)
+	}
+
 	k, p, err := GenerateFixedParameters()
 	if err != nil {
 		return "", err
