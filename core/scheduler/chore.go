@@ -3,6 +3,7 @@ package scheduler
 import (
 	"encoding/json"
 	"fmt"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -121,12 +122,23 @@ func (w *Worker) Execute(chore Chore) {
 		panic(fmt.Errorf("failed to retrieve task '%s' from database: %s", chore.TaskUUID, err))
 	}
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("Recovered from panic:", r)
+				debug.PrintStack() // Print the stack trace
+			}
+		}()
+
 		chore.Do(chore)
 
 		if rc != 0 {
 			job, err := w.db.GetJob(task.JobUUID)
 			if err != nil {
 				panic(fmt.Errorf("failed to retrieve job '%s' from database: %s", task.JobUUID, err))
+			}
+			// check if job object has retries set
+			if job == nil {
+				panic(fmt.Errorf("failed to retrieve job '%s' from database: no such job", task.JobUUID))
 			}
 			retries := job.Retries
 			log.Infof("Retries: %d", chore)
