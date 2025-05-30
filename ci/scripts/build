@@ -16,7 +16,7 @@ bail() {
 	exit 2
 }
 test -n "${APP_NAME:-}"       || bail "APP_NAME must be set to the name of this package."
-#test -n "${MODULE:-}"         || bail "MODULE must be set to the Go Module path of this package."
+test -n "${MODULE:-}"         || bail "MODULE must be set to the Go Module path of this package."
 test -n "${GOPATH:-}"         || bail "Expecting GOPATH to be set -- make sure correct image is specified."
 
 test -f "${VERSION_FROM}"     || bail "Version file (${VERSION_FROM}) not found."

@@ -13,7 +13,8 @@ jobs:
   - task: test
     file: git-ci/ci/tasks/test.yml
     params:
-      APP_NAME: (( grab meta.name ))
+      APP_NAME:             (( grab meta.name ))
+      MODULE:               (( grab meta.go.module ))
       AWS_ACCESS_KEY:       (( grab meta.aws.access_key ))
       AWS_SECRET_KEY:       (( grab meta.aws.secret_key ))
       BOSH_ENVIRONMENT:     (( grab meta.bosh.target ))

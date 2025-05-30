@@ -11,6 +11,7 @@ jobs:
     file: git-ci/ci/tasks/build.yml
     params:
       APP_NAME: (( grab meta.name ))
+      MODULE:   (( grab meta.go.module ))
   - put: build
     params:
       file: build/*.tar.gz
