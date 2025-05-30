@@ -47,5 +47,5 @@ groups:
 - name: (( grab meta.pipeline ))
   jobs:
   - (( append ))
-  - phalanx
+#  - phalanx
 
