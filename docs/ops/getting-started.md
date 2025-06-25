@@ -41,7 +41,7 @@ in your browser of choice, you should see something like this:
 ![The SHIELD Login Page]($docs/ops/getting-started/login.png)
 
 The default credentials for SHIELD are `admin` (username) and
-`shield` (password).  After you log in, you will be presented with
+`password` (password).  After you log in, you will be presented with
 the _initialization screen_, where you'll set your master
 password, to protect the encryption parameters of all backup
 archives.
