@@ -35,14 +35,13 @@ require (
 	github.com/thanhpk/randstr v1.0.4
 	go.etcd.io/etcd/client/v3 v3.5.9
 	golang.org/x/crypto v0.36.0
-	golang.org/x/oauth2 v0.18.0
+	golang.org/x/oauth2 v0.30.0
 	google.golang.org/api v0.126.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
-	cloud.google.com/go/compute v1.23.0 // indirect
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230106234847-43070de90fa1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
