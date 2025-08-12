@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
 
@@ -259,6 +260,11 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 	setupEnvironmentVariables(pg)
 
+	// First, check if we have permission issues before starting the restore
+	if err := checkRestorePermissions(pg); err != nil {
+		return err
+	}
+
 	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres")
 	plugin.DEBUG("Exec: %s/psql -d postgres", pg.Bin)
 	plugin.DEBUG("Redirecting stdout and stderr to stderr")
@@ -314,6 +320,44 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 	return <-scanErr
+}
+
+// checkRestorePermissions performs upfront permission checks before starting restore
+func checkRestorePermissions(pg *PostgresConnectionInfo) error {
+	plugin.DEBUG("Checking restore permissions...")
+	
+	// Create a temporary connection to check permissions
+	// Check if user is superuser or has specific database privileges
+	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres", "-t", "-A", "-c", 
+		"SELECT CASE WHEN "+
+		"(SELECT usesuper FROM pg_user WHERE usename = current_user) OR "+
+		"pg_has_role(current_user, 'rds_superuser', 'MEMBER') OR "+
+		"has_database_privilege(current_user, 'postgres', 'CREATE') "+
+		"THEN 'SUFFICIENT' ELSE 'INSUFFICIENT' END;")
+	
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, 
+		fmt.Sprintf("PGUSER=%s", pg.User),
+		fmt.Sprintf("PGPASSWORD=%s", pg.Password),
+		fmt.Sprintf("PGHOST=%s", pg.Host),
+		fmt.Sprintf("PGPORT=%s", pg.Port),
+	)
+	
+	output, err := cmd.Output()
+	if err != nil {
+		plugin.DEBUG("Failed to check permissions: %s", err)
+		return fmt.Errorf("postgres: failed to verify user privileges: %s", err)
+	}
+	
+	result := strings.TrimSpace(string(output))
+	plugin.DEBUG("Permission check result: '%s'", result)
+	
+	if result != "SUFFICIENT" {
+		return fmt.Errorf("postgres: insufficient privileges for restore operation. User '%s' needs superuser privileges or database creation rights to safely restore databases", pg.User)
+	}
+	
+	plugin.DEBUG("User has sufficient privileges for restore")
+	return nil
 }
 
 func (p PostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
