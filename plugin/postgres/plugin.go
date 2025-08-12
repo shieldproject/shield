@@ -112,6 +112,14 @@ func main() {
 				Help:    "The absolute path to the bin/ directory that contains the `psql` command.",
 				Default: "/var/vcap/packages/postgres-9.4/bin",
 			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "pg_skip_permission_check",
+				Type:    "bool",
+				Title:   "Skip permission validation",
+				Help:    "Skip upfront permission checking. WARNING: Use only if you understand the risks. Restore may fail with confusing errors if privileges are insufficient.",
+				Default: "false",
+			},
 		},
 	}
 
@@ -121,15 +129,16 @@ func main() {
 type PostgresPlugin plugin.PluginInfo
 
 type PostgresConnectionInfo struct {
-	Host        string
-	Port        string
-	User        string
-	Password    string
-	Bin         string
-	ReplicaHost string
-	ReplicaPort string
-	Database    string
-	Options     string
+	Host               string
+	Port               string
+	User               string
+	Password           string
+	Bin                string
+	ReplicaHost        string
+	ReplicaPort        string
+	Database           string
+	Options            string
+	SkipPermissionCheck bool
 }
 
 func (p PostgresPlugin) Meta() plugin.PluginInfo {
@@ -261,8 +270,12 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	setupEnvironmentVariables(pg)
 
 	// First, check if we have permission issues before starting the restore
-	if err := checkRestorePermissions(pg); err != nil {
-		return err
+	if !pg.SkipPermissionCheck {
+		if err := checkRestorePermissions(pg); err != nil {
+			return err
+		}
+	} else {
+		plugin.DEBUG("Skipping permission check as requested")
 	}
 
 	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres")
@@ -330,9 +343,9 @@ func checkRestorePermissions(pg *PostgresConnectionInfo) error {
 	// Check if user is superuser or has specific database privileges
 	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres", "-t", "-A", "-c", 
 		"SELECT CASE WHEN "+
-		"(SELECT usesuper FROM pg_user WHERE usename = current_user) OR "+
+		"(SELECT COALESCE(usesuper, false) FROM pg_user WHERE usename = current_user) OR "+
 		"pg_has_role(current_user, 'rds_superuser', 'MEMBER') OR "+
-		"has_database_privilege(current_user, 'postgres', 'CREATE') "+
+		"(pg_has_role(current_user, 'pg_database_owner', 'MEMBER') AND has_database_privilege(current_user, 'postgres', 'CREATE')) "+
 		"THEN 'SUFFICIENT' ELSE 'INSUFFICIENT' END;")
 	
 	cmd.Env = os.Environ()
@@ -436,15 +449,22 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 	}
 	plugin.DEBUG("PGBINDIR: '%s'", bin)
 
+	skipCheck, err := endpoint.BoolValueDefault("pg_skip_permission_check", false)
+	if err != nil {
+		return nil, err
+	}
+	plugin.DEBUG("PG_SKIP_PERMISSION_CHECK: %t", skipCheck)
+
 	return &PostgresConnectionInfo{
-		Host:        host,
-		Port:        port,
-		User:        user,
-		Password:    password,
-		ReplicaHost: replicahost,
-		ReplicaPort: replicaport,
-		Bin:         bin,
-		Database:    database,
-		Options:     options,
+		Host:                host,
+		Port:                port,
+		User:                user,
+		Password:            password,
+		ReplicaHost:         replicahost,
+		ReplicaPort:         replicaport,
+		Bin:                 bin,
+		Database:            database,
+		Options:             options,
+		SkipPermissionCheck: skipCheck,
 	}, nil
 }
