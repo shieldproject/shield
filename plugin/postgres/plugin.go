@@ -129,15 +129,15 @@ func main() {
 type PostgresPlugin plugin.PluginInfo
 
 type PostgresConnectionInfo struct {
-	Host               string
-	Port               string
-	User               string
-	Password           string
-	Bin                string
-	ReplicaHost        string
-	ReplicaPort        string
-	Database           string
-	Options            string
+	Host                string
+	Port                string
+	User                string
+	Password            string
+	Bin                 string
+	ReplicaHost         string
+	ReplicaPort         string
+	Database            string
+	Options             string
 	SkipPermissionCheck bool
 }
 
@@ -338,37 +338,37 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 // checkRestorePermissions performs upfront permission checks before starting restore
 func checkRestorePermissions(pg *PostgresConnectionInfo) error {
 	plugin.DEBUG("Checking restore permissions...")
-	
+
 	// Create a temporary connection to check permissions
 	// Check if user is superuser or has specific database privileges
-	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres", "-t", "-A", "-c", 
+	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres", "-t", "-A", "-c",
 		"SELECT CASE WHEN "+
-		"(SELECT COALESCE(usesuper, false) FROM pg_user WHERE usename = current_user) OR "+
-		"pg_has_role(current_user, 'rds_superuser', 'MEMBER') OR "+
-		"(pg_has_role(current_user, 'pg_database_owner', 'MEMBER') AND has_database_privilege(current_user, 'postgres', 'CREATE')) "+
-		"THEN 'SUFFICIENT' ELSE 'INSUFFICIENT' END;")
-	
+			"(SELECT COALESCE(usesuper, false) FROM pg_user WHERE usename = current_user) OR "+
+			"pg_has_role(current_user, 'rds_superuser', 'MEMBER') OR "+
+			"(pg_has_role(current_user, 'pg_database_owner', 'MEMBER') AND has_database_privilege(current_user, 'postgres', 'CREATE')) "+
+			"THEN 'SUFFICIENT' ELSE 'INSUFFICIENT' END;")
+
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, 
+	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("PGUSER=%s", pg.User),
 		fmt.Sprintf("PGPASSWORD=%s", pg.Password),
 		fmt.Sprintf("PGHOST=%s", pg.Host),
 		fmt.Sprintf("PGPORT=%s", pg.Port),
 	)
-	
+
 	output, err := cmd.Output()
 	if err != nil {
 		plugin.DEBUG("Failed to check permissions: %s", err)
 		return fmt.Errorf("postgres: failed to verify user privileges: %s", err)
 	}
-	
+
 	result := strings.TrimSpace(string(output))
 	plugin.DEBUG("Permission check result: '%s'", result)
-	
+
 	if result != "SUFFICIENT" {
 		return fmt.Errorf("postgres: insufficient privileges for restore operation. User '%s' needs superuser privileges or database creation rights to safely restore databases", pg.User)
 	}
-	
+
 	plugin.DEBUG("User has sufficient privileges for restore")
 	return nil
 }
@@ -449,7 +449,7 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 	}
 	plugin.DEBUG("PGBINDIR: '%s'", bin)
 
-	skipCheck, err := endpoint.BoolValueDefault("pg_skip_permission_check", false)
+	skipCheck, err := endpoint.BooleanValueDefault("pg_skip_permission_check", false)
 	if err != nil {
 		return nil, err
 	}
