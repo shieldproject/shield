@@ -410,7 +410,27 @@
       var df = $.Deferred();
       var self = this; /* save off 'this' for the continuation call */
 
-      console.log('connecting to websocket at %s', opts.websocket);
+      // First check authentication via bearings before attempting WebSocket connection
+      console.log('checking authentication via %s before establishing websocket...', opts.bearings);
+      api({
+        type: 'GET',
+        url:  opts.bearings,
+        success: function (bearings) {
+          console.log('authentication verified, connecting to websocket at %s', opts.websocket);
+          self._establishWebSocket(opts, df, bearings);
+        },
+        error: function () {
+          console.log('authentication failed, rejecting subscription');
+          df.reject();
+        }
+      });
+
+      return df.promise();
+    },
+
+    _establishWebSocket: function (opts, df, bearings) {
+      var self = this; /* save off 'this' for the continuation call */
+      
       this.ws = new WebSocket(opts.websocket);
       this.ws.onerror = function (event) {
         self.ws = undefined;
@@ -480,85 +500,75 @@
 
       this.ws.onopen = function () {
         console.log('connected to event stream.');
-        self.clear()
-        console.log('getting our bearings (via %s)...', opts.bearings);
-        api({
-          type: 'GET',
-          url:  opts.bearings,
-          success: function (bearings) {
-            self.shield = bearings.shield;
-            self.vault  = bearings.vault;
-            self.user   = bearings.user;
+        self.clear();
+        
+        // Process bearings data that was already fetched during authentication
+        self.shield = bearings.shield;
+        self.vault  = bearings.vault;
+        self.user   = bearings.user;
 
-            for (var i = 0; i < bearings.stores.length; i++) {
-              self.insert('store', bearings.stores[i]);
-            }
-            for (var uuid in bearings.tenants) {
-              var tenant = bearings.tenants[uuid];
+        for (var i = 0; i < bearings.stores.length; i++) {
+          self.insert('store', bearings.stores[i]);
+        }
+        for (var uuid in bearings.tenants) {
+          var tenant = bearings.tenants[uuid];
 
-              self.grant(uuid, tenant.role); /* FIXME: we don't need .grants anymore... */
+          self.grant(uuid, tenant.role); /* FIXME: we don't need .grants anymore... */
 
-              for (var i = 0; i < tenant.archives.length; i++) {
-                self.insert('archive', tenant.archives[i]);
-              }
-
-              for (var i = 0; i < tenant.jobs.length; i++) {
-                tenant.jobs[i].tenant_uuid = uuid;
-                tenant.jobs[i].store_uuid = tenant.jobs[i].store.uuid;
-                delete tenant.jobs[i].store;
-
-                tenant.jobs[i].target_uuid = tenant.jobs[i].target.uuid;
-                delete tenant.jobs[i].target;
-
-                self.insert('job', tenant.jobs[i]);
-              }
-
-              for (var i = 0; i < tenant.targets.length; i++) {
-                tenant.targets[i].tenant_uuid = uuid;
-                self.insert('target', tenant.targets[i]);
-              }
-
-              for (var i = 0; i < tenant.stores.length; i++) {
-                tenant.stores[i].tenant_uuid = uuid;
-                self.insert('store', tenant.stores[i]);
-              }
-
-              for (var i = 0; i < tenant.agents.length; i++) {
-                self.insert('agent', tenant.agents[i]);
-              }
-              delete tenant.agents;
-
-              self.insert('tenant', tenant.tenant);
-            }
-            console.log(bearings);
-
-            /* process system grants... */
-            self.grant(self.user.sysrole);
-
-            /* set default tenant */
-            if (!self.current && self.data.tenant) {
-              self.current = self.data.tenant[self.user.default_tenant];
-            }
-            if (!self.current) {
-              var l = [];
-              for (var k in self.data.tenant) {
-                l.push(self.data.tenant[k]);
-              }
-              l.sort(function (a, b) {
-                return a.name > b.name ? 1 : a.name == b.name ? 0 : -1;
-              });
-              if (l.length > 0) { self.current = l[0]; }
-            }
-
-            df.resolve();
-          },
-          error: function () {
-            df.reject();
+          for (var i = 0; i < tenant.archives.length; i++) {
+            self.insert('archive', tenant.archives[i]);
           }
-        });
-      };
 
-      return df.promise();
+          for (var i = 0; i < tenant.jobs.length; i++) {
+            tenant.jobs[i].tenant_uuid = uuid;
+            tenant.jobs[i].store_uuid = tenant.jobs[i].store.uuid;
+            delete tenant.jobs[i].store;
+
+            tenant.jobs[i].target_uuid = tenant.jobs[i].target.uuid;
+            delete tenant.jobs[i].target;
+
+            self.insert('job', tenant.jobs[i]);
+          }
+
+          for (var i = 0; i < tenant.targets.length; i++) {
+            tenant.targets[i].tenant_uuid = uuid;
+            self.insert('target', tenant.targets[i]);
+          }
+
+          for (var i = 0; i < tenant.stores.length; i++) {
+            tenant.stores[i].tenant_uuid = uuid;
+            self.insert('store', tenant.stores[i]);
+          }
+
+          for (var i = 0; i < tenant.agents.length; i++) {
+            self.insert('agent', tenant.agents[i]);
+          }
+          delete tenant.agents;
+
+          self.insert('tenant', tenant.tenant);
+        }
+        console.log(bearings);
+
+        /* process system grants... */
+        self.grant(self.user.sysrole);
+
+        /* set default tenant */
+        if (!self.current && self.data.tenant) {
+          self.current = self.data.tenant[self.user.default_tenant];
+        }
+        if (!self.current) {
+          var l = [];
+          for (var k in self.data.tenant) {
+            l.push(self.data.tenant[k]);
+          }
+          l.sort(function (a, b) {
+            return a.name > b.name ? 1 : a.name == b.name ? 0 : -1;
+          });
+          if (l.length > 0) { self.current = l[0]; }
+        }
+
+        df.resolve();
+      };
     },
 
     plugins: function (type) {
