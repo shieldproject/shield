@@ -428,7 +428,7 @@
       return df.promise();
     },
 
-    _establishWebSocket: function (opts, df, bearings) {
+    _establishWebSocket: function (opts, df, bearings, isReconnect) {
       var self = this; /* save off 'this' for the continuation call */
       
       this.ws = new WebSocket(opts.websocket);
@@ -443,7 +443,7 @@
 
         console.log('websocket closed, waiting 3000 ms before reopening to avoid infinite loop');
         setTimeout(function() {
-            self.subscribe();
+            self._reconnect();
         }, (3 * 1000));
       };
 
@@ -500,17 +500,20 @@
 
       this.ws.onopen = function () {
         console.log('connected to event stream.');
-        self.clear();
         
-        // Process bearings data that was already fetched during authentication
-        self.shield = bearings.shield;
-        self.vault  = bearings.vault;
-        self.user   = bearings.user;
+        // Only process bearings data on initial connection, not reconnection
+        if (bearings && !isReconnect) {
+          self.clear();
+          
+          // Process bearings data that was already fetched during authentication
+          self.shield = bearings.shield;
+          self.vault  = bearings.vault;
+          self.user   = bearings.user;
 
-        for (var i = 0; i < bearings.stores.length; i++) {
-          self.insert('store', bearings.stores[i]);
-        }
-        for (var uuid in bearings.tenants) {
+          for (var i = 0; i < bearings.stores.length; i++) {
+            self.insert('store', bearings.stores[i]);
+          }
+          for (var uuid in bearings.tenants) {
           var tenant = bearings.tenants[uuid];
 
           self.grant(uuid, tenant.role); /* FIXME: we don't need .grants anymore... */
@@ -566,9 +569,33 @@
           });
           if (l.length > 0) { self.current = l[0]; }
         }
+        }
 
         df.resolve();
       };
+    },
+
+    _reconnect: function () {
+      var self = this;
+      console.log('attempting to reconnect websocket...');
+      
+      // Validate authentication before reconnecting
+      api({
+        type: 'GET',
+        url: '/v2/bearings',
+        success: function (bearings) {
+          console.log('authentication still valid, reconnecting websocket...');
+          var opts = {
+            websocket: document.location.protocol.replace(/http/, 'ws')+'//'+document.location.host+'/v2/events'
+          };
+          var df = $.Deferred(); // Create dummy deferred since we don't need to track this
+          self._establishWebSocket(opts, df, null, true); // true = isReconnect
+        },
+        error: function () {
+          console.log('authentication expired during reconnection, redirecting to login...');
+          document.location.href = '/#!/login';
+        }
+      });
     },
 
     plugins: function (type) {
