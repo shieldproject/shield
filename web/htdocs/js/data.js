@@ -416,6 +416,11 @@
         type: 'GET',
         url:  opts.bearings,
         success: function (bearings) {
+          if (!bearings || !bearings.user) {
+            console.log('bearings response unauthenticated, not attempting websocket connection');
+            df.reject();
+            return;
+          }
           console.log('authentication verified, connecting to websocket at %s', opts.websocket);
           self._establishWebSocket(opts, df, bearings);
         },
