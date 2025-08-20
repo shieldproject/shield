@@ -403,32 +403,27 @@
 
     subscribe: function (opts) {
       opts = $.extend({
-        bearings:  '/v2/bearings',
-        websocket: document.location.protocol.replace(/http/, 'ws')+'//'+document.location.host+'/v2/events'
-      }, opts || {});
+      bearings:  '/v2/bearings',
+      websocket: document.location.protocol.replace(/http/, 'ws') + '//' + document.location.host + '/v2/events'
+      }, opts);
 
       var df = $.Deferred();
-      var self = this; /* save off 'this' for the continuation call */
+      var self = this;
 
-      // First check authentication via bearings before attempting WebSocket connection
-      console.log('checking authentication via %s before establishing websocket...', opts.bearings);
+      // Check authentication before establishing WebSocket
       api({
-        type: 'GET',
-        url:  opts.bearings,
-        success: function (bearings) {
-          if (!bearings || !bearings.user) {
-            console.log('bearings response unauthenticated, not attempting websocket connection');
-            df.reject();
-            return;
-          } else {
-            console.log('authentication verified, connecting to websocket at %s', opts.websocket);
-            self._establishWebSocket(opts, df, bearings);
-          }
-        },
-        error: function () {
-          console.log('authentication failed, rejecting subscription');
+      type: 'GET',
+      url: opts.bearings,
+      success: function (bearings) {
+        if (bearings && bearings.user) {
+          self._establishWebSocket(opts, df, bearings);
+        } else {
           df.reject();
         }
+      },
+      error: function () {
+        df.reject();
+      }
       });
 
       return df.promise();
