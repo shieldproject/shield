@@ -420,9 +420,10 @@
             console.log('bearings response unauthenticated, not attempting websocket connection');
             df.reject();
             return;
+          } else {
+            console.log('authentication verified, connecting to websocket at %s', opts.websocket);
+            self._establishWebSocket(opts, df, bearings);
           }
-          console.log('authentication verified, connecting to websocket at %s', opts.websocket);
-          self._establishWebSocket(opts, df, bearings);
         },
         error: function () {
           console.log('authentication failed, rejecting subscription');
