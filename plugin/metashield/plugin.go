@@ -84,7 +84,7 @@ func getClient(endpoint plugin.ShieldEndpoint) (*shield.Client, error) {
 		return nil, err
 	}
 
-	ca, err := endpoint.StringValue("core_ca_cert")
+	ca, err := endpoint.StringValueDefault("core_ca_cert", "")
 	if err != nil {
 		return nil, err
 	}

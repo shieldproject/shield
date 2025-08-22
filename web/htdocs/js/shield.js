@@ -28,6 +28,16 @@ function divert(page) { // {{{
 }
 // }}}
 
+function getCookie(name) { // {{{
+  const cookies = document.cookie.split(";").map(c => c.trim());
+  for (const cookie of cookies) {
+    if (cookie.startsWith(name + "=")) {
+      return decodeURIComponent(cookie.substring(name.length + 1));
+    }
+  }
+  return null;
+} // }}}
+
 function dispatch(page) {
   var argv = page.split(/[:+]/);
   dest = argv.shift();
@@ -172,6 +182,13 @@ function dispatch(page) {
               });
             })
           );
+          // populate the token field with cookie value
+	  console.log('looking for cookie shield7...');
+          var token = getCookie("shield7");
+          if (token !== null) {
+            $("#viewport").find("input[name='token']").val(token);
+		console.log('found %s for cookie shield7...', token);
+          }
         })
         .on("submit", ".setpass", function (event) {
           $('#viewport').template('init');
