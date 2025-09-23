@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -27,6 +25,9 @@ const (
 	DefaultSkipSSLValidation   = false
 	DefaultUseInstanceProfiles = false
 	credentialsEndpoint        = "http://169.254.169.254/latest/meta-data/iam/security-credentials"
+	// IMDSv2 endpoints
+	imdsTokenEndpoint = "http://169.254.169.254/latest/api/token"
+	imdsTokenTTL      = "21600" // 6 hours in seconds
 )
 
 func validSigVersion(v string) bool {
@@ -636,37 +637,80 @@ func (e s3Endpoint) Connect() (*s3.Client, error) {
 }
 
 func getInstanceProfileCredentials() (instanceProfileCredentials, error) {
-	response, connectErr := http.Get(fmt.Sprintf("%s/", credentialsEndpoint))
-	if connectErr != nil {
-		return instanceProfileCredentials{}, connectErr
-	} else if response.StatusCode != 200 {
-		return instanceProfileCredentials{}, errors.New(fmt.Sprintf("Connection request to %s/ failed with code %d", credentialsEndpoint, response.StatusCode))
-	}
-
-	body, readErr := ioutil.ReadAll(response.Body)
-	if readErr != nil {
-		return instanceProfileCredentials{}, readErr
-	}
-	role := string(body)
-	response.Body.Close()
-
 	var creds instanceProfileCredentials
-	response, connectErr = http.Get(fmt.Sprintf("%s/%s", credentialsEndpoint, role))
-	if connectErr != nil {
-		return instanceProfileCredentials{}, connectErr
-	} else if response.StatusCode != 200 {
-		return instanceProfileCredentials{}, errors.New(fmt.Sprintf("Connection request to %s/%s failed with code %d", credentialsEndpoint, role, response.StatusCode))
-	}
-	defer response.Body.Close()
 
-	body, readErr = ioutil.ReadAll(response.Body)
-	if readErr != nil {
-		return instanceProfileCredentials{}, readErr
+	// Step 1: Get IMDSv2 token
+	tokenReq, err := http.NewRequest("PUT", imdsTokenEndpoint, nil)
+	if err != nil {
+		return creds, fmt.Errorf("failed to create token request: %v", err)
+	}
+	tokenReq.Header.Set("X-aws-ec2-metadata-token-ttl-seconds", imdsTokenTTL)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	tokenResp, err := client.Do(tokenReq)
+	if err != nil {
+		return creds, fmt.Errorf("failed to get IMDSv2 token: %v", err)
+	}
+	defer tokenResp.Body.Close()
+
+	if tokenResp.StatusCode != 200 {
+		return creds, fmt.Errorf("failed to get IMDSv2 token, status: %d", tokenResp.StatusCode)
 	}
 
-	unmarshallErr := json.Unmarshal(body, &creds)
-	if unmarshallErr != nil {
-		return instanceProfileCredentials{}, unmarshallErr
+	tokenBytes, err := io.ReadAll(tokenResp.Body)
+	if err != nil {
+		return creds, fmt.Errorf("failed to read IMDSv2 token: %v", err)
+	}
+	token := strings.TrimSpace(string(tokenBytes))
+
+	// Step 2: Get IAM role name using IMDSv2 token
+	roleReq, err := http.NewRequest("GET", credentialsEndpoint, nil)
+	if err != nil {
+		return creds, fmt.Errorf("failed to create role request: %v", err)
+	}
+	roleReq.Header.Set("X-aws-ec2-metadata-token", token)
+
+	roleResp, err := client.Do(roleReq)
+	if err != nil {
+		return creds, fmt.Errorf("failed to get IAM role: %v", err)
+	}
+	defer roleResp.Body.Close()
+
+	if roleResp.StatusCode != 200 {
+		return creds, fmt.Errorf("failed to get IAM role, status: %d", roleResp.StatusCode)
+	}
+
+	roleBytes, err := io.ReadAll(roleResp.Body)
+	if err != nil {
+		return creds, fmt.Errorf("failed to read IAM role: %v", err)
+	}
+	roleName := strings.TrimSpace(string(roleBytes))
+
+	// Step 3: Get credentials using the role name and IMDSv2 token
+	credReq, err := http.NewRequest("GET", credentialsEndpoint+"/"+roleName, nil)
+	if err != nil {
+		return creds, fmt.Errorf("failed to create credentials request: %v", err)
+	}
+	credReq.Header.Set("X-aws-ec2-metadata-token", token)
+
+	credResp, err := client.Do(credReq)
+	if err != nil {
+		return creds, fmt.Errorf("failed to get credentials: %v", err)
+	}
+	defer credResp.Body.Close()
+
+	if credResp.StatusCode != 200 {
+		return creds, fmt.Errorf("failed to get credentials, status: %d", credResp.StatusCode)
+	}
+
+	credBytes, err := io.ReadAll(credResp.Body)
+	if err != nil {
+		return creds, fmt.Errorf("failed to read credentials: %v", err)
+	}
+
+	err = json.Unmarshal(credBytes, &creds)
+	if err != nil {
+		return creds, fmt.Errorf("failed to parse credentials JSON: %v", err)
 	}
 
 	return creds, nil
