@@ -63,7 +63,7 @@ func validBucketName(v string) bool {
 }
 
 func clientUsesPathBuckets(err error) bool {
-	return !strings.Contains(err.Error(), "301 response missing Location header")
+	return !(strings.Contains(err.Error(), "301 response missing Location header") || strings.Contains(err.Error(), "Please send all future requests to this endpoint"))
 }
 
 func main() {
