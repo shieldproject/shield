@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
 
@@ -111,6 +112,14 @@ func main() {
 				Help:    "The absolute path to the bin/ directory that contains the `psql` command.",
 				Default: "/var/vcap/packages/postgres-9.4/bin",
 			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "pg_skip_permission_check",
+				Type:    "bool",
+				Title:   "Skip permission validation",
+				Help:    "Skip upfront permission checking. WARNING: Use only if you understand the risks. Restore may fail with confusing errors if privileges are insufficient.",
+				Default: "false",
+			},
 		},
 	}
 
@@ -120,15 +129,16 @@ func main() {
 type PostgresPlugin plugin.PluginInfo
 
 type PostgresConnectionInfo struct {
-	Host        string
-	Port        string
-	User        string
-	Password    string
-	Bin         string
-	ReplicaHost string
-	ReplicaPort string
-	Database    string
-	Options     string
+	Host                string
+	Port                string
+	User                string
+	Password            string
+	Bin                 string
+	ReplicaHost         string
+	ReplicaPort         string
+	Database            string
+	Options             string
+	SkipPermissionCheck bool
 }
 
 func (p PostgresPlugin) Meta() plugin.PluginInfo {
@@ -259,6 +269,15 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 	setupEnvironmentVariables(pg)
 
+	// First, check if we have permission issues before starting the restore
+	if !pg.SkipPermissionCheck {
+		if err := checkRestorePermissions(pg); err != nil {
+			return err
+		}
+	} else {
+		plugin.DEBUG("Skipping permission check as requested")
+	}
+
 	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres")
 	plugin.DEBUG("Exec: %s/psql -d postgres", pg.Bin)
 	plugin.DEBUG("Redirecting stdout and stderr to stderr")
@@ -314,6 +333,44 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 	return <-scanErr
+}
+
+// checkRestorePermissions performs upfront permission checks before starting restore
+func checkRestorePermissions(pg *PostgresConnectionInfo) error {
+	plugin.DEBUG("Checking restore permissions...")
+
+	// Create a temporary connection to check permissions
+	// Check if user is superuser or has specific database privileges
+	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres", "-t", "-A", "-c",
+		"SELECT CASE WHEN "+
+			"(SELECT COALESCE(usesuper, false) FROM pg_user WHERE usename = current_user) OR "+
+			"pg_has_role(current_user, 'rds_superuser', 'MEMBER') OR "+
+			"(pg_has_role(current_user, 'pg_database_owner', 'MEMBER') AND has_database_privilege(current_user, 'postgres', 'CREATE')) "+
+			"THEN 'SUFFICIENT' ELSE 'INSUFFICIENT' END;")
+
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env,
+		fmt.Sprintf("PGUSER=%s", pg.User),
+		fmt.Sprintf("PGPASSWORD=%s", pg.Password),
+		fmt.Sprintf("PGHOST=%s", pg.Host),
+		fmt.Sprintf("PGPORT=%s", pg.Port),
+	)
+
+	output, err := cmd.Output()
+	if err != nil {
+		plugin.DEBUG("Failed to check permissions: %s", err)
+		return fmt.Errorf("postgres: failed to verify user privileges: %s", err)
+	}
+
+	result := strings.TrimSpace(string(output))
+	plugin.DEBUG("Permission check result: '%s'", result)
+
+	if result != "SUFFICIENT" {
+		return fmt.Errorf("postgres: insufficient privileges for restore operation. User '%s' needs superuser privileges or database creation rights to safely restore databases", pg.User)
+	}
+
+	plugin.DEBUG("User has sufficient privileges for restore")
+	return nil
 }
 
 func (p PostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
@@ -392,15 +449,22 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 	}
 	plugin.DEBUG("PGBINDIR: '%s'", bin)
 
+	skipCheck, err := endpoint.BooleanValueDefault("pg_skip_permission_check", false)
+	if err != nil {
+		return nil, err
+	}
+	plugin.DEBUG("PG_SKIP_PERMISSION_CHECK: %t", skipCheck)
+
 	return &PostgresConnectionInfo{
-		Host:        host,
-		Port:        port,
-		User:        user,
-		Password:    password,
-		ReplicaHost: replicahost,
-		ReplicaPort: replicaport,
-		Bin:         bin,
-		Database:    database,
-		Options:     options,
+		Host:                host,
+		Port:                port,
+		User:                user,
+		Password:            password,
+		ReplicaHost:         replicahost,
+		ReplicaPort:         replicaport,
+		Bin:                 bin,
+		Database:            database,
+		Options:             options,
+		SkipPermissionCheck: skipCheck,
 	}, nil
 }
