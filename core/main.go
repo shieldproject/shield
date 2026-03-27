@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/jhunt/go-log"
+	log "github.com/shieldproject/shield/internal/log"
 
 	"github.com/shieldproject/shield/core/bus"
 	"github.com/shieldproject/shield/core/metrics"

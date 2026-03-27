@@ -9,7 +9,7 @@ import (
 	"time"
 
 	env "github.com/jhunt/go-envirotron"
-	"github.com/jhunt/go-log"
+	log "github.com/shieldproject/shield/internal/log"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 

@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/syslog"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"sync"
 
-	"github.com/jhunt/go-log"
+	"github.com/shieldproject/shield/internal/log"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -178,7 +177,7 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 	cmd.Env = appendEndpointVariables(cmd.Env, "SHIELD_TARGET_PARAM_", c.TargetEndpoint)
 	cmd.Env = appendEndpointVariables(cmd.Env, "SHIELD_STORE_PARAM_", c.StoreEndpoint)
 
-	if log.LogLevel() == syslog.LOG_DEBUG {
+	if log.IsDebug() {
 		cmd.Env = append(cmd.Env, "DEBUG=true")
 	}
 

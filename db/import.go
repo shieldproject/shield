@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jhunt/go-log"
+	"github.com/shieldproject/shield/internal/log"
 
 	"github.com/shieldproject/shield/core/vault"
 )

@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/jhunt/go-log"
+	"github.com/shieldproject/shield/internal/log"
 )
 
 const (
