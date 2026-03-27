@@ -23,7 +23,7 @@ func fail(rc int, m string, args ...interface{}) {
 
 func bail(err error) {
 	if err != nil {
-		if opts.JSON {
+		if optJSON {
 			fmt.Fprintf(os.Stderr, "%s\n", asJSON(struct {
 				Error string `json:"error"`
 			}{

@@ -31,7 +31,7 @@ race:
 	ginkgo -race *
 
 # Building Shield
-shield: shieldd shield-agent shield-schema shield-crypt shield-report
+shield: shieldd shield-cli shield-agent shield-schema shield-crypt shield-report
 
 shield-crypt:
 	go $(BUILD_TYPE) -mod vendor ./cmd/shield-crypt
@@ -44,10 +44,8 @@ shield-schema:
 shield-report:
 	go $(BUILD_TYPE) -mod vendor ./cmd/shield-report
 
-shield: cmd/shield/help.go
-	go $(BUILD_TYPE) -mod vendor ./cmd/shield
-help.all: cmd/shield/main.go
-	grep case $< | grep '{''{{' | cut -d\" -f 2 | sort | xargs -n1 -I@ ./shield @ -h > $@
+shield-cli:
+	go $(BUILD_TYPE) -mod vendor -ldflags "$(LDFLAGS)" ./cmd/shield
 
 # Building Plugins
 JOBS ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
@@ -91,10 +89,6 @@ clean:
 	rm -f $$(cat plugins) dummy
 
 
-# Assemble the CLI help with some assistance from our friend, Perl
-HELP := $(shell ls -1 cmd/shield/help/*)
-cmd/shield/help.go: $(HELP) cmd/shield/help.pl
-	./cmd/shield/help.pl $(HELP) > $@
 
 fixmes: fixme
 fixme:
