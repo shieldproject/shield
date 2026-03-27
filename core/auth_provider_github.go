@@ -1,15 +1,14 @@
 package core
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/pborman/uuid"
+	"golang.org/x/oauth2"
+	githuboauth "golang.org/x/oauth2/github"
 
 	"github.com/shieldproject/shield/db"
 	"github.com/shieldproject/shield/lib/github"
@@ -86,43 +85,27 @@ func (p *GithubAuthProvider) Initiate(r *route.Request) {
 }
 
 func (p *GithubAuthProvider) HandleRedirect(r *route.Request) *db.User {
-	var input = struct {
-		ClientID     string `json:"client_id"`
-		ClientSecret string `json:"client_secret"`
-		Code         string `json:"code"`
-	}{
+	ctx := context.Background()
+	code := r.Param("code", "")
+
+	conf := &oauth2.Config{
 		ClientID:     p.ClientID,
 		ClientSecret: p.ClientSecret,
-		Code:         r.Param("code", ""),
+		Endpoint:     githuboauth.Endpoint,
+	}
+	if p.GithubEnterprise {
+		conf.Endpoint = oauth2.Endpoint{
+			AuthURL:  p.GithubEndpoint + "/login/oauth/authorize",
+			TokenURL: p.GithubEndpoint + "/login/oauth/access_token",
+		}
 	}
 
-	b, err := json.Marshal(input)
+	tok, err := conf.Exchange(ctx, code)
 	if err != nil {
-		p.Errorf("failed to marshal access token request: %s", err)
+		p.Errorf("failed to exchange OAuth2 code for token: %s", err)
 		return nil
 	}
-
-	uri := p.accessTokenURL()
-	res, err := http.Post(uri, "application/json", bytes.NewBuffer(b))
-	if err != nil {
-		p.Errorf("failed to POST to Github access_token endpoint %s: %s", uri, err)
-		return nil
-	}
-	b, err = ioutil.ReadAll(res.Body)
-	if err != nil {
-		p.Errorf("failed to read response from POST %s: %s", uri, err)
-		return nil
-	}
-	u, err := url.Parse("?" + string(b))
-	if err != nil {
-		p.Errorf("failed to parse response '%s' from POST %s: %s", string(b), uri, err)
-		return nil
-	}
-	token := u.Query().Get("access_token")
-	if token == "" {
-		p.Errorf("no access_token found in response '%s' from POST %s", string(b), u)
-		return nil
-	}
+	token := tok.AccessToken
 
 	client, err := github.NewClient(p.GithubAPI, token)
 	if err != nil {
@@ -187,10 +170,6 @@ Mapping:
 	}
 
 	return user
-}
-
-func (p GithubAuthProvider) accessTokenURL() string {
-	return fmt.Sprintf("%s/login/oauth/access_token", p.GithubEndpoint)
 }
 
 func (p GithubAuthProvider) authorizeURL(scope string) string {
