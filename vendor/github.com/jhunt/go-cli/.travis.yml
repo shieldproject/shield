@@ -1,7 +1,0 @@
-language: go
-sudo: false
-go:
-  - 1.8
-script:
-  - go test -v github.com/jhunt/go-cli/...
-  - go test -race github.com/jhunt/go-cli/...
