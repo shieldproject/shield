@@ -4,7 +4,9 @@
 
 package edwards25519
 
-import "crypto/subtle"
+import (
+	"crypto/subtle"
+)
 
 // A dynamic lookup table for variable-base, constant-time scalar muls.
 type projLookupTable struct {
