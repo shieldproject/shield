@@ -50,18 +50,33 @@ help.all: cmd/shield/main.go
 	grep case $< | grep '{''{{' | cut -d\" -f 2 | sort | xargs -n1 -I@ ./shield @ -h > $@
 
 # Building Plugins
+JOBS ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
+
 plugin: plugins
 plugins:
-	go $(BUILD_TYPE) -mod vendor ./plugin/dummy
+	@echo "Building dummy plugin..."
+	@go $(BUILD_TYPE) -mod vendor ./plugin/dummy || go $(BUILD_TYPE) ./plugin/dummy
 	@for plugin in $$(cat plugins); do \
-		echo building plugin $$plugin...; \
-		go $(BUILD_TYPE) -mod vendor ./plugin/$$plugin; \
+		echo "building plugin $$plugin..."; \
+		if ! go $(BUILD_TYPE) -mod vendor ./plugin/$$plugin; then \
+			GOFLAGS=-mod=mod go $(BUILD_TYPE) ./plugin/$$plugin; \
+		fi; \
 	done
 
 
 demo: clean shield plugins
-	./demo/build
-	(cd demo && docker-compose up)
+	@if [ -x ./demo/build ]; then \
+		./demo/build; \
+	else \
+		echo "(warning) ./demo/build not found; skipping demo build"; \
+	fi
+	(cd docker/demo && docker compose up)
+
+# Local build stack (core/agent/demo/webdav from local source build)
+demo-local:
+	docker compose -f docker-compose.local.yml up --build
+
+dev-local: demo-local
 
 docs: docs/dev/API.md
 	./bin/mkdocs --version latest --docroot /docs --output tmp/docs --style basic
@@ -85,7 +100,13 @@ fixmes: fixme
 fixme:
 	@grep -rn FIXME * | grep -v vendor/ | grep -v README.md | grep --color FIXME || echo "No FIXMES!  YAY!"
 
-dev:
+# Quick local development mode (UI + API) using docker-compose
+# Usage: make dev
+#   then open http://localhost:9009
+dev: demo
+
+# Keep legacy testdev flow for deeper local test sandbox
+dev-test:
 	./bin/testdev
 
 # Deferred: Naming plugins individually, e.g. make plugin dummy
