@@ -971,8 +971,32 @@ footer p.sidebar-label {
 
 .hud {
   background-color: var(--bg-secondary);
+  background-image: url('/bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: var(--text-primary);
   padding: 24px 0;
+  position: relative;
+}
+
+/* Overlay so the cards stay readable over the photo */
+.hud::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
+[data-theme="light"] .hud::before {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Cards and content sit above the overlay */
+.hud > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hud .inst {
