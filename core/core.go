@@ -11,7 +11,7 @@ import (
 	env "github.com/jhunt/go-envirotron"
 	log "github.com/shieldproject/shield/internal/log"
 	"golang.org/x/crypto/ssh"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/shieldproject/shield/core/bus"
 	"github.com/shieldproject/shield/core/fabric"
@@ -98,7 +98,7 @@ type Config struct {
 		Identifier string `yaml:"identifier"`
 		Backend    string `yaml:"backend"`
 
-		Properties map[interface{}]interface{} `yaml:"properties"`
+		Properties map[string]interface{} `yaml:"properties"`
 	} `yaml:"auth"`
 
 	LegacyAgents struct {

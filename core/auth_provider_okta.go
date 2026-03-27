@@ -12,7 +12,6 @@ import (
 	// "github.com/jhunt/go-log"
 	"github.com/shieldproject/shield/db"
 	"github.com/shieldproject/shield/route"
-	"github.com/shieldproject/shield/util"
 
 	"github.com/pborman/uuid"
 	"github.com/thanhpk/randstr"
@@ -51,8 +50,8 @@ type Exchange struct {
 	IdToken          string `json:"id_token,omitempty"`
 }
 
-func (p *OktaAuthProvider) Configure(raw map[interface{}]interface{}) error {
-	b, err := json.Marshal(util.StringifyKeys(raw))
+func (p *OktaAuthProvider) Configure(raw map[string]interface{}) error {
+	b, err := json.Marshal(raw)
 	if err != nil {
 		return err
 	}
@@ -89,7 +88,7 @@ func (p *OktaAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	p.OktaDomain = strings.TrimSuffix(p.OktaDomain, "/")
 	p.DeploymentURI = strings.TrimSuffix(p.DeploymentURI, "/")
 
-	p.properties = util.StringifyKeys(raw).(map[string]interface{})
+	p.properties = raw
 
 	return nil
 }

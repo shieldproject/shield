@@ -13,7 +13,6 @@ import (
 	"github.com/shieldproject/shield/db"
 	"github.com/shieldproject/shield/lib/github"
 	"github.com/shieldproject/shield/route"
-	"github.com/shieldproject/shield/util"
 )
 
 type GithubAuthProvider struct {
@@ -34,8 +33,8 @@ type GithubAuthProvider struct {
 	} `json:"mapping"`
 }
 
-func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
-	b, err := json.Marshal(util.StringifyKeys(raw))
+func (p *GithubAuthProvider) Configure(raw map[string]interface{}) error {
+	b, err := json.Marshal(raw)
 	if err != nil {
 		return err
 	}
@@ -63,7 +62,7 @@ func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
 		p.GithubAPI = p.GithubEndpoint + "/api/v3/"
 	}
 
-	p.properties = util.StringifyKeys(raw).(map[string]interface{})
+	p.properties = raw
 
 	return nil
 }
