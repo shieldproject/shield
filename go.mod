@@ -1,8 +1,8 @@
 module github.com/shieldproject/shield
 
-go 1.24
+go 1.26
 
-toolchain go1.24.2
+toolchain go1.26.1
 
 replace github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.8.0
 
