@@ -19,27 +19,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jhunt/go-cli"
-	env "github.com/jhunt/go-envirotron"
 	"github.com/pborman/uuid"
+	"github.com/spf13/cobra"
 )
 
 type Opt struct {
-	HelpShort bool   `cli:"-h"`
-	HelpFull  bool   `cli:"--help"`
-	Debug     bool   `cli:"-D, --debug"     env:"DEBUG"`
-	Version   bool   `cli:"-v, --version"`
-	Endpoint  string `cli:"-e,--endpoint"`
-	Key       string `cli:"-k, --key"`
-	Text      bool   `cli:"--text"`
-
-	Info     struct{} `cli:"info"`
-	Validate struct{} `cli:"validate"`
-	Backup   struct{} `cli:"backup"`
-	Restore  struct{} `cli:"restore"`
-	Store    struct{} `cli:"store"`
-	Retrieve struct{} `cli:"retrieve"`
-	Purge    struct{} `cli:"purge"`
+	Endpoint string
+	Key      string
+	Text     bool
 }
 
 type Plugin interface {
@@ -103,57 +90,25 @@ func Infof(f string, args ...interface{}) {
 }
 
 func Run(p Plugin) {
-	var opt Opt
 	info := p.Meta()
-	env.Override(&opt)
-	command, args, err := cli.Parse(&opt)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "!!! %s\n", err)
-		fmt.Fprintf(os.Stderr, "USAGE: %s [OPTIONS...] COMMAND [OPTIONS...]\n\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "Try %s --help for more information.\n", os.Args[0])
-		os.Exit(USAGE)
-	}
-	if opt.Debug {
-		debug = true
+
+	var endpoint string
+	var key string
+	var textFlag bool
+	var debugFlag bool
+
+	makeOpt := func() Opt {
+		return Opt{Endpoint: endpoint, Key: key, Text: textFlag}
 	}
 
-	if opt.HelpShort {
-		fmt.Fprintf(os.Stderr, "%s v%s - %s\n", info.Name, info.Version, info.Author)
-		fmt.Fprintf(os.Stderr, "USAGE: %s [OPTIONS...] COMMAND [OPTIONS...]\n\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, `OPTIONS
-  -h, --help      Get some help. (--help provides more detail; -h, less)
-  -D, --debug     Enable debugging.
-  -v, --version   Print the version of this plugin and exit.
+	longHelp := fmt.Sprintf(`%s v%s - %s
 
-COMMANDS
-  info                         Print plugin information (name / version / author)
-  validate -e JSON             Validate endpoint JSON/configuration
-  backup   -e JSON             Backup a target
-  restore  -e JSON             Replay a backup archive to a target
-  store    -e JSON [--text]    Store a backup archive
-  retrieve -e JSON -k KEY      Stream a backup archive from storage
-  purge    -e JSON -k KEY      Delete a backup archive from storage
-`)
-		if info.Example != "" {
-			fmt.Fprintf(os.Stderr, "\nEXAMPLE ENDPOINT CONFIGURATION\n%s\n", info.Example)
-		}
-		if info.Defaults != "" {
-			fmt.Fprintf(os.Stderr, "\nDEFAULT ENDPOINT\n%s\n", info.Defaults)
-		}
-		os.Exit(0)
-	}
-
-	if opt.HelpFull {
-		fmt.Fprintf(os.Stderr, "%s v%s - %s\n", info.Name, info.Version, info.Author)
-		fmt.Fprintf(os.Stderr, "USAGE: %s [OPTIONS...] COMMAND [OPTIONS...]\n\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, `OPTIONS
-  -h, --help      Get some help. (--help provides more detail; -h, less)
+OPTIONS
+  -h, --help      Get some help.
   -D, --debug     Enable debugging.
   -v, --version   Print the version of this plugin and exit.
 
   -e, --endpoint  JSON string representing what to backup / where to back it up.
-
-
 
 GENERAL COMMANDS
 
@@ -161,15 +116,12 @@ GENERAL COMMANDS
 
     Print information about this plugin, in JSON format, to standard output.
 
-
   validate --endpoint ENDPOINT-JSON
 
     Validates the given ENDPOINT-JSON to ensure that it is (a) well-formed
     JSON data, and (b) is semantically valid for this plugin.  Checks that
     required configuration is set, and verifies the format and suitability
     of the given configuration.
-
-
 
 BACKUP COMMANDS
 
@@ -182,7 +134,6 @@ BACKUP COMMANDS
 
     Reads a raw (uncompressed) backup archive on standard input and attempts to
     replay it to the given target.
-
 
 STORAGE COMMANDS
 
@@ -205,95 +156,125 @@ STORAGE COMMANDS
   purge --key STORAGE-HANDLE --endpoint STORE-ENDPOINT-JSON
 
     Removes a backup archive from the backing storage, using the
-    STORAGE-HANDLE given by a previous 'store' command.
-`)
-		os.Exit(0)
+    STORAGE-HANDLE given by a previous 'store' command.`,
+		info.Name, info.Version, info.Author)
+
+	if info.Example != "" {
+		longHelp += fmt.Sprintf("\n\nEXAMPLE ENDPOINT CONFIGURATION\n%s", info.Example)
+	}
+	if info.Defaults != "" {
+		longHelp += fmt.Sprintf("\n\nDEFAULT ENDPOINT\n%s", info.Defaults)
 	}
 
-	if len(args) != 0 {
-		fmt.Fprintf(os.Stderr, "extra arguments found, starting at %v\n", args[0])
-		fmt.Fprintf(os.Stderr, "USAGE: %s [OPTIONS...] COMMAND [OPTIONS...]\n\n", info.Name)
+	rootCmd := &cobra.Command{
+		Use:           info.Name,
+		Short:         fmt.Sprintf("%s v%s - %s", info.Name, info.Version, info.Author),
+		Version:       fmt.Sprintf("%s v%s - %s", info.Name, info.Version, info.Author),
+		Long:          longHelp,
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if debugFlag || os.Getenv("DEBUG") != "" {
+				debug = true
+			}
+		},
+	}
+
+	rootCmd.PersistentFlags().BoolVarP(&debugFlag, "debug", "D", false, "Enable debug output")
+	rootCmd.PersistentFlags().StringVarP(&endpoint, "endpoint", "e", "", "Endpoint JSON")
+	rootCmd.PersistentFlags().StringVarP(&key, "key", "k", "", "Storage key")
+	rootCmd.PersistentFlags().BoolVar(&textFlag, "text", false, "Text output for store key")
+
+	infoCmd := &cobra.Command{
+		Use:   "info",
+		Short: "Print plugin information (name / version / author)",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if os.Getenv("SHIELD_PEDANTIC_INFO") != "" {
+				ok := true
+				for i, f := range info.Fields {
+					name := f.Name
+					if f.Name == "" {
+						fmt.Fprintf(os.Stderr, "!! %s: field #%d has no name\n", info.Name, i+1)
+						name = fmt.Sprintf("field #%d", i+1)
+						ok = false
+					}
+					if f.Type == "" {
+						fmt.Fprintf(os.Stderr, "!! %s: %s has no type\n", info.Name, name)
+						ok = false
+					}
+					if f.Title == "" {
+						fmt.Fprintf(os.Stderr, "!! %s: %s has no title\n", info.Name, name)
+						ok = false
+					}
+					if f.Help == "" {
+						fmt.Fprintf(os.Stderr, "!! %s: %s has no help\n", info.Name, name)
+						ok = false
+					} else if !strings.HasSuffix(f.Help, ".") {
+						fmt.Fprintf(os.Stderr, "!! %s: %s help field does not end in a period.\n", info.Name, name)
+						ok = false
+					}
+					if f.Type == "enum" {
+						if len(f.Enum) == 0 {
+							fmt.Fprintf(os.Stderr, "!! %s: %s is defined as an enum, but specifies no allowed values.\n", info.Name, name)
+							ok = false
+						}
+					} else {
+						if len(f.Enum) != 0 {
+							fmt.Fprintf(os.Stderr, "!! %s: %s is not defined as an enum, but has the following allowed values: [%s]\n", info.Name, name, f.Enum)
+							ok = false
+						}
+					}
+				}
+				if !ok {
+					os.Exit(1)
+				}
+			}
+			out, err := json.MarshalIndent(info, "", "    ")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%s\n", err)
+				os.Exit(JSON_FAILURE)
+			}
+			fmt.Printf("%s\n", out)
+			return nil
+		},
+	}
+
+	makeSubCmd := func(use, short, command string) *cobra.Command {
+		return &cobra.Command{
+			Use:   use,
+			Short: short,
+			Args:  cobra.NoArgs,
+			RunE: func(cmd *cobra.Command, args []string) error {
+				err := dispatch(p, command, makeOpt())
+				if err != nil {
+					DEBUG("'%s' action returned error: %s", command, err)
+					if e, ok := err.(UnsupportedActionError); ok && e.Action == "" {
+						e.Action = command
+						err = e
+					}
+					fmt.Fprintf(os.Stderr, "%s\n", err)
+					os.Exit(codeForError(err))
+				}
+				return nil
+			},
+		}
+	}
+
+	rootCmd.AddCommand(
+		infoCmd,
+		makeSubCmd("validate", "Validate endpoint JSON/configuration", "validate"),
+		makeSubCmd("backup", "Backup a target", "backup"),
+		makeSubCmd("restore", "Replay a backup archive to a target", "restore"),
+		makeSubCmd("store", "Store a backup archive", "store"),
+		makeSubCmd("retrieve", "Stream a backup archive from storage", "retrieve"),
+		makeSubCmd("purge", "Delete a backup archive from storage", "purge"),
+	)
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "!!! %s\n", err)
 		os.Exit(USAGE)
 	}
-
-	if opt.Version {
-		fmt.Printf("%s v%s - %s\n", info.Name, info.Version, info.Author)
-		os.Exit(0)
-	}
-
-	switch command {
-	case "info":
-		if os.Getenv("SHIELD_PEDANTIC_INFO") != "" {
-			/* validate the plugin info with great pedantry */
-			ok := true
-			for i, f := range info.Fields {
-				name := f.Name
-				if f.Name == "" {
-					fmt.Fprintf(os.Stderr, "!! %s: field #%d has no name\n", info.Name, i+1)
-					name = fmt.Sprintf("field #%d", i+1)
-					ok = false
-				}
-
-				if f.Type == "" {
-					fmt.Fprintf(os.Stderr, "!! %s: %s has no type\n", info.Name, name)
-					ok = false
-				}
-
-				if f.Title == "" {
-					fmt.Fprintf(os.Stderr, "!! %s: %s has no title\n", info.Name, name)
-					ok = false
-				}
-
-				if f.Help == "" {
-					fmt.Fprintf(os.Stderr, "!! %s: %s has no help\n", info.Name, name)
-					ok = false
-				} else if !strings.HasSuffix(f.Help, ".") {
-					fmt.Fprintf(os.Stderr, "!! %s: %s help field does not end in a period.\n", info.Name, name)
-					ok = false
-				}
-
-				if f.Type == "enum" {
-					if len(f.Enum) == 0 {
-						fmt.Fprintf(os.Stderr, "!! %s: %s is defined as an enum, but specifies no allowed values.\n", info.Name, name)
-						ok = false
-					}
-				} else {
-					if len(f.Enum) != 0 {
-						fmt.Fprintf(os.Stderr, "!! %s: %s is not defined as an enum, but has the following allowed values: [%s]\n", info.Name, name, f.Enum)
-						ok = false
-					}
-				}
-			}
-
-			if !ok {
-				os.Exit(1)
-			}
-		}
-		json, err := json.MarshalIndent(info, "", "    ")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			os.Exit(JSON_FAILURE)
-		}
-		fmt.Printf("%s\n", json)
-		os.Exit(0)
-
-	default:
-		err = dispatch(p, command, opt)
-		if err != nil {
-			DEBUG("'%s' action returned error: %s", command, err)
-			switch err.(type) {
-			case UnsupportedActionError:
-				if err.(UnsupportedActionError).Action == "" {
-					e := err.(UnsupportedActionError)
-					e.Action = command
-					err = e
-				}
-			}
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			os.Exit(codeForError(err))
-		}
-	}
-	os.Exit(0)
 }
 
 func dispatch(p Plugin, mode string, opt Opt) error {
@@ -306,15 +287,6 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 
 	if debug {
 		DEBUG("'%s' action requested with the following options:", mode)
-		if opt.HelpShort {
-			DEBUG("  -h (shorter --help)")
-		}
-		if opt.HelpFull {
-			DEBUG("  --help")
-		}
-		if opt.Version {
-			DEBUG("  --version")
-		}
 		if opt.Endpoint != "" {
 			DEBUG("  --endpoint '%s'", opt.Endpoint)
 		}
@@ -355,6 +327,9 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 		}
 
 		key, size, err = p.Store(endpoint)
+		if err != nil {
+			return err
+		}
 		if opt.Text {
 			fmt.Printf("%s\n", key)
 
