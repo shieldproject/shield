@@ -699,6 +699,13 @@
         });
       }) /* }}} */
 
+      /* Sidebar collapse toggle */
+      .on('click', '#sidebar-toggle', function () { /* {{{ */
+        var collapsed = $('.story-sidebar').toggleClass('collapsed').hasClass('collapsed');
+        $(document.body).toggleClass('sidebar-collapsed', collapsed);
+        localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0');
+      }) /* }}} */
+
       /* Wizards (Shared) */
       .on('wizard:step', '.wizard2', function (event, moving) { /* {{{ */
         var $progress = $(event.target).find('.progress li');
