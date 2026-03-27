@@ -1,4 +1,4 @@
-FROM golang:1.25-bookworm as build
+FROM golang:1.23-bookworm as build
 
 RUN apt-get update \
  && apt-get install -y bzip2 gzip unzip curl openssh-client
@@ -9,6 +9,8 @@ RUN curl -sLo /bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq
 ARG VERSION
 COPY / /go/src/github.com/shieldproject/shield/
 RUN cd /go/src/github.com/shieldproject/shield \
+ && go mod tidy \
+ && go mod vendor \
  && make build BUILD_TYPE="build -ldflags='-X main.Version=$VERSION'"
 RUN mkdir -p /dist/bin /dist/plugins \
  && mv /go/src/github.com/shieldproject/shield/shieldd \

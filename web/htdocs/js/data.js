@@ -403,14 +403,35 @@
 
     subscribe: function (opts) {
       opts = $.extend({
-        bearings:  '/v2/bearings',
-        websocket: document.location.protocol.replace(/http/, 'ws')+'//'+document.location.host+'/v2/events'
-      }, opts || {});
+      bearings:  '/v2/bearings',
+      websocket: document.location.protocol.replace(/http/, 'ws') + '//' + document.location.host + '/v2/events'
+      }, opts);
 
       var df = $.Deferred();
-      var self = this; /* save off 'this' for the continuation call */
+      var self = this;
 
-      console.log('connecting to websocket at %s', opts.websocket);
+      // Check authentication before establishing WebSocket
+      api({
+      type: 'GET',
+      url: opts.bearings,
+      success: function (bearings) {
+        if (bearings && bearings.user) {
+          self._establishWebSocket(opts, df, bearings);
+        } else {
+          df.reject();
+        }
+      },
+      error: function () {
+        df.reject();
+      }
+      });
+
+      return df.promise();
+    },
+
+    _establishWebSocket: function (opts, df, bearings, isReconnect) {
+      var self = this; /* save off 'this' for the continuation call */
+      
       this.ws = new WebSocket(opts.websocket);
       this.ws.onerror = function (event) {
         self.ws = undefined;
@@ -423,7 +444,7 @@
 
         console.log('websocket closed, waiting 3000 ms before reopening to avoid infinite loop');
         setTimeout(function() {
-            self.subscribe();
+            self._reconnect();
         }, (3 * 1000));
       };
 
@@ -480,12 +501,13 @@
 
       this.ws.onopen = function () {
         console.log('connected to event stream.');
-        self.clear()
-        console.log('getting our bearings (via %s)...', opts.bearings);
-        api({
-          type: 'GET',
-          url:  opts.bearings,
-          success: function (bearings) {
+        
+        if (bearings) {
+          if (!isReconnect) {
+            // Only clear and reload all data on initial connection
+            self.clear();
+            
+            // Process bearings data that was already fetched during authentication
             self.shield = bearings.shield;
             self.vault  = bearings.vault;
             self.user   = bearings.user;
@@ -530,35 +552,64 @@
 
               self.insert('tenant', tenant.tenant);
             }
-            console.log(bearings);
-
-            /* process system grants... */
-            self.grant(self.user.sysrole);
-
-            /* set default tenant */
-            if (!self.current && self.data.tenant) {
-              self.current = self.data.tenant[self.user.default_tenant];
+          } else {
+            // On reconnection, just update core auth data and grants
+            self.shield = bearings.shield;
+            self.vault  = bearings.vault;
+            self.user   = bearings.user;
+            
+            // Re-establish grants from fresh bearings data
+            for (var uuid in bearings.tenants) {
+              var tenant = bearings.tenants[uuid];
+              self.grant(uuid, tenant.role);
             }
-            if (!self.current) {
-              var l = [];
-              for (var k in self.data.tenant) {
-                l.push(self.data.tenant[k]);
-              }
-              l.sort(function (a, b) {
-                return a.name > b.name ? 1 : a.name == b.name ? 0 : -1;
-              });
-              if (l.length > 0) { self.current = l[0]; }
-            }
-
-            df.resolve();
-          },
-          error: function () {
-            df.reject();
           }
-        });
-      };
+          console.log(bearings);
 
-      return df.promise();
+          /* process system grants... */
+          self.grant(self.user.sysrole);
+
+          /* set default tenant */
+          if (!self.current && self.data.tenant) {
+            self.current = self.data.tenant[self.user.default_tenant];
+          }
+          if (!self.current) {
+            var l = [];
+            for (var k in self.data.tenant) {
+              l.push(self.data.tenant[k]);
+            }
+            l.sort(function (a, b) {
+              return a.name > b.name ? 1 : a.name == b.name ? 0 : -1;
+            });
+            if (l.length > 0) { self.current = l[0]; }
+          }
+        }
+
+        df.resolve();
+      };
+    },
+
+    _reconnect: function () {
+      var self = this;
+      console.log('attempting to reconnect websocket...');
+      
+      // Validate authentication before reconnecting
+      api({
+        type: 'GET',
+        url: '/v2/bearings',
+        success: function (bearings) {
+          console.log('authentication still valid, reconnecting websocket...');
+          var opts = {
+            websocket: document.location.protocol.replace(/http/, 'ws')+'//'+document.location.host+'/v2/events'
+          };
+          var df = $.Deferred(); // Create dummy deferred since we don't need to track this
+          self._establishWebSocket(opts, df, bearings, true); // true = isReconnect
+        },
+        error: function () {
+          console.log('authentication expired during reconnection, redirecting to login...');
+          document.location.href = '/#!/login';
+        }
+      });
     },
 
     plugins: function (type) {

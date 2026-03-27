@@ -1463,13 +1463,21 @@ $(function () {
           $('#viewport').template('layout');
           if (AEGIS.vault != "uninitialized") {
             $('#side-bar').template('side-bar');
+            if (localStorage.getItem('sidebar-collapsed') === '1') {
+              $('.story-sidebar').addClass('collapsed');
+              $(document.body).addClass('sidebar-collapsed');
+            }
           }
           $('#hud').template('hud');
           if (AEGIS.vault == "locked") {
             $('#lock-state').fadeIn();
           }
           if (AEGIS.vault != "uninitialized") {
-            $('#side-bar').template('side-bar')
+            $('#side-bar').template('side-bar');
+            if (localStorage.getItem('sidebar-collapsed') === '1') {
+              $('.story-sidebar').addClass('collapsed');
+              $(document.body).addClass('sidebar-collapsed');
+            }
           }
         }
         $(document.body)
