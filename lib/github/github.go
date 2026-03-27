@@ -6,7 +6,6 @@ import (
 	"net/url"
 
 	"github.com/google/go-github/v76/github"
-	"golang.org/x/oauth2"
 )
 
 type Client struct {
@@ -14,11 +13,7 @@ type Client struct {
 }
 
 func NewClient(api, token string) (*Client, error) {
-	gh := github.NewClient(
-		oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: token},
-		)),
-	)
+	gh := github.NewClient(nil).WithAuthToken(token)
 
 	if api != "" {
 		u, err := url.Parse(api)
@@ -48,6 +43,9 @@ func (c *Client) Lookup() (string, string, map[string][]string, error) {
 		return "", "", nil, err
 	}
 	for _, org := range orgs {
+		if org.Login == nil {
+			continue
+		}
 		m[*org.Login] = make([]string, 0)
 	}
 
@@ -57,6 +55,9 @@ func (c *Client) Lookup() (string, string, map[string][]string, error) {
 	}
 
 	for _, team := range teams {
+		if team.Organization == nil || team.Organization.Login == nil || team.Name == nil {
+			continue
+		}
 		m[*team.Organization.Login] = append(m[*team.Organization.Login], *team.Name)
 	}
 
