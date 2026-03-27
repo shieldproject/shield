@@ -267,20 +267,11 @@ table {
   font-weight: 600;
   font-size: 17px;
   letter-spacing: -0.3px;
-  width: 220px;
-  padding-right: 16px;
-  border-right: 1px solid var(--border-default);
-  margin-right: 8px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-shrink: 0;
+  flex: 1;          /* absorbs spare space, pushes account link to far right */
+  min-width: 0;
   line-height: 1;
-}
-
-body.sidebar-collapsed .top-bar h1 {
-  width: 24px;
-  overflow: hidden;
+  padding: 0 4px;
 }
 
 .top-bar h1 span {
@@ -302,7 +293,7 @@ body.sidebar-collapsed .top-bar h1 {
 }
 
 .top-bar a[rel=account] {
-  margin-left: auto;
+  margin-left: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -789,11 +780,11 @@ body.sidebar-collapsed .top-bar h1 {
   width: 56px;
 }
 
-/* Toggle button — fixed to viewport, centered on the sidebar right edge / navbar bottom */
+/* Toggle button — fixed, centered on sidebar right edge, ~24px below navbar */
 .sidebar-toggle {
   position: fixed;
-  top: 34px;          /* 48px - 14px = centers the 28px button on the navbar bottom edge */
-  left: 266px;        /* 280px sidebar - 14px = centers on sidebar right edge */
+  top: 58px;          /* 48px navbar + 24px into sidebar - 14px half-button */
+  left: 266px;        /* 280px sidebar - 14px half-button = center on right edge */
   width: 28px;
   height: 28px;
   padding: 0;
@@ -1099,64 +1090,57 @@ footer p.sidebar-label {
 }
 
 /* ================================================
-   NAVIGATION TABS
+   TOP-BAR NAVIGATION
    ================================================ */
 
-.nav {
-  background-color: var(--bg-elevated);
-  color: var(--text-primary);
-  height: 48px;
-  box-shadow: var(--shadow-sm);
-  border-bottom: 1px solid var(--border-default);
-  position: relative;
-  z-index: 40;
-  text-align: right;
+.top-bar .top-nav {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  gap: 0;
 }
 
-.nav a {
+.top-bar .top-nav li {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+
+.top-bar .top-nav li a {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s ease;
-  font-size: 14px;
+  white-space: nowrap;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  border-radius: 0;
 }
 
-.nav a:hover {
+.top-bar .top-nav li a:hover {
   color: var(--text-primary);
+  background-color: rgba(255,255,255,0.05);
 }
 
-.nav .current a {
-  color: var(--accent-primary);
-  position: relative;
+.top-bar .top-nav li.current a {
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
-.nav .current a::after {
+.top-bar .top-nav li.current::after {
   content: '';
   position: absolute;
-  bottom: -1px;
+  bottom: 0;
   left: 0;
   right: 0;
   height: 2px;
   background-color: var(--accent-primary);
-}
-
-.nav li {
-  display: inline-block;
-  padding: 0 24px;
-  line-height: 48px;
-  position: relative;
-}
-
-.nav.sticky {
-  display: none;
-  position: fixed;
-  top: 48px;
-  width: calc(100% - 280px);
-  z-index: 99;
-}
-
-.nav.sticky.on {
-  display: block;
+  border-radius: 2px 2px 0 0;
 }
 
 /* ================================================
@@ -1912,84 +1896,128 @@ h2 strong {
 }
 
 /* ================================================
-   LOCKED STATE
+   LOCKED STATE — compact warning banner
    ================================================ */
 
 .locked {
-  background-color: var(--error);
-  color: #fff;
-  padding: 3em;
-  border-radius: var(--radius-lg);
   display: none;
+  margin: 16px 24px 0;
+  padding: 10px 16px;
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-left: 3px solid var(--error);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* jQuery fadeIn sets display:block — override to flex */
+#lock-state[style*="display: block"],
+#lock-state[style*="display:block"] {
+  display: flex !important;
 }
 
 .locked h1 {
-  font-size: 36px;
+  font-size: 13px;
   font-weight: 700;
-  margin-bottom: 1em;
+  color: var(--error);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.locked p {
-  font-size: 18px;
-  line-height: 1.5;
-  margin: 1em 0;
-  max-width: 30em;
+.locked > p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
 }
 
-.locked form input {
-  background-color: rgba(0, 0, 0, 0.3);
-  color: #fff;
-  padding: 12px 24px;
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.locked form {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-left: auto;
+}
+
+.locked form .errors {
+  display: none;
+}
+
+.locked form .error {
+  display: none;
+}
+
+.locked form input[type=password] {
+  font-size: 13px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
   border-right: none;
-  width: 25em;
-  max-width: 70%;
-  font-size: 16px;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  padding: 7px 12px;
+  width: 18em;
+  outline: none;
+  transition: border-color 0.2s ease;
 }
 
-.locked form button {
-  background-color: rgba(0, 0, 0, 0.3);
+.locked form input[type=password]:focus {
+  border-color: var(--error);
+}
+
+.locked form button[type=submit] {
+  font-size: 13px;
+  background-color: var(--error);
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 12px 24px;
+  border: 1px solid var(--error);
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  font-size: 16px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
-.locked form button:hover {
-  background-color: rgba(0, 0, 0, 0.5);
+.locked form button[type=submit]:hover {
+  background-color: #dc2626;
 }
 
 /* ================================================
-   THEME TOGGLE BUTTON
+   THEME TOGGLE BUTTON (top-bar inline)
    ================================================ */
 
 .theme-toggle {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 13px;
   cursor: pointer;
-  box-shadow: var(--shadow-lg);
-  transition: all 0.2s ease;
-  z-index: 1000;
-  color: var(--text-primary);
-  font-size: 24px;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
 }
 
 .theme-toggle:hover {
-  transform: scale(1.1);
-  box-shadow: var(--shadow-xl);
-  background-color: var(--bg-tertiary);
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+  transform: none;
+  box-shadow: none;
 }
+
+/* Dark mode (default): show sun → clicking switches to light */
+.theme-icon-light { display: inline; }
+.theme-icon-dark  { display: none;   }
+
+/* Light mode: show moon → clicking switches to dark */
+[data-theme="light"] .theme-icon-light { display: none;   }
+[data-theme="light"] .theme-icon-dark  { display: inline; }
 
 /* ================================================
    MISC UTILITIES
@@ -2086,13 +2114,7 @@ a.load-more:hover {
     width: 100%;
   }
 
-  .theme-toggle {
-    bottom: 16px;
-    right: 16px;
-    width: 48px;
-    height: 48px;
-    font-size: 20px;
-  }
+  /* theme-toggle is inline in top-bar; no responsive overrides needed */
 }
 
 /* ================================================

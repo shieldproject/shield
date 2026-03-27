@@ -7,6 +7,20 @@
     <link rel="stylesheet" href="/fa/css/brands.min.css" />
     <link rel="stylesheet" href="/fa/css/solid.min.css" />
     <title>SHIELD</title>
+    <script>
+      /* Apply theme from cookie before first paint to avoid flash */
+      (function () {
+        function getCookie(name) {
+          var match = document.cookie.split(';').map(function(c){ return c.trim(); })
+                        .find(function(c){ return c.indexOf(name + '=') === 0; });
+          return match ? match.split('=')[1] : null;
+        }
+        var theme = getCookie('shield-theme') || 'dark';
+        if (theme === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div class="top-bar">
@@ -41,22 +55,6 @@
           </div></div>
         </div>
         [[ } ]]
-
-        <div class="nav sticky" id="sticky-nav">
-          <nav>
-            <li><a href="#!/systems">Data Systems</a></li>
-            <li class="current"><a href="#!/stores">Cloud Storage</a></li>
-            [[ if (AEGIS.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
-          </nav>
-        </div>
-
-        <div class="nav">
-          <nav>
-            <li><a href="#!/systems">Data Systems</a></li>
-            <li class="current"><a href="#!/stores">Cloud Storage</a></li>
-            [[ if (AEGIS.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
-          </nav>
-        </div>
 
         <div id="lock-state" class="locked">
           <h1>This SHIELD Core is LOCKED</h1>
@@ -575,6 +573,17 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         <a class="cli" href="/cli/darwin/arm64/shield" title="Download MacOS (Apple Silicon) SHIELD CLI"><i class="fab fa-1x fa-apple"></i></a>
         <a class="cli" href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a>
         <h1><a href="#!/systems">SHIELD [[ if (AEGIS.shield.color) { ]]<span style="color:[[= AEGIS.shield.color ]]">[[ } ]][[= h(AEGIS.shield.env) ]]</span></a></h1>
+        [[ if (AEGIS.authenticated() && AEGIS.current) { ]]
+        <nav class="top-nav">
+          <li><a href="#!/systems">Data Systems</a></li>
+          <li><a href="#!/stores">Cloud Storage</a></li>
+          [[ if (AEGIS.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
+        </nav>
+        [[ } ]]
+        <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode">
+          <i class="fas fa-sun  theme-icon-light"></i>
+          <i class="fas fa-moon theme-icon-dark"></i>
+        </button>
         [[ if (AEGIS.authenticated()) { ]]
         <a href="#!/account" rel="account">[[= h(AEGIS.user.name) ]][[ if (AEGIS.current) { ]] ([[= h(AEGIS.current.name) ]] :: [[= AEGIS.role(AEGIS.current.uuid) ]])[[ } ]]</a>
         <div class="flyout ephemeral">

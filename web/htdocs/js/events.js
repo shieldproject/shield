@@ -699,6 +699,18 @@
         });
       }) /* }}} */
 
+      /* Theme toggle (dark / light) */
+      .on('click', '#theme-toggle', function () { /* {{{ */
+        var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        var next = isLight ? 'dark' : 'light';
+        if (next === 'dark') {
+          document.documentElement.removeAttribute('data-theme');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+        document.cookie = 'shield-theme=' + next + '; path=/; max-age=' + (365 * 24 * 3600);
+      }) /* }}} */
+
       /* Sidebar collapse toggle */
       .on('click', '#sidebar-toggle', function () { /* {{{ */
         var collapsed = $('.story-sidebar').toggleClass('collapsed').hasClass('collapsed');
