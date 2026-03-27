@@ -68,9 +68,9 @@ var _ = Describe("Task Management", func() {
 			           "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", "daily 3am", 7, 7)`,
 
 			// need an archive
-			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason)
+			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason, tenant_uuid)
 			    VALUES("`+SomeArchive.UUID+`", "`+SomeTarget.UUID+`",
-			           "`+SomeStore.UUID+`", "key", 0, 0, "(no notes)", "valid", "")`,
+			           "`+SomeStore.UUID+`", "key", 0, 0, "(no notes)", "valid", "", "`+SomeTenant.UUID+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(db).ShouldNot(BeNil())
@@ -401,6 +401,230 @@ var _ = Describe("Task Management", func() {
 			runnable, err := db.IsTaskRunnable(&Task{TargetUUID: runningTaskTargetUUID})
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(runnable).To(BeFalse())
+		})
+	})
+
+	Describe("CreateRestoreTask alternate-target validation", func() {
+		var db *DB
+		var tenantA, tenantB string
+		var targetA, targetB, targetC *Target
+		var storeA *Store
+		var archive *Archive
+
+		BeforeEach(func() {
+			var err error
+			tenantA = RandomID()
+			tenantB = RandomID()
+			targetA = &Target{UUID: RandomID()}
+			targetB = &Target{UUID: RandomID()}
+			targetC = &Target{UUID: RandomID()}
+			storeA = &Store{UUID: RandomID()}
+			jobA := RandomID()
+			archiveID := RandomID()
+
+			db, err = Database(
+				`INSERT INTO tenants (uuid, name) VALUES ("`+tenantA+`", "Tenant A")`,
+				`INSERT INTO tenants (uuid, name) VALUES ("`+tenantB+`", "Tenant B")`,
+
+				`INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
+				   VALUES ("`+targetA.UUID+`", "`+tenantA+`", "Target A", "", "postgres", '{"host":"a"}', "127.0.0.1:5444")`,
+
+				`INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
+				   VALUES ("`+targetB.UUID+`", "`+tenantB+`", "Target B", "", "postgres", '{"host":"b"}', "127.0.0.1:5444")`,
+
+				`INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
+				   VALUES ("`+targetC.UUID+`", "`+tenantA+`", "Target C", "", "mysql", '{"host":"c"}', "127.0.0.1:5444")`,
+
+				`INSERT INTO stores (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
+				   VALUES ("`+storeA.UUID+`", "`+tenantA+`", "Store A", "", "s3", '{"bucket":"x"}', "127.0.0.1:9938")`,
+
+				`INSERT INTO jobs (uuid, tenant_uuid, name, summary, paused,
+				                   target_uuid, store_uuid, schedule, keep_days, retries)
+				   VALUES ("`+jobA+`", "`+tenantA+`", "Job A", "", 0,
+				           "`+targetA.UUID+`", "`+storeA.UUID+`", "daily 3am", 7, 7)`,
+
+				`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at,
+				                       notes, status, purge_reason, tenant_uuid)
+				    VALUES("`+archiveID+`", "`+targetA.UUID+`",
+				           "`+storeA.UUID+`", "key", 0, 0, "", "valid", "", "`+tenantA+`")`,
+			)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(db).ShouldNot(BeNil())
+
+			targetA, err = db.GetTarget(targetA.UUID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(targetA).ShouldNot(BeNil())
+
+			targetB, err = db.GetTarget(targetB.UUID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(targetB).ShouldNot(BeNil())
+
+			targetC, err = db.GetTarget(targetC.UUID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(targetC).ShouldNot(BeNil())
+
+			storeA, err = db.GetStore(storeA.UUID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(storeA).ShouldNot(BeNil())
+
+			archive, err = db.GetArchive(archiveID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(archive).ShouldNot(BeNil())
+		})
+
+		AfterEach(func() {
+			db.Disconnect()
+		})
+
+		Context("when target belongs to a different tenant than the archive", func() {
+			It("rejects with an error", func() {
+				task, err := db.CreateRestoreTask("owner", archive, targetB)
+				Ω(err).Should(HaveOccurred())
+				Ω(err.Error()).Should(ContainSubstring("different tenant"))
+				Ω(task).Should(BeNil())
+			})
+		})
+
+		Context("when target uses a different plugin than archive's original target", func() {
+			It("rejects with an error", func() {
+				task, err := db.CreateRestoreTask("owner", archive, targetC)
+				Ω(err).Should(HaveOccurred())
+				Ω(err.Error()).Should(ContainSubstring("plugin"))
+				Ω(task).Should(BeNil())
+			})
+		})
+
+		Context("when target is same tenant and same plugin", func() {
+			It("creates restore task successfully", func() {
+				task, err := db.CreateRestoreTask("owner", archive, targetA)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(task).ShouldNot(BeNil())
+			})
+		})
+	})
+
+	Describe("CreateRestoreTask plugin mismatch scenarios", func() {
+		var db *DB
+		var tenant string
+		var targetS3, targetFS, targetPG *Target
+		var storeX *Store
+		var archiveS3, archivePG *Archive
+
+		BeforeEach(func() {
+			var err error
+			tenant = RandomID()
+			targetS3 = &Target{UUID: RandomID()}
+			targetFS = &Target{UUID: RandomID()}
+			targetPG = &Target{UUID: RandomID()}
+			storeX = &Store{UUID: RandomID()}
+			archiveS3ID := RandomID()
+			archivePGID := RandomID()
+			jobX := RandomID()
+
+			db, err = Database(
+				`INSERT INTO tenants (uuid, name) VALUES ("`+tenant+`", "Mismatch Tenant")`,
+
+				`INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
+				   VALUES ("`+targetS3.UUID+`", "`+tenant+`", "S3 Target", "", "s3", '{"bucket":"b"}', "127.0.0.1:5444")`,
+
+				`INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
+				   VALUES ("`+targetFS.UUID+`", "`+tenant+`", "FS Target", "", "fs", '{"base":"/data"}', "127.0.0.1:5444")`,
+
+				`INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
+				   VALUES ("`+targetPG.UUID+`", "`+tenant+`", "PG Target", "", "postgres", '{"host":"db"}', "127.0.0.1:5444")`,
+
+				`INSERT INTO stores (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
+				   VALUES ("`+storeX.UUID+`", "`+tenant+`", "Store X", "", "s3", '{"bucket":"x"}', "127.0.0.1:9938")`,
+
+				`INSERT INTO jobs (uuid, tenant_uuid, name, summary, paused,
+				                   target_uuid, store_uuid, schedule, keep_days, retries)
+				   VALUES ("`+jobX+`", "`+tenant+`", "Job X", "", 0,
+				           "`+targetS3.UUID+`", "`+storeX.UUID+`", "daily 3am", 7, 7)`,
+
+				`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at,
+				                       notes, status, purge_reason, tenant_uuid)
+				    VALUES("`+archiveS3ID+`", "`+targetS3.UUID+`",
+				           "`+storeX.UUID+`", "key-s3", 0, 0, "", "valid", "", "`+tenant+`")`,
+
+				`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at,
+				                       notes, status, purge_reason, tenant_uuid)
+				    VALUES("`+archivePGID+`", "`+targetPG.UUID+`",
+				           "`+storeX.UUID+`", "key-pg", 0, 0, "", "valid", "", "`+tenant+`")`,
+			)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(db).ShouldNot(BeNil())
+
+			targetS3, err = db.GetTarget(targetS3.UUID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(targetS3).ShouldNot(BeNil())
+
+			targetFS, err = db.GetTarget(targetFS.UUID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(targetFS).ShouldNot(BeNil())
+
+			targetPG, err = db.GetTarget(targetPG.UUID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(targetPG).ShouldNot(BeNil())
+
+			storeX, err = db.GetStore(storeX.UUID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(storeX).ShouldNot(BeNil())
+
+			archiveS3, err = db.GetArchive(archiveS3ID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(archiveS3).ShouldNot(BeNil())
+
+			archivePG, err = db.GetArchive(archivePGID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(archivePG).ShouldNot(BeNil())
+		})
+
+		AfterEach(func() {
+			db.Disconnect()
+		})
+
+		Context("s3 archive restored to fs target", func() {
+			It("rejects with plugin mismatch error mentioning both plugin names", func() {
+				task, err := db.CreateRestoreTask("owner", archiveS3, targetFS)
+				Ω(err).Should(HaveOccurred())
+				Ω(err.Error()).Should(ContainSubstring("s3"))
+				Ω(err.Error()).Should(ContainSubstring("fs"))
+				Ω(task).Should(BeNil())
+			})
+		})
+
+		Context("postgres archive restored to s3 target", func() {
+			It("rejects with plugin mismatch error", func() {
+				task, err := db.CreateRestoreTask("owner", archivePG, targetS3)
+				Ω(err).Should(HaveOccurred())
+				Ω(err.Error()).Should(ContainSubstring("plugin"))
+				Ω(task).Should(BeNil())
+			})
+		})
+
+		Context("s3 archive restored to s3 target (same plugin, different target)", func() {
+			It("succeeds", func() {
+				// Create a second s3 target in the same tenant
+				altS3UUID := RandomID()
+				Ω(db.Exec(`INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
+				   VALUES ("` + altS3UUID + `", "` + tenant + `", "Alt S3 Target", "", "s3", '{"bucket":"c"}', "127.0.0.1:5444")`)).
+					Should(Succeed())
+				altS3, err := db.GetTarget(altS3UUID)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(altS3).ShouldNot(BeNil())
+
+				task, err := db.CreateRestoreTask("owner", archiveS3, altS3)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(task).ShouldNot(BeNil())
+			})
+		})
+
+		Context("postgres archive restored to postgres target (same plugin)", func() {
+			It("succeeds", func() {
+				task, err := db.CreateRestoreTask("owner", archivePG, targetPG)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(task).ShouldNot(BeNil())
+			})
 		})
 	})
 })

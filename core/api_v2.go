@@ -3230,7 +3230,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		if target == nil || archive.TenantUUID != r.Args[1] {
+		if target == nil || target.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such backup archive"))
 			return
 		}
