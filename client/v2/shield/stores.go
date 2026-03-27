@@ -3,8 +3,7 @@ package shield
 import (
 	"fmt"
 
-	qs "github.com/jhunt/go-querytron"
-	"github.com/pborman/uuid"
+"github.com/pborman/uuid"
 )
 
 type Store struct {
@@ -34,7 +33,7 @@ func fixupStoreRequest(p *Store) {
 }
 
 func (c *Client) ListStores(parent *Tenant, filter *StoreFilter) ([]*Store, error) {
-	u := qs.Generate(filter).Encode()
+	u := generateQueryString(filter).Encode()
 	var out []*Store
 	if err := c.get(fmt.Sprintf("/v2/tenants/%s/stores?%s", parent.UUID, u), &out); err != nil {
 		return nil, err
@@ -104,7 +103,7 @@ func (c *Client) DeleteStore(parent *Tenant, in *Store) (Response, error) {
 }
 
 func (c *Client) ListGlobalStores(filter *StoreFilter) ([]*Store, error) {
-	u := qs.Generate(filter).Encode()
+	u := generateQueryString(filter).Encode()
 	var out []*Store
 	if err := c.get(fmt.Sprintf("/v2/global/stores?%s", u), &out); err != nil {
 		return nil, err

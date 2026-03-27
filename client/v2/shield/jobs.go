@@ -3,8 +3,7 @@ package shield
 import (
 	"fmt"
 
-	qs "github.com/jhunt/go-querytron"
-	"github.com/pborman/uuid"
+"github.com/pborman/uuid"
 )
 
 type Job struct {
@@ -62,7 +61,7 @@ func fixupJobResponse(p *Job) {
 }
 
 func (c *Client) ListJobs(parent *Tenant, filter *JobFilter) ([]*Job, error) {
-	u := qs.Generate(filter).Encode()
+	u := generateQueryString(filter).Encode()
 	var out []*Job
 	if err := c.get(fmt.Sprintf("/v2/tenants/%s/jobs?%s", parent.UUID, u), &out); err != nil {
 		return nil, err

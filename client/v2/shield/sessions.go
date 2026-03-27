@@ -2,8 +2,6 @@ package shield
 
 import (
 	"fmt"
-
-	qs "github.com/jhunt/go-querytron"
 )
 
 type Session struct {
@@ -36,7 +34,7 @@ func fixupSessionRequest(p *Session) {
 }
 
 func (c *Client) ListSessions(filter *SessionFilter) ([]*Session, error) {
-	u := qs.Generate(filter).Encode()
+	u := generateQueryString(filter).Encode()
 	var out []*Session
 	if err := c.get(fmt.Sprintf("/v2/auth/sessions?%s", u), &out); err != nil {
 		return nil, err
