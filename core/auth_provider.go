@@ -8,7 +8,6 @@ import (
 
 	"github.com/shieldproject/shield/db"
 	"github.com/shieldproject/shield/route"
-	"github.com/shieldproject/shield/util"
 )
 
 var (
@@ -37,7 +36,7 @@ type AuthProviderConfig struct {
 }
 
 type AuthProvider interface {
-	Configure(map[interface{}]interface{}) error
+	Configure(map[string]interface{}) error
 	Configuration(bool) AuthProviderConfig
 	WireUpTo(core *Core)
 
@@ -71,7 +70,7 @@ func (p AuthProviderBase) Configuration(private bool) AuthProviderConfig {
 	}
 
 	if private {
-		cfg.Properties = util.StringifyKeys(p.properties).(map[string]interface{})
+		cfg.Properties = p.properties
 	}
 
 	return cfg

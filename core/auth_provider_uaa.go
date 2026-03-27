@@ -10,7 +10,6 @@ import (
 	"github.com/shieldproject/shield/db"
 	"github.com/shieldproject/shield/lib/uaa"
 	"github.com/shieldproject/shield/route"
-	"github.com/shieldproject/shield/util"
 )
 
 type UAAAuthProvider struct {
@@ -32,8 +31,8 @@ type UAAAuthProvider struct {
 	uaa *uaa.Client
 }
 
-func (p *UAAAuthProvider) Configure(raw map[interface{}]interface{}) error {
-	b, err := json.Marshal(util.StringifyKeys(raw))
+func (p *UAAAuthProvider) Configure(raw map[string]interface{}) error {
+	b, err := json.Marshal(raw)
 	if err != nil {
 		return err
 	}
@@ -56,7 +55,7 @@ func (p *UAAAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	}
 
 	p.UAAEndpoint = strings.TrimSuffix(p.UAAEndpoint, "/")
-	p.properties = util.StringifyKeys(raw).(map[string]interface{})
+	p.properties = raw
 
 	p.uaa = uaa.NewClient(uaa.Client{
 		ID:       p.ClientID,
