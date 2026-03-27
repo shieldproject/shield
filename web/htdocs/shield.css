@@ -236,40 +236,57 @@ table {
   color: var(--text-primary);
   box-shadow: var(--shadow-md);
   border-bottom: 1px solid var(--border-default);
-  font: normal 15px/15px sans-serif;
+  font: normal 14px/1 sans-serif;
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
+  height: 48px;
   z-index: 100;
   backdrop-filter: blur(10px);
-  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 4px;
+  overflow: hidden;
 }
 
 .top-bar > * {
   display: block;
-  padding: 12px;
+  padding: 0 8px;
+  flex-shrink: 0;
 }
 
 .top-bar .cli {
-  float: left;
-}
-
-.top-bar .cli:nth-child(2) {
-  padding: 12px 10px 12px 0;
+  font-size: 16px;
+  padding: 0 4px;
+  line-height: 1;
 }
 
 .top-bar h1 {
-  float: left;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 17px;
   letter-spacing: -0.3px;
+  width: 220px;
+  padding-right: 16px;
+  border-right: 1px solid var(--border-default);
+  margin-right: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+body.sidebar-collapsed .top-bar h1 {
+  width: 24px;
+  overflow: hidden;
 }
 
 .top-bar h1 span {
   font-weight: 400;
   font-size: 11px;
-  vertical-align: text-top;
+  vertical-align: middle;
   color: var(--accent-light);
   opacity: 0.8;
 }
@@ -285,7 +302,130 @@ table {
 }
 
 .top-bar a[rel=account] {
-  float: right;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  font-size: 13px;
+  transition: all 0.2s ease;
+  margin: 6px 0;
+  line-height: 1;
+}
+
+.top-bar a[rel=account]::after {
+  content: '';
+  display: inline-block;
+  border: 4px solid transparent;
+  border-top-color: currentColor;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.top-bar a[rel=account]:hover {
+  background-color: var(--bg-elevated);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+/* ================================================
+   ACCOUNT DROPDOWN
+   ================================================ */
+
+.top-bar .flyout {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 240px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.top-bar .flyout .menu {
+  padding: 4px 0;
+}
+
+.top-bar .flyout .header {
+  padding: 10px 16px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+}
+
+.top-bar .flyout .header span {
+  display: inline-block;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.top-bar .flyout .divider {
+  height: 1px;
+  background-color: var(--border-default);
+  margin: 4px 0;
+}
+
+.top-bar .flyout a.dropdown,
+.top-bar .flyout span.dropdown {
+  display: block;
+  padding: 9px 16px;
+  font-size: 13px;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-bar .flyout a.dropdown:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--accent-light);
+}
+
+/* Current active tenant */
+.top-bar .flyout a.dropdown.current\.tenant {
+  color: var(--accent-primary);
+  font-weight: 600;
+  background-color: rgba(59, 130, 246, 0.08);
+}
+
+.top-bar .flyout a.dropdown.current\.tenant::before {
+  content: '✓ ';
+  opacity: 0.8;
+}
+
+/* "No tenants" placeholder */
+.top-bar .flyout span.dropdown.odd {
+  color: var(--text-tertiary);
+  font-style: italic;
+  cursor: default;
+}
+
+/* Sign out gets a subtle danger hint on hover */
+.top-bar .flyout a.dropdown[href="#!/logout"]:hover {
+  color: var(--error);
+  background-color: rgba(239, 68, 68, 0.06);
 }
 
 /* ================================================
@@ -635,10 +775,10 @@ table {
   box-shadow: var(--shadow-lg);
   border-right: 1px solid var(--border-default);
   position: fixed;
-  top: 0;
+  top: 48px;
   left: 0;
   z-index: 80;
-  height: 100%;
+  height: calc(100% - 48px);
   width: 280px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -652,7 +792,7 @@ table {
 /* Toggle button */
 .sidebar-toggle {
   position: absolute;
-  top: 12px;
+  top: 8px;
   right: 8px;
   width: 28px;
   height: 28px;
@@ -688,7 +828,6 @@ table {
   transform: rotate(180deg);
 }
 
-.story-sidebar nav,
 .hud > div {
   margin-top: 48px;
 }
