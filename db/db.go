@@ -6,8 +6,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/jhunt/go-log"
-	"github.com/jmoiron/sqlx"
+	"github.com/shieldproject/shield/internal/log"
 	"github.com/pborman/uuid"
 
 	"github.com/shieldproject/shield/core/bus"
@@ -16,7 +15,7 @@ import (
 var GlobalTenantUUID = uuid.NIL.String()
 
 type DB struct {
-	connection *sqlx.DB
+	connection *sql.DB
 	Driver     string
 	DSN        string
 
@@ -31,7 +30,7 @@ func Connect(file string) (*DB, error) {
 		DSN:    file,
 	}
 
-	connection, err := sqlx.Open(db.Driver, db.DSN)
+	connection, err := sql.Open(db.Driver, db.DSN)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +203,7 @@ func (db *DB) statement(sql string) (*sql.Stmt, error) {
 		return nil, fmt.Errorf("Not connected to database")
 	}
 
-	return db.connection.Prepare(db.connection.Rebind(sql))
+	return db.connection.Prepare(sql)
 }
 
 // Generate a randomized UUID
