@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jhunt/go-cli"
-	env "github.com/jhunt/go-envirotron"
-	"github.com/jhunt/go-log"
+	"github.com/spf13/cobra"
+	log "github.com/shieldproject/shield/internal/log"
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
@@ -16,61 +15,52 @@ import (
 
 var Version = ""
 
-func main() {
+var (
+	configFile string
+	logLevel   string
+)
+
+var rootCmd = &cobra.Command{
+	Use:           "shieldd",
+	Short:         "The SHIELD Core daemon",
+	Version:       Version,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if !cmd.Flags().Changed("config") {
+			if v := os.Getenv("SHIELD_CONFIG_FILE"); v != "" {
+				configFile = v
+			}
+		}
+		if !cmd.Flags().Changed("log-level") {
+			if v := os.Getenv("SHIELD_LOG_LEVEL"); v != "" {
+				logLevel = v
+			}
+		}
+
+		log.SetupLogging(logLevel)
+		log.Infof("starting up shield core")
+
+		c, err := core.Configure(configFile, core.DefaultConfig)
+		if err != nil {
+			log.Errorf("shield core failed to start up: %s", err)
+			os.Exit(1)
+		}
+
+		c.Main()
+		return nil
+	},
+}
+
+func init() {
 	core.Version = Version
+	rootCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to the SHIELD Core configuration file")
+	rootCmd.Flags().StringVarP(&logLevel, "log-level", "l", "info", "What messages to log (error, warning, info, or debug)")
+}
 
-	var opts struct {
-		Help    bool `cli:"-h, --help"`
-		Version bool `cli:"-v, --version"`
-
-		ConfigFile string `cli:"-c, --config"    env:"SHIELD_CONFIG_FILE"`
-		Log        string `cli:"-l, --log-level" env:"SHIELD_LOG_LEVEL"`
-	}
-	opts.Log = "info"
-	env.Override(&opts)
-
-	_, args, err := cli.Parse(&opts)
-	if err != nil {
+func main() {
+	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "!!! %s\n", err)
 		os.Exit(1)
 	}
-	if len(args) != 0 {
-		fmt.Fprintf(os.Stderr, "!!! extra arguments found\n")
-		os.Exit(1)
-	}
-
-	if opts.Help {
-		fmt.Printf("shieldd - The SHIELD Core daemon\n\n")
-		fmt.Printf("Options\n")
-		fmt.Printf("  -h, --help       Show this help screen.\n")
-		fmt.Printf("  -v, --version    Display the SHIELD version.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  -l, --log-level  What messages to log (error, warning, info, or debug).\n")
-		fmt.Printf("  -c, --config     Path to the SHIELD Core configuration file.\n")
-		fmt.Printf("\n")
-		os.Exit(0)
-	}
-
-	if opts.Version {
-		if core.Version == "" || core.Version == "dev" {
-			fmt.Printf("shieldd (development)\n")
-		} else {
-			fmt.Printf("shieldd v%s\n", core.Version)
-		}
-		os.Exit(0)
-	}
-
-	log.SetupLogging(log.LogConfig{
-		Type:  "console",
-		Level: opts.Log,
-	})
-	log.Infof("starting up shield core")
-
-	c, err := core.Configure(opts.ConfigFile, core.DefaultConfig)
-	if err != nil {
-		log.Errorf("shield core failed to start up: %s", err)
-		os.Exit(1)
-	}
-
-	c.Main()
 }
