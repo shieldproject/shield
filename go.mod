@@ -4,8 +4,6 @@ go 1.26
 
 toolchain go1.26.1
 
-replace github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.8.0
-
 require (
 	github.com/ErikDubbelboer/gspt v0.0.0-20180711091504-e39e726e09cc
 	github.com/aws/aws-sdk-go-v2 v1.41.5
