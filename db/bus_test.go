@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	// sql drivers
@@ -95,12 +95,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a create-object message bus event for Agent, eventually", func(done Done) {
+			It("should receive a create-object message bus event for Agent, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var a Agent
 
 				/* Create agent object bus event*/
-				receive(<-events, "create-object", "agent", &a)
+				receive(e, "create-object", "agent", &a)
 				Ω(a.UUID).Should(Equal("foo"))
 				Ω(a.Name).Should(Equal("agent"))
 				Ω(a.Address).Should(Equal("addr"))
@@ -110,9 +113,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(a.LastCheckedAt).Should(Equal(int64(3)))
 				Ω(a.LastError).Should(Equal("nil"))
 				Ω(a.Status).Should(Equal("good"))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		Context("when sending an updateObject message for Agent", func() {
@@ -131,12 +132,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a update-object message bus event for Agent, eventually", func(done Done) {
+			It("should receive a update-object message bus event for Agent, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var a Agent
 
 				/* Update Agent object message bus event*/
-				receive(<-events, "update-object", "agent", &a)
+				receive(e, "update-object", "agent", &a)
 				Ω(a.UUID).Should(Equal("foo"))
 				Ω(a.Name).Should(Equal("agent"))
 				Ω(a.Address).Should(Equal("addr"))
@@ -146,9 +150,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(a.LastCheckedAt).Should(Equal(int64(4)))
 				Ω(a.LastError).Should(Equal("nil"))
 				Ω(a.Status).Should(Equal("bad"))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		/* Message bus tests for Job */
@@ -169,12 +171,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a create-object message bus event for Job, eventually", func(done Done) {
+			It("should receive a create-object message bus event for Job, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var j Job
 
 				/* Create job object bus event*/
-				receive(<-events, "create-object", "job", &j)
+				receive(e, "create-object", "job", &j)
 				Ω(j.UUID).Should(Equal("foo"))
 				Ω(j.Name).Should(Equal("daily"))
 				Ω(j.Summary).Should(Equal("A Daily Backup"))
@@ -185,9 +190,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(j.FixedKey).Should(Equal(false))
 				Ω(j.Healthy).Should(Equal(false))
 				Ω(j.Retries).Should(Equal(3))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		Context("when sending an updateObject message for Job", func() {
@@ -207,12 +210,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a update-object message bus event for Job, eventually", func(done Done) {
+			It("should receive a update-object message bus event for Job, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var j Job
 
 				/* Update Job object message bus event*/
-				receive(<-events, "update-object", "job", &j)
+				receive(e, "update-object", "job", &j)
 				Ω(j.UUID).Should(Equal("foo"))
 				Ω(j.Name).Should(Equal("weekly"))
 				Ω(j.Summary).Should(Equal("A Weekly Backup"))
@@ -224,9 +230,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(j.Healthy).Should(Equal(false))
 				Ω(j.Retries).Should(Equal(4))
 				/* etc. */
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		Context("when sending an healthUpdate message for Job", func() {
@@ -236,14 +240,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a health-update message bus event for Job, eventually", func(done Done) {
+			It("should receive a health-update message bus event for Job, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				var j Job
 
-				receive(<-events, "health-update", "job", &j)
+				receive(e, "health-update", "job", &j)
 				Ω(j.Healthy).Should(Equal(true))
-
-				close(done)
-			}, 2)
+			})
 		})
 
 		/* Message bus tests for Store */
@@ -261,12 +266,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a create-object message bus event for Store, eventually", func(done Done) {
+			It("should receive a create-object message bus event for Store, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var s Store
 
 				/* Create store object bus event*/
-				receive(<-events, "create-object", "store", &s)
+				receive(e, "create-object", "store", &s)
 				Ω(s.UUID).Should(Equal("foo"))
 				Ω(s.Name).Should(Equal("Store"))
 				Ω(s.Summary).Should(Equal("A Store Plugin"))
@@ -274,9 +282,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(s.Plugin).Should(Equal("test plugin"))
 				Ω(s.Global).Should(Equal(true))
 				Ω(s.Healthy).Should(Equal(false))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		Context("when sending an updateObject message for Store", func() {
@@ -293,12 +299,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a update-object message bus event for Store, eventually", func(done Done) {
+			It("should receive a update-object message bus event for Store, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var s Store
 
 				/* Update Store object message bus event*/
-				receive(<-events, "update-object", "store", &s)
+				receive(e, "update-object", "store", &s)
 				Ω(s.UUID).Should(Equal("foo"))
 				Ω(s.Name).Should(Equal("weekly"))
 				Ω(s.Summary).Should(Equal("A Store plugin"))
@@ -306,9 +315,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(s.Plugin).Should(Equal("plugin"))
 				Ω(s.Global).Should(Equal(false))
 				Ω(s.Healthy).Should(Equal(false))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		Context("when sending an healthUpdate message for Store", func() {
@@ -319,16 +326,17 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a health-update message bus event for Store, eventually", func(done Done) {
+			It("should receive a health-update message bus event for Store, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var s Store
 
 				/* Update Store health message bus event*/
-				receive(<-events, "health-update", "store", &s)
+				receive(e, "health-update", "store", &s)
 				Ω(s.Healthy).Should(Equal(true))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		/* Message bus tests for Target */
@@ -346,12 +354,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a create-object message bus event for Target, eventually", func(done Done) {
+			It("should receive a create-object message bus event for Target, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var t Target
 
 				/* Create Target object bus event*/
-				receive(<-events, "create-object", "target", &t)
+				receive(e, "create-object", "target", &t)
 				Ω(t.UUID).Should(Equal("foo"))
 				Ω(t.Name).Should(Equal("target"))
 				Ω(t.Summary).Should(Equal("A Target Plugin"))
@@ -359,9 +370,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(t.Plugin).Should(Equal("test plugin"))
 				Ω(t.Compression).Should(Equal("zip"))
 				Ω(t.Healthy).Should(Equal(false))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		Context("when sending an updateObject message for Target", func() {
@@ -378,12 +387,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a update-object message bus event for Target, eventually", func(done Done) {
+			It("should receive a update-object message bus event for Target, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var t Target
 
 				/* Update Target object message bus event*/
-				receive(<-events, "update-object", "target", &t)
+				receive(e, "update-object", "target", &t)
 				Ω(t.UUID).Should(Equal("foo"))
 				Ω(t.Name).Should(Equal("weekly"))
 				Ω(t.Summary).Should(Equal("A Target plugin"))
@@ -391,9 +403,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(t.Plugin).Should(Equal("plugin"))
 				Ω(t.Compression).Should(Equal("zip"))
 				Ω(t.Healthy).Should(Equal(false))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		Context("when sending an healthUpdate message for Target", func() {
@@ -404,16 +414,17 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a health-update message bus event for Target, eventually", func(done Done) {
+			It("should receive a health-update message bus event for Target, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var t Target
 
 				/* Update Target health message bus event*/
-				receive(<-events, "health-update", "target", &t)
+				receive(e, "health-update", "target", &t)
 				Ω(t.Healthy).Should(Equal(true))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		/* Message bus tests for Tenants */
@@ -429,20 +440,21 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a create-object message bus event for Tenant, eventually", func(done Done) {
+			It("should receive a create-object message bus event for Tenant, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var t Tenant
 
 				/* Create Target object bus event*/
-				receive(<-events, "create-object", "tenant", &t)
+				receive(e, "create-object", "tenant", &t)
 				Ω(t.UUID).Should(Equal("foo"))
 				Ω(t.Name).Should(Equal("tenants"))
 				Ω(t.DailyIncrease).Should(Equal(int64(2)))
 				Ω(t.StorageUsed).Should(Equal(int64(3)))
 				Ω(t.ArchiveCount).Should(Equal(1))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		Context("when sending an updateObject message for Tenant", func() {
@@ -457,20 +469,21 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a update-object message bus event for Tenant, eventually", func(done Done) {
+			It("should receive a update-object message bus event for Tenant, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var t Tenant
 
 				/* Update Target object message bus event*/
-				receive(<-events, "update-object", "tenant", &t)
+				receive(e, "update-object", "tenant", &t)
 				Ω(t.UUID).Should(Equal("foo"))
 				Ω(t.Name).Should(Equal("tenants"))
 				Ω(t.DailyIncrease).Should(Equal(int64(3)))
 				Ω(t.StorageUsed).Should(Equal(int64(4)))
 				Ω(t.ArchiveCount).Should(Equal(2))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		/* Message bus tests for Task */
@@ -496,12 +509,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a create-object message bus event for Task, eventually", func(done Done) {
+			It("should receive a create-object message bus event for Task, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var t Task
 
 				/* Create Target object bus event*/
-				receive(<-events, "create-object", "task", &t)
+				receive(e, "create-object", "task", &t)
 				Ω(t.UUID).Should(Equal("foo"))
 				Ω(t.TenantUUID).Should(Equal("bar"))
 				Ω(t.Owner).Should(Equal("Admin"))
@@ -518,9 +534,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(t.OK).Should(Equal(true))
 				Ω(t.Notes).Should(Equal("notes"))
 				Ω(t.Clear).Should(Equal("clear"))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		Context("when sending an updateObject message for Task", func() {
@@ -545,12 +559,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a update-object message bus event for Task, eventually", func(done Done) {
+			It("should receive a update-object message bus event for Task, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var t Task
 
 				/* Update Target object message bus event*/
-				receive(<-events, "update-object", "task", &t)
+				receive(e, "update-object", "task", &t)
 				Ω(t.UUID).Should(Equal("foo"))
 				Ω(t.TenantUUID).Should(Equal("bar"))
 				Ω(t.Owner).Should(Equal("Admin"))
@@ -567,9 +584,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(t.OK).Should(Equal(false))
 				Ω(t.Notes).Should(Equal("notes"))
 				Ω(t.Clear).Should(Equal("clear"))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		/* Message bus tests for Archive */
@@ -593,12 +608,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a create-object message bus event for Archive, eventually", func(done Done) {
+			It("should receive a create-object message bus event for Archive, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var a Archive
 
 				/* Create Archive object bus event*/
-				receive(<-events, "create-object", "archive", &a)
+				receive(e, "create-object", "archive", &a)
 				Ω(a.UUID).Should(Equal("foo"))
 				Ω(a.TenantUUID).Should(Equal("bar"))
 				Ω(a.StoreUUID).Should(Equal("store_foo"))
@@ -612,9 +630,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(a.EncryptionType).Should(Equal("rsa"))
 				Ω(a.Compression).Should(Equal("zip"))
 				Ω(a.Size).Should(Equal(int64(2)))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 
 		Context("when sending an updateObject message for Archive", func() {
@@ -637,12 +653,15 @@ var _ = Describe("MessageBus Database Integration", func() {
 				}, "*")
 			})
 
-			It("should receive a update-object message bus event for Archive, eventually", func(done Done) {
+			It("should receive a update-object message bus event for Archive, eventually", func() {
+				var e bus.Event
+				Eventually(events, 2).Should(Receive(&e))
+
 				/* this is executed in a goroutine */
 				var a Archive
 
 				/* Update Archive object message bus event*/
-				receive(<-events, "update-object", "archive", &a)
+				receive(e, "update-object", "archive", &a)
 				Ω(a.UUID).Should(Equal("foo"))
 				Ω(a.TenantUUID).Should(Equal("bar"))
 				Ω(a.StoreUUID).Should(Equal("store_bar"))
@@ -656,9 +675,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(a.EncryptionType).Should(Equal("rsa"))
 				Ω(a.Compression).Should(Equal("zip"))
 				Ω(a.Size).Should(Equal(int64(2)))
-
-				close(done)
-			}, 2 /* timeout (in seconds) */)
+			})
 		})
 	})
 })

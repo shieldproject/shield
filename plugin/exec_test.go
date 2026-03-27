@@ -2,11 +2,11 @@ package plugin_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"runtime"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/shieldproject/shield/plugin"
@@ -20,7 +20,7 @@ var _ = Describe("Plugin Commands", func() {
 	})
 
 	drain := func(file *os.File, output chan string) {
-		data, err := ioutil.ReadAll(file)
+		data, err := io.ReadAll(file)
 		if err != nil {
 			panic(fmt.Sprintf("Error reading from pipe, test is invalid: %s", err.Error()))
 		}

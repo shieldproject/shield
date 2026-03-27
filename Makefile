@@ -28,7 +28,7 @@ api-tests: shieldd shield-schema shield-crypt shield-agent shield-report
 
 # Running Tests for race conditions
 race:
-	ginkgo -race *
+	go run github.com/onsi/ginkgo/v2/ginkgo run -race ./...
 
 # Building Shield
 shield: shieldd shield-cli shield-agent shield-schema shield-crypt shield-report
