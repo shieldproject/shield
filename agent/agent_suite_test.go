@@ -4,11 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"golang.org/x/crypto/ssh"
 )
@@ -100,7 +99,7 @@ func (c *Client) Run(out chan string, command string) error {
 }
 
 func ConfigureSSHClient(privateKeyPath string) (*ssh.ClientConfig, error) {
-	raw, err := ioutil.ReadFile(privateKeyPath)
+	raw, err := os.ReadFile(privateKeyPath)
 	if err != nil {
 		return nil, err
 	}
