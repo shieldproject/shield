@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jhunt/go-log"
+	"github.com/shieldproject/shield/internal/log"
 )
 
 type Store struct {

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jhunt/go-log"
+	log "github.com/shieldproject/shield/internal/log"
 
 	"github.com/shieldproject/shield/db"
 )

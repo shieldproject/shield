@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/jhunt/go-log"
+	"github.com/shieldproject/shield/internal/log"
 )
 
 type WebSocket struct {

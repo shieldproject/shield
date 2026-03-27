@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/jhunt/go-log"
+	log "github.com/shieldproject/shield/internal/log"
 )
 
 const (

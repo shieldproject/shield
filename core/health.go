@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/jhunt/go-log"
+	log "github.com/shieldproject/shield/internal/log"
 
 	"github.com/shieldproject/shield/db"
 )

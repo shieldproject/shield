@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 
-	"github.com/jhunt/go-log"
+	log "github.com/shieldproject/shield/internal/log"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/shieldproject/shield/core/scheduler"

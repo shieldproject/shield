@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jhunt/go-log"
+	log "github.com/shieldproject/shield/internal/log"
 
 	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/db"

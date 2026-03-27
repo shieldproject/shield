@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jhunt/go-log"
+	"github.com/shieldproject/shield/internal/log"
 )
 
 func (agent *Agent) Ping() {

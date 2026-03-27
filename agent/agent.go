@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/jhunt/go-log"
+	"github.com/shieldproject/shield/internal/log"
 	"golang.org/x/crypto/ssh"
 )
 
