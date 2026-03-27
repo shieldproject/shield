@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -12,9 +13,11 @@ import (
 	"time"
 
 	fmt "github.com/jhunt/go-ansi"
-	"github.com/jhunt/go-s3"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/shieldproject/shield/plugin"
+	"github.com/shieldproject/shield/plugin/s3util"
 )
 
 const (
@@ -63,8 +66,13 @@ func validBucketName(v string) bool {
 	return ok && err == nil
 }
 
-func clientUsesPathBuckets(err error) bool {
-	return !(strings.Contains(err.Error(), "301 response missing Location header") || strings.Contains(err.Error(), "Please send all future requests to this endpoint"))
+func isRedirectError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "PermanentRedirect") ||
+		strings.Contains(msg, "Please send all future requests to this endpoint")
 }
 
 func main() {
@@ -93,7 +101,7 @@ func main() {
 `,
 		Defaults: `
 {
-  "s3_host"             : "s3.amazonawd.com",
+  "s3_host"             : "s3.amazonaws.com",
   "signature_version"   : "4",
   "skip_ssl_validation" : false,
   "part_size"           : "5M"
@@ -215,6 +223,7 @@ type s3Endpoint struct {
 	SignatureVersion    int
 	SOCKS5Proxy         string
 	PartSize            int
+	UsePathStyle        bool
 }
 
 type instanceProfileCredentials struct {
@@ -390,40 +399,39 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	}
 
 	plugin.Infof("connecting to s3...")
+	c.UsePathStyle = true
 	client, err := c.Connect()
 	if err != nil {
 		return "", 0, err
 	}
 
-	path := c.genBackupPath()
+	path := s3util.GenBackupPath(c.PathPrefix)
 	plugin.Infof("storing backup archive\n"+
 		"    at path   '%s'\n"+
 		"    in bucket '%s'", path, c.Bucket)
 
-	upload, err := client.NewUpload(path, nil)
+	cr := s3util.NewCountingReader(os.Stdin)
+	partSize := int64(c.PartSize)
+	if partSize < 5*1024*1024 {
+		partSize = 5 * 1024 * 1024
+	}
+	plugin.Infof("streaming standard input to s3 in %d-byte blocks", partSize)
+
+	_, err = client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket: aws.String(c.Bucket),
+		Key:    aws.String(path),
+		Body:   cr,
+	})
 	if err != nil {
-		if !clientUsesPathBuckets(err) {
-			client.UsePathBuckets = false
-			upload, err = client.NewUpload(path, nil)
+		if isRedirectError(err) {
+			return "", 0, fmt.Errorf("s3: bucket redirect detected during Store — "+
+				"set path_style or virtual-host style explicitly in plugin configuration: %w", err)
 		}
-	}
-	if err != nil {
 		return "", 0, err
 	}
 
-	plugin.Infof("streaming standard input to s3 in %d-byte blocks", c.PartSize)
-	size, err := upload.Stream(os.Stdin, c.PartSize)
-	if err != nil {
-		return "", 0, err
-	}
-
-	plugin.Infof("upload complete; uploaded %d bytes of data", size)
-	err = upload.Done()
-	if err != nil {
-		return "", 0, err
-	}
-
-	return path, size, nil
+	plugin.Infof("upload complete; uploaded %d bytes of data", cr.N)
+	return path, cr.N, nil
 }
 
 func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
@@ -433,27 +441,39 @@ func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	}
 
 	plugin.Infof("connecting to s3...")
+	e.UsePathStyle = true
 	client, err := e.Connect()
 	if err != nil {
 		return err
 	}
 
 	plugin.Infof("retrieving backup archive\n"+
-		"    from path '%s\n"+
-		"    in bucket '%s'", file, client.Bucket)
-	reader, err := client.Get(file)
-	if err != nil {
-		if !clientUsesPathBuckets(err) {
-			client.UsePathBuckets = false
-			reader, err = client.Get(file)
+		"    from path '%s'\n"+
+		"    in bucket '%s'", file, e.Bucket)
+
+	ctx := context.Background()
+	result, err := client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(e.Bucket),
+		Key:    aws.String(file),
+	})
+	if err != nil && isRedirectError(err) {
+		e.UsePathStyle = false
+		client, err2 := e.Connect()
+		if err2 != nil {
+			return err2
 		}
+		result, err = client.GetObject(ctx, &s3.GetObjectInput{
+			Bucket: aws.String(e.Bucket),
+			Key:    aws.String(file),
+		})
 	}
 	if err != nil {
 		return err
 	}
+	defer result.Body.Close()
 
 	plugin.Infof("streaming backup archive to standard output")
-	n, err := io.Copy(os.Stdout, reader)
+	n, err := io.Copy(os.Stdout, result.Body)
 	if err != nil {
 		return err
 	}
@@ -469,6 +489,7 @@ func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	}
 
 	plugin.Infof("connecting to s3...")
+	e.UsePathStyle = true
 	client, err := e.Connect()
 	if err != nil {
 		return err
@@ -476,21 +497,31 @@ func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 
 	plugin.Infof("deleting backup archive\n"+
 		"    at path   '%s'\n"+
-		"    in bucket '%s'", file, client.Bucket)
+		"    in bucket '%s'", file, e.Bucket)
 
-	err = client.Delete(file)
-	if err != nil {
-		if !clientUsesPathBuckets(err) {
-			client.UsePathBuckets = false
-			err = client.Delete(file)
+	ctx := context.Background()
+	_, err = client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(e.Bucket),
+		Key:    aws.String(file),
+	})
+	if err != nil && isRedirectError(err) {
+		e.UsePathStyle = false
+		client, err2 := e.Connect()
+		if err2 != nil {
+			return err2
 		}
+		_, err = client.DeleteObject(ctx, &s3.DeleteObjectInput{
+			Bucket: aws.String(e.Bucket),
+			Key:    aws.String(file),
+		})
 	}
 	if err != nil {
 		return err
 	}
-	plugin.Infof("deleted backup archivee\n"+
+
+	plugin.Infof("deleted backup archive\n"+
 		"    at path   '%s'\n"+
-		"    in bucket '%s'", file, client.Bucket)
+		"    in bucket '%s'", file, e.Bucket)
 
 	return nil
 }
@@ -605,35 +636,28 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 	}, nil
 }
 
-func (e s3Endpoint) genBackupPath() string {
-	t := time.Now()
-	year, mon, day := t.Date()
-	hour, min, sec := t.Clock()
-	uuid := plugin.GenUUID()
-	path := fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", e.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, uuid)
-	// Remove double slashes
-	path = strings.Replace(path, "//", "/", -1)
-	return path
-}
-
 func (e s3Endpoint) Connect() (*s3.Client, error) {
-	return s3.NewClient(&s3.Client{
-		Protocol: e.Protocol,
-		Domain:   e.Host + ":" + e.Port,
+	if e.SignatureVersion == 2 {
+		plugin.Debugf("WARNING: signature_version=2 is not supported by AWS SDK v2; using SigV4 instead")
+	}
 
-		SignatureVersion: e.SignatureVersion,
-		AccessKeyID:      e.AccessKey,
-		SecretAccessKey:  e.SecretKey,
-		Token:            e.Token,
+	domain := e.Host
+	if e.Port != "" && e.Port != "443" && e.Port != "80" {
+		domain = e.Host + ":" + e.Port
+	}
+	endpoint := e.Protocol + "://" + domain
 
-		Region: e.Region,
-		Bucket: e.Bucket,
-
+	cfg := s3util.S3Config{
+		Region:             e.Region,
+		AccessKeyID:        e.AccessKey,
+		SecretAccessKey:    e.SecretKey,
+		SessionToken:       e.Token,
+		Endpoint:           endpoint,
+		UsePathStyle:       e.UsePathStyle,
 		InsecureSkipVerify: e.SkipSSLValidation,
 		SOCKS5Proxy:        e.SOCKS5Proxy,
-		UsePathBuckets:     true,
-		/* FIXME: CA Certs */
-	})
+	}
+	return s3util.NewClient(cfg)
 }
 
 func getInstanceProfileCredentials() (instanceProfileCredentials, error) {
