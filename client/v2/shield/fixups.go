@@ -2,8 +2,6 @@ package shield
 
 import (
 	"fmt"
-
-	qs "github.com/jhunt/go-querytron"
 )
 
 type Fixup struct {
@@ -18,7 +16,7 @@ type FixupFilter struct {
 }
 
 func (c *Client) ListFixups(filter *FixupFilter) ([]*Fixup, error) {
-	u := qs.Generate(filter).Encode()
+	u := generateQueryString(filter).Encode()
 	var out []*Fixup
 	return out, c.get(fmt.Sprintf("/v2/fixups?%s", u), &out)
 }

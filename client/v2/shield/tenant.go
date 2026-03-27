@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	qs "github.com/jhunt/go-querytron"
-	"github.com/pborman/uuid"
+"github.com/pborman/uuid"
 )
 
 type Tenant struct {
@@ -29,7 +28,7 @@ type TenantFilter struct {
 }
 
 func (c *Client) ListTenants(filter *TenantFilter) ([]*Tenant, error) {
-	u := qs.Generate(filter).Encode()
+	u := generateQueryString(filter).Encode()
 	var out []*Tenant
 	return out, c.get(fmt.Sprintf("/v2/tenants?%s", u), &out)
 }

@@ -3,8 +3,7 @@ package shield
 import (
 	"fmt"
 
-	qs "github.com/jhunt/go-querytron"
-	"github.com/pborman/uuid"
+"github.com/pborman/uuid"
 )
 
 type Task struct {
@@ -44,7 +43,7 @@ func fixupTaskRequest(p *Task) {
 }
 
 func (c *Client) ListTasks(parent *Tenant, filter *TaskFilter) ([]*Task, error) {
-	u := qs.Generate(filter).Encode()
+	u := generateQueryString(filter).Encode()
 	url := fmt.Sprintf("/v2/tasks?%s", u)
 	if parent != nil {
 		url = fmt.Sprintf("/v2/tenants/%s/tasks?%s", parent.UUID, u)

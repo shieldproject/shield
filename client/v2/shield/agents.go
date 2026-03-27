@@ -3,8 +3,7 @@ package shield
 import (
 	"fmt"
 
-	qs "github.com/jhunt/go-querytron"
-	"github.com/pborman/uuid"
+"github.com/pborman/uuid"
 )
 
 type Agent struct {
@@ -30,7 +29,7 @@ type AgentFilter struct {
 }
 
 func (c *Client) ListAgents(filter *AgentFilter) ([]*Agent, error) {
-	u := qs.Generate(filter).Encode()
+	u := generateQueryString(filter).Encode()
 	var out struct {
 		Agents   []*Agent            `json:"agents"`
 		Problems map[string][]string `json:"problems"`

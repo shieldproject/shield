@@ -3,8 +3,7 @@ package shield
 import (
 	"fmt"
 
-	qs "github.com/jhunt/go-querytron"
-	"github.com/pborman/uuid"
+"github.com/pborman/uuid"
 )
 
 type Target struct {
@@ -33,7 +32,7 @@ func fixupTargetRequest(p *Target) {
 }
 
 func (c *Client) ListTargets(parent *Tenant, filter *TargetFilter) ([]*Target, error) {
-	u := qs.Generate(filter).Encode()
+	u := generateQueryString(filter).Encode()
 
 	var out []*Target
 	if err := c.get(fmt.Sprintf("/v2/tenants/%s/targets?%s", parent.UUID, u), &out); err != nil {

@@ -3,8 +3,7 @@ package shield
 import (
 	"fmt"
 
-	qs "github.com/jhunt/go-querytron"
-	"github.com/pborman/uuid"
+"github.com/pborman/uuid"
 )
 
 type Archive struct {
@@ -39,7 +38,7 @@ func fixupArchiveRequest(p *Archive) {
 }
 
 func (c *Client) ListArchives(parent *Tenant, filter *ArchiveFilter) ([]*Archive, error) {
-	u := qs.Generate(filter).Encode()
+	u := generateQueryString(filter).Encode()
 	var out []*Archive
 	if err := c.get(fmt.Sprintf("/v2/tenants/%s/archives?%s", parent.UUID, u), &out); err != nil {
 		return nil, err

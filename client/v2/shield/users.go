@@ -3,8 +3,7 @@ package shield
 import (
 	"fmt"
 
-	qs "github.com/jhunt/go-querytron"
-	"github.com/pborman/uuid"
+"github.com/pborman/uuid"
 )
 
 type User struct {
@@ -35,7 +34,7 @@ func fixupUserRequest(p *User) {
 }
 
 func (c *Client) ListUsers(filter *UserFilter) ([]*User, error) {
-	u := qs.Generate(filter).Encode()
+	u := generateQueryString(filter).Encode()
 
 	var out []*User
 	if err := c.get(fmt.Sprintf("/v2/auth/local/users?%s", u), &out); err != nil {
