@@ -477,6 +477,16 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 			return fmt.Errorf("unable to create restore task: %s", err)
 		}
 
+		/* validate target is in the same tenant as the archive */
+		if archive.TenantUUID != target.TenantUUID {
+			return fmt.Errorf("unable to create restore task: target belongs to a different tenant than archive")
+		}
+
+		/* validate target plugin matches archive's original target plugin */
+		if target.Plugin != archive.TargetPlugin {
+			return fmt.Errorf("unable to create restore task: target plugin '%s' does not match archive plugin '%s'", target.Plugin, archive.TargetPlugin)
+		}
+
 		/* validate the store */
 		if err := db.storeShouldExist(archive.StoreUUID); err != nil {
 			return fmt.Errorf("unable to create restore task: %s", err)
