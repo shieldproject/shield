@@ -28,8 +28,10 @@ func (s *Scheduler) Status() Status {
 
 	for i, w := range s.workers {
 		status.Workers[i].ID = w.id
-		status.Workers[i].Idle = w.available
+		status.Workers[i].Idle = w.available.Load()
+		w.mu.Lock()
 		status.Workers[i].TaskUUID = w.task
+		w.mu.Unlock()
 		status.Workers[i].LastSeen = w.last
 	}
 

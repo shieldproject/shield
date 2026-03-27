@@ -2,6 +2,8 @@ package scheduler
 
 import (
 	"fmt"
+	"sync"
+	"sync/atomic"
 
 	log "github.com/shieldproject/shield/internal/log"
 
@@ -12,7 +14,8 @@ var serial = 0
 
 type Worker struct {
 	id        int
-	available bool
+	available atomic.Bool
+	mu        sync.Mutex
 	task      string
 	last      int
 	db        *db.DB
@@ -20,29 +23,34 @@ type Worker struct {
 
 func NewWorker(db *db.DB) *Worker {
 	serial += 1
-	return &Worker{
-		id:        serial,
-		available: true,
-		db:        db,
+	w := &Worker{
+		id: serial,
+		db: db,
 	}
+	w.available.Store(true)
+	return w
 }
 
-func (t Worker) String() string {
+func (t *Worker) String() string {
 	return fmt.Sprintf("worker t#%03d", t.id)
 }
 
-func (t Worker) Available() bool {
-	return t.available
+func (t *Worker) Available() bool {
+	return t.available.Load()
 }
 
 func (t *Worker) Reserve(task string) {
 	log.Infof("reserving %s...", t)
-	t.available = false
+	t.mu.Lock()
 	t.task = task
+	t.mu.Unlock()
+	t.available.Store(false)
 }
 
 func (t *Worker) Release() {
 	log.Infof("releasing %s...", t)
-	t.available = true
+	t.mu.Lock()
 	t.task = ""
+	t.mu.Unlock()
+	t.available.Store(true)
 }
