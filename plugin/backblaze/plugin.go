@@ -2,16 +2,20 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
-	"time"
 
-	fmt "github.com/jhunt/go-ansi"
-	"github.com/kurin/blazer/b2"
+	gofmt "github.com/jhunt/go-ansi"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"github.com/shieldproject/shield/plugin"
+	"github.com/shieldproject/shield/plugin/s3util"
 )
 
 const DefaultPrefix = ""
@@ -85,7 +89,7 @@ type BackblazePlugin plugin.PluginInfo
 type backblazeEndpoint struct {
 	AccessKey  string
 	SecretKey  string
-	PathPrefix string
+	Prefix     string
 	Bucket     string
 }
 
@@ -103,41 +107,41 @@ func (p BackblazePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	//BEGIN AUTH VALIDATION
 	s, err = endpoint.StringValue("access_key_id")
 	if err != nil {
-		fmt.Printf("@R{\u2717 access_key_id        %s}\n", err)
+		gofmt.Printf("@R{\u2717 access_key_id        %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 access_key_id}        @C{%s}\n", plugin.Redact(s))
+		gofmt.Printf("@G{\u2713 access_key_id}        @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValue("secret_access_key")
 	if err != nil {
-		fmt.Printf("@R{\u2717 secret_access_key    %s}\n", err)
+		gofmt.Printf("@R{\u2717 secret_access_key    %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", plugin.Redact(s))
+		gofmt.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", plugin.Redact(s))
 	}
 	//END AUTH VALIDATION
 
 	s, err = endpoint.StringValue("bucket")
 	if err != nil {
-		fmt.Printf("@R{\u2717 bucket               %s}\n", err)
+		gofmt.Printf("@R{\u2717 bucket               %s}\n", err)
 		fail = true
 	} else if !validBucketName(s) {
-		fmt.Printf("@R{\u2717 bucket               '%s' is an invalid bucket name (must be all lowercase)}\n", s)
+		gofmt.Printf("@R{\u2717 bucket               '%s' is an invalid bucket name (must be all lowercase)}\n", s)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bucket}               @C{%s}\n", plugin.Redact(s))
+		gofmt.Printf("@G{\u2713 bucket}               @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
-		fmt.Printf("@R{\u2717 prefix               %s}\n", err)
+		gofmt.Printf("@R{\u2717 prefix               %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 prefix}               (none)\n")
+		gofmt.Printf("@G{\u2713 prefix}               (none)\n")
 	} else {
 		s = strings.TrimLeft(s, "/")
-		fmt.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
+		gofmt.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
 	}
 
 	if fail {
@@ -155,41 +159,31 @@ func (p BackblazePlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 }
 
 func (p BackblazePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	c, err := getB2ConnInfo(endpoint)
+	e, err := getB2ConnInfo(endpoint)
 	if err != nil {
 		return "", 0, err
 	}
 
-	client, err := c.Connect()
+	client, err := e.Connect()
 	if err != nil {
 		return "", 0, err
 	}
 
-	path := c.genBackupPath()
+	path := s3util.GenBackupPath(e.Prefix)
 	plugin.DEBUG("Storing data in %s", path)
 
 	ctx := context.Background()
-	bucket, err := client.Bucket(ctx, c.Bucket)
-	if err != nil {
-		return "", 0, err
-	}
-	obj := bucket.Object(strings.TrimPrefix(path, "/"))
-	w := obj.NewWriter(ctx)
-	io.Copy(w, os.Stdin)
-
-	if err != nil {
-		return "", 0, err
-	}
-
-	w.Close()
+	cr := s3util.NewCountingReader(os.Stdin)
+	_, err = client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(e.Bucket),
+		Key:    aws.String(path),
+		Body:   cr,
+	})
 	if err != nil {
 		return "", 0, err
 	}
 
-	var size int64
-	size = 1024
-
-	return path, size, nil
+	return path, cr.N, nil
 }
 
 func (p BackblazePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
@@ -204,17 +198,16 @@ func (p BackblazePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) e
 	}
 
 	ctx := context.Background()
-	bucket, err := client.Bucket(ctx, e.Bucket)
+	result, err := client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(e.Bucket),
+		Key:    aws.String(file),
+	})
 	if err != nil {
 		return err
 	}
-	obj := bucket.Object(strings.TrimPrefix(file, "/"))
-	reader := obj.NewReader(ctx)
-	if err != nil {
-		return err
-	}
+	defer result.Body.Close()
 
-	_, err = io.Copy(os.Stdout, reader)
+	_, err = io.Copy(os.Stdout, result.Body)
 	return err
 }
 
@@ -228,29 +221,22 @@ func (p BackblazePlugin) Purge(endpoint plugin.ShieldEndpoint, file string) erro
 	if err != nil {
 		return err
 	}
-	ctx := context.Background()
-	bucket, err := client.Bucket(ctx, e.Bucket)
-	if err != nil {
-		return err
-	}
-	obj := bucket.Object(strings.TrimPrefix(file, "/"))
 
-	return obj.Delete(ctx)
+	ctx := context.Background()
+	_, err = client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(e.Bucket),
+		Key:    aws.String(file),
+	})
+	return err
 }
 
 func getB2ConnInfo(e plugin.ShieldEndpoint) (backblazeEndpoint, error) {
-	var (
-		key    string
-		secret string
-		err    error
-	)
-
-	key, err = e.StringValue("access_key_id")
+	key, err := e.StringValue("access_key_id")
 	if err != nil {
 		return backblazeEndpoint{}, err
 	}
 
-	secret, err = e.StringValue("secret_access_key")
+	secret, err := e.StringValue("secret_access_key")
 	if err != nil {
 		return backblazeEndpoint{}, err
 	}
@@ -267,25 +253,73 @@ func getB2ConnInfo(e plugin.ShieldEndpoint) (backblazeEndpoint, error) {
 	prefix = strings.TrimLeft(prefix, "/")
 
 	return backblazeEndpoint{
-		AccessKey:  key,
-		SecretKey:  secret,
-		PathPrefix: prefix,
-		Bucket:     bucket,
+		AccessKey: key,
+		SecretKey: secret,
+		Prefix:    prefix,
+		Bucket:    bucket,
 	}, nil
 }
 
-func (e backblazeEndpoint) genBackupPath() string {
-	t := time.Now()
-	year, mon, day := t.Date()
-	hour, min, sec := t.Clock()
-	uuid := plugin.GenUUID()
-	path := fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", e.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, uuid)
-	// Remove double slashes
-	path = strings.Replace(path, "//", "/", -1)
-	return path
+// detectB2Region calls the B2 native API to determine the S3-compatible
+// region and endpoint URL for the given bucket.  The b2_authorize_account
+// response contains an s3ApiUrl like https://s3.us-west-004.backblazeb2.com;
+// the region is extracted from that hostname.
+func detectB2Region(keyID, appKey, bucketName string) (region, s3Endpoint string, err error) {
+	// Step 1: authorize
+	req, err := http.NewRequest(http.MethodPost,
+		"https://api.backblazeb2.com/b2api/v2/b2_authorize_account", nil)
+	if err != nil {
+		return "", "", fmt.Errorf("b2: authorize request: %w", err)
+	}
+	req.SetBasicAuth(keyID, appKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", "", fmt.Errorf("b2: authorize: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", "", fmt.Errorf("b2: authorize HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	var authResp struct {
+		AccountID string `json:"accountId"`
+		APIURL    string `json:"apiUrl"`
+		S3APIURL  string `json:"s3ApiUrl"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
+		return "", "", fmt.Errorf("b2: authorize decode: %w", err)
+	}
+
+	// Extract region from s3ApiUrl hostname, e.g. s3.us-west-004.backblazeb2.com
+	s3Endpoint = authResp.S3APIURL
+	host := strings.TrimPrefix(s3Endpoint, "https://")
+	host = strings.TrimPrefix(host, "http://")
+	// remove any trailing path
+	if idx := strings.Index(host, "/"); idx >= 0 {
+		host = host[:idx]
+	}
+	parts := strings.SplitN(host, ".", 3)
+	if len(parts) < 2 {
+		return "", "", fmt.Errorf("b2: unexpected s3ApiUrl format: %s", authResp.S3APIURL)
+	}
+	region = parts[1] // e.g. "us-west-004"
+
+	return region, s3Endpoint, nil
 }
 
-func (e backblazeEndpoint) Connect() (*b2.Client, error) {
-	ctx := context.Background()
-	return b2.NewClient(ctx, e.AccessKey, e.SecretKey)
+func (e backblazeEndpoint) Connect() (*s3.Client, error) {
+	region, s3Endpoint, err := detectB2Region(e.AccessKey, e.SecretKey, e.Bucket)
+	if err != nil {
+		return nil, err
+	}
+	return s3util.NewClient(s3util.S3Config{
+		Region:          region,
+		AccessKeyID:     e.AccessKey,
+		SecretAccessKey: e.SecretKey,
+		Endpoint:        s3Endpoint,
+		UsePathStyle:    true,
+	})
 }
