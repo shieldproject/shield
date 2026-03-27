@@ -22,17 +22,23 @@ func (r *Request) SessionID() string {
 
 func (r *Request) SetCookie(name, val, path string) {
 	http.SetCookie(r.w, &http.Cookie{
-		Name:  name,
-		Value: val,
-		Path:  path,
+		Name:     name,
+		Value:    val,
+		Path:     path,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
 	})
 }
 
 func (r *Request) ClearCookie(name, path string) {
 	http.SetCookie(r.w, &http.Cookie{
-		Name:   name,
-		Path:   path,
-		MaxAge: 0,
+		Name:     name,
+		Path:     path,
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
 	})
 }
 
