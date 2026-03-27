@@ -248,7 +248,7 @@ table {
   align-items: center;
   padding: 0 12px;
   gap: 4px;
-  overflow: hidden;
+  /* no overflow:hidden — dropdown must escape the bar */
 }
 
 .top-bar > * {
@@ -337,10 +337,10 @@ body.sidebar-collapsed .top-bar h1 {
 
 .top-bar .flyout {
   display: none;
-  position: absolute;
-  top: 100%;
+  position: fixed;
+  top: 48px;
   right: 0;
-  min-width: 240px;
+  min-width: 260px;
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
   border-top: none;
@@ -789,16 +789,16 @@ body.sidebar-collapsed .top-bar h1 {
   width: 56px;
 }
 
-/* Toggle button */
+/* Toggle button — fixed to viewport, centered on the sidebar right edge / navbar bottom */
 .sidebar-toggle {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  position: fixed;
+  top: 34px;          /* 48px - 14px = centers the 28px button on the navbar bottom edge */
+  left: 266px;        /* 280px sidebar - 14px = centers on sidebar right edge */
   width: 28px;
   height: 28px;
   padding: 0;
   border-radius: 50%;
-  background-color: var(--bg-tertiary);
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
   font-size: 11px;
@@ -806,9 +806,9 @@ body.sidebar-collapsed .top-bar h1 {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 1;
-  flex-shrink: 0;
+  transition: left 0.25s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  z-index: 90;        /* below top-bar (100) but above sidebar (80) */
+  box-shadow: var(--shadow-sm);
 }
 
 .sidebar-toggle:hover {
@@ -816,16 +816,19 @@ body.sidebar-collapsed .top-bar h1 {
   border-color: var(--accent-primary);
   color: #fff;
   transform: none;
-  box-shadow: none;
+  box-shadow: var(--shadow-md);
 }
 
-.story-sidebar.collapsed .sidebar-toggle {
-  right: 50%;
-  transform: translateX(50%);
+body.sidebar-collapsed .sidebar-toggle {
+  left: 42px;         /* 56px - 14px */
 }
 
-.story-sidebar.collapsed .sidebar-toggle i {
+body.sidebar-collapsed .sidebar-toggle i {
   transform: rotate(180deg);
+}
+
+.sidebar-toggle i {
+  transition: transform 0.25s ease;
 }
 
 .hud > div {
