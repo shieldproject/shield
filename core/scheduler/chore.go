@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	log "github.com/shieldproject/shield/internal/log"
@@ -107,11 +108,12 @@ func (w *Worker) Execute(chore Chore) {
 	}()
 
 	log.Debugf("%s: spinning up [exit] goroutine to watch chore exit status and remember it...", chore)
-	rc := 0
+	var rc atomic.Int32
 	wait.Add(1)
 	go func() {
-		rc = <-chore.Exit
-		log.Debugf("%s: rc %d noted; [exit] goroutine shutting down...", chore, rc)
+		v := <-chore.Exit
+		rc.Store(int32(v))
+		log.Debugf("%s: rc %d noted; [exit] goroutine shutting down...", chore, v)
 		wait.Done()
 	}()
 
@@ -131,7 +133,7 @@ func (w *Worker) Execute(chore Chore) {
 
 		chore.Do(chore)
 
-		if rc != 0 {
+		if rc.Load() != 0 {
 			job, err := w.db.GetJob(task.JobUUID)
 			if err != nil {
 				panic(fmt.Errorf("failed to retrieve job '%s' from database: %s", task.JobUUID, err))
@@ -141,9 +143,9 @@ func (w *Worker) Execute(chore Chore) {
 				panic(fmt.Errorf("failed to retrieve job '%s' from database: no such job", task.JobUUID))
 			}
 			retries := job.Retries
-			log.Infof("Retries: %d", chore)
+			log.Infof("Retries: %d", retries)
 			if retries > 0 {
-				for i := 0; i < retries || rc == 0; i++ {
+				for i := 0; i < retries && rc.Load() != 0; i++ {
 					w.db.UpdateTaskLog(chore.TaskUUID, "\n\n------\n\n")
 					w.db.UpdateTaskLog(chore.TaskUUID, fmt.Sprintf("RETRY: `%d`\n", i+1))
 					chore.Do(chore)
@@ -168,7 +170,7 @@ func (w *Worker) Execute(chore Chore) {
 		output = strings.TrimSpace(output)
 		w.db.UpdateTaskLog(task.UUID, fmt.Sprintf("BACKUP: `%s`\n", output))
 
-		if rc != 0 {
+		if rc.Load() != 0 {
 			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
 			w.db.FailTask(chore.TaskUUID, time.Now())
 			return
@@ -245,7 +247,7 @@ func (w *Worker) Execute(chore Chore) {
 		w.db.UpdateTaskLog(task.UUID, "\n\n")
 
 	case db.PurgeOperation:
-		if rc != 0 {
+		if rc.Load() != 0 {
 			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
 			w.db.UpdateTaskLog(task.UUID, "\nPURGE: operation failed; keeping archive metadata intact.\n")
 			w.db.UpdateTaskLog(task.UUID, "PURGE: will try again later...\n")
@@ -303,8 +305,6 @@ func (w *Worker) Execute(chore Chore) {
 		w.db.UpdateTaskLog(task.UUID, "\n\n")
 
 	case db.TestStoreOperation:
-		// DEBUG (uncomment to use) Print out the raw output that we are about to parse
-		// w.db.UpdateTaskLog(task.UUID, fmt.Sprintf("\nDEBUG: Attempting to parse output:\n%s\n", output))
 		var v struct {
 			Healthy bool `json:"healthy"`
 		}
@@ -316,58 +316,45 @@ func (w *Worker) Execute(chore Chore) {
 		if store == nil {
 			panic(fmt.Errorf("store '%s' not found in database", task.StoreUUID))
 		}
-		// To account for multiple retries, we'll parse the last line of the output to determine the health of the store
-		lines := strings.Split(strings.TrimSpace(output), "\n")
-		lastLine := lines[len(lines)-1]
 
-		// Attempt to parse {"healthy":true} or {"healthy":false} from `output`
-		err = json.Unmarshal([]byte(lastLine), &v)
-		if err != nil {
-			// If we can't parse it, assume final result is unhealthy
-			w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: unable to parse script output; marking storage system as UNHEALTHY.\n")
-			// If parsing fails, also log the error
-			w.db.UpdateTaskLog(task.UUID, fmt.Sprintf("DEBUG: json.Unmarshal failed: %s\n", err))
+		if rc.Load() != 0 {
+			w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: operation failed; marking storage system as UNHEALTHY.\n")
 			store.Healthy = false
-
-			// Update DB record
-			err = w.db.UpdateStoreHealth(store)
-			if err != nil {
-				panic(fmt.Errorf("failed to update store '%s' record in database: %s", task.StoreUUID, err))
-			}
-
-			// Mark the task as failed
-			w.db.FailTask(chore.TaskUUID, time.Now())
-			return
-		}
-
-		// Now, if v.Healthy == true, we mark the store healthy; otherwise, unhealthy
-		if v.Healthy {
-			// DEBUG (uncomment to use) Print out the result of the JSON parse
-			// w.db.UpdateTaskLog(task.UUID, fmt.Sprintf("DEBUG: Successfully parsed JSON. v.Healthy = %t\n", v.Healthy))
-			if !store.Healthy {
-				w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: marking storage system as HEALTHY (recovery).\n")
-			} else {
-				w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: storage is still HEALTHY.\n")
-			}
-			store.Healthy = true
-
-			err = w.db.UpdateStoreHealth(store)
-			if err != nil {
-				panic(fmt.Errorf("failed to update store '%s' record in database: %s", task.StoreUUID, err))
-			}
-			w.db.CompleteTask(chore.TaskUUID, time.Now())
 
 		} else {
-			w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: marking storage system as UNHEALTHY.\n")
-			store.Healthy = false
+			// To account for multiple retries, we'll parse the last line of the
+			// output to determine the health of the store.
+			lines := strings.Split(strings.TrimSpace(output), "\n")
+			lastLine := lines[len(lines)-1]
 
-			err = w.db.UpdateStoreHealth(store)
-			if err != nil {
-				panic(fmt.Errorf("failed to update store '%s' record in database: %s", task.StoreUUID, err))
+			// Attempt to parse {"healthy":true} or {"healthy":false} from `output`
+			if err := json.Unmarshal([]byte(lastLine), &v); err != nil {
+				// If we can't parse it, assume final result is unhealthy
+				w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: unable to parse script output; marking storage system as UNHEALTHY.\n")
+				w.db.UpdateTaskLog(task.UUID, fmt.Sprintf("TEST-STORE: json.Unmarshal failed: %s\n", err))
+				store.Healthy = false
+
+			} else if v.Healthy {
+				if !store.Healthy {
+					w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: marking storage system as HEALTHY (recovery).\n")
+				} else {
+					w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: storage is still HEALTHY.\n")
+				}
+				store.Healthy = true
+
+			} else {
+				w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: marking storage system as UNHEALTHY.\n")
+				store.Healthy = false
 			}
+		}
 
-			// Mark the task as failed
+		if err := w.db.UpdateStoreHealth(store); err != nil {
+			panic(fmt.Errorf("failed to update store '%s' record in database: %s", task.StoreUUID, err))
+		}
+		if !store.Healthy {
+			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
 			w.db.FailTask(chore.TaskUUID, time.Now())
+			return
 		}
 
 	case db.AgentStatusOperation:
@@ -383,7 +370,7 @@ func (w *Worker) Execute(chore Chore) {
 			panic(fmt.Errorf("failed to retrieve agent '%s' from database: no such agent", task.Agent))
 		}
 
-		if rc == 0 {
+		if rc.Load() == 0 {
 			var v struct {
 				Name    string `json:"name"`
 				Version string `json:"version"`
@@ -415,7 +402,7 @@ func (w *Worker) Execute(chore Chore) {
 			panic(fmt.Errorf("failed to update agent '%s' record in database: %s", task.Agent, err))
 		}
 
-		if rc != 0 {
+		if rc.Load() != 0 {
 			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
 			w.db.FailTask(chore.TaskUUID, time.Now())
 			return
