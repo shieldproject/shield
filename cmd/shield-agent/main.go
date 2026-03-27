@@ -4,68 +4,59 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jhunt/go-cli"
-	env "github.com/jhunt/go-envirotron"
-	"github.com/jhunt/go-log"
+	"github.com/spf13/cobra"
+	log "github.com/shieldproject/shield/internal/log"
 
 	"github.com/shieldproject/shield/agent"
 )
 
 var Version = ""
 
+var (
+	configFile string
+	logLevel   string
+)
+
+var rootCmd = &cobra.Command{
+	Use:           "shield-agent",
+	Short:         "Run a remote SHIELD orchestration agent",
+	Version:       Version,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if !cmd.Flags().Changed("config") {
+			if v := os.Getenv("SHIELD_AGENT_CONFIG_FILE"); v != "" {
+				configFile = v
+			}
+		}
+		if !cmd.Flags().Changed("log-level") {
+			if v := os.Getenv("SHIELD_AGENT_LOG_LEVEL"); v != "" {
+				logLevel = v
+			}
+		}
+
+		log.SetupLogging(logLevel)
+		log.Infof("starting agent")
+
+		ag := agent.NewAgent()
+		ag.Version = Version
+		if err := ag.ReadConfig(configFile); err != nil {
+			log.Errorf("configuration failed: %s", err)
+			return err
+		}
+		ag.Run()
+		return nil
+	},
+}
+
+func init() {
+	rootCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to the agent configuration file")
+	rootCmd.Flags().StringVarP(&logLevel, "log-level", "l", "info", "What messages to log (error, warning, info, or debug)")
+}
+
 func main() {
-	var opts struct {
-		Help    bool `cli:"-h, --help"`
-		Version bool `cli:"-v, --version"`
-
-		ConfigFile string `cli:"-c, --config"    env:"SHIELD_AGENT_CONFIG_FILE"`
-		Log        string `cli:"-l, --log-level" env:"SHIELD_AGENT_LOG_LEVEL"`
-	}
-	opts.Log = "info"
-	env.Override(&opts)
-
-	_, args, err := cli.Parse(&opts)
-	if err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "!!! %s\n", err)
 		os.Exit(1)
 	}
-	if len(args) != 0 {
-		fmt.Fprintf(os.Stderr, "!!! extra arguments found\n")
-		os.Exit(1)
-	}
-
-	if opts.Help {
-		fmt.Printf("shield-agent - Run a remote SHIELD orchestration agent\n\n")
-		fmt.Printf("Options\n")
-		fmt.Printf("  -h, --help       Show this help screen.\n")
-		fmt.Printf("  -v, --version    Display the SHIELD version.\n")
-		fmt.Printf("\n")
-		fmt.Printf("  -l, --log-level  What messages to log (error, warning, info, or debug).\n")
-		fmt.Printf("  -c, --config     Path to the agent configuration file.\n")
-		fmt.Printf("\n")
-		os.Exit(0)
-	}
-
-	if opts.Version {
-		if Version == "" || Version == "dev" {
-			fmt.Printf("shield-agent (development)\n")
-		} else {
-			fmt.Printf("shield-agent v%s\n", Version)
-		}
-		os.Exit(0)
-	}
-
-	log.SetupLogging(log.LogConfig{
-		Type:  "console",
-		Level: opts.Log,
-	})
-	log.Infof("starting agent")
-
-	ag := agent.NewAgent()
-	ag.Version = Version
-	if err := ag.ReadConfig(opts.ConfigFile); err != nil {
-		log.Errorf("configuration failed: %s", err)
-		return
-	}
-	ag.Run()
 }
