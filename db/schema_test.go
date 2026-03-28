@@ -11,7 +11,7 @@ import (
 )
 
 func Database(sqls ...string) (*DB, error) {
-	db, err := Connect(":memory:")
+	db, err := Connect("sqlite3", ":memory:")
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ var _ = Describe("Database Schema", func() {
 
 			BeforeEach(func() {
 				var err error
-				db, err = Connect(":memory:")
+				db, err = Connect("sqlite3", ":memory:")
 
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(db.Connected()).Should(BeTrue())
@@ -93,8 +93,7 @@ var _ = Describe("Database Schema", func() {
 
 	Describe("Schema Version Interrogation", func() {
 		It("should return an error for a bad database connection", func() {
-			db, _ := Connect("/path/to/no/such/file")
-			_, err := db.SchemaVersion()
+			_, err := Connect("sqlite3", "/path/to/no/such/file")
 			Ω(err).Should(HaveOccurred())
 		})
 	})

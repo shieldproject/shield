@@ -36,7 +36,7 @@ func (s v11Schema) Deploy(db *DB) error {
                             next_run, priority, paused, fixed_key, healthy)
                     SELECT j.uuid, j.target_uuid, j.store_uuid, j.tenant_uuid,
                             j.name, j.summary, j.schedule, j.keep_n, j.keep_days,
-                            j.next_run, j.priority, IFNULL(j.paused, 0), j.fixed_key, 0
+                            j.next_run, j.priority, COALESCE(j.paused, 0), j.fixed_key, 0
                         FROM jobs j`)
 	if err != nil {
 		return err

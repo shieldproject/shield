@@ -3,7 +3,6 @@ package db
 import (
 	"fmt"
 	"sort"
-	"strings"
 )
 
 var CurrentSchema int = currentSchema()
@@ -80,13 +79,7 @@ func (db *DB) SchemaVersion() (int, error) {
 	defer db.exclusive.Unlock()
 	r, err := db.query(`SELECT version FROM schema_info LIMIT 1`)
 	if err != nil {
-		if err.Error() == "no such table: schema_info" {
-			return 0, nil
-		}
-		if err.Error() == `pq: relation "schema_info" does not exist` {
-			return 0, nil
-		}
-		if strings.HasPrefix(err.Error(), `Error 1146: Table`) {
+		if IsNoSuchTable(err, "schema_info") {
 			return 0, nil
 		}
 		return 0, err

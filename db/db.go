@@ -18,20 +18,26 @@ type DB struct {
 	connection *sql.DB
 	Driver     string
 	DSN        string
+	dialect    Dialect
 
 	exclusive sync.Mutex
 	bus       *bus.Bus
 }
 
-// Connect to the backend database
-func Connect(file string) (*DB, error) {
+// Connect to the backend database using the specified driver and DSN.
+func Connect(driver, dsn string) (*DB, error) {
 	db := &DB{
-		Driver: "sqlite3",
-		DSN:    file,
+		Driver:  driver,
+		DSN:     dsn,
+		dialect: DetectDialect(driver),
 	}
 
 	connection, err := sql.Open(db.Driver, db.DSN)
 	if err != nil {
+		return nil, err
+	}
+	if err = connection.Ping(); err != nil {
+		connection.Close()
 		return nil, err
 	}
 	db.connection = connection
@@ -174,7 +180,7 @@ func (db *DB) exclusively(fn func() error) error {
 func (db *DB) transactionally(fn func() error) error {
 	return db.exclusively(func() (err error) {
 		log.Infof("beginning transaction...")
-		if err = db.exec("BEGIN TRANSACTION"); err != nil {
+		if err = db.exec("BEGIN"); err != nil {
 			return
 		}
 		defer func() {
@@ -203,7 +209,7 @@ func (db *DB) statement(sql string) (*sql.Stmt, error) {
 		return nil, fmt.Errorf("Not connected to database")
 	}
 
-	return db.connection.Prepare(sql)
+	return db.connection.Prepare(Rebind(db.dialect, sql))
 }
 
 // Generate a randomized UUID

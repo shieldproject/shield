@@ -6,7 +6,7 @@ type q struct {
 }
 
 func database(queries ...q) (*DB, error) {
-	db, err := Connect(":memory:")
+	db, err := Connect("sqlite3", ":memory:")
 	if err != nil {
 		return nil, err
 	}
