@@ -49,6 +49,11 @@ type Config struct {
 	PluginPaths    []string `yaml:"plugin_paths"`
 	PluginPathsEnv string   `yaml:"-"              env:"SHIELD_PLUGIN_PATHS"`
 
+	Database struct {
+		Driver string `yaml:"driver" env:"SHIELD_DB_DRIVER"`
+		DSN    string `yaml:"dsn"    env:"SHIELD_DB_DSN"`
+	} `yaml:"database"`
+
 	Scheduler struct {
 		FastLoop duration `yaml:"fast-loop" env:"SHIELD_SCHEDULER_FAST_LOOP"`
 		SlowLoop duration `yaml:"slow-loop" env:"SHIELD_SCHEDULER_SLOW_LOOP"`

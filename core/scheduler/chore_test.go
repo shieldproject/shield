@@ -17,7 +17,7 @@ import (
 // setupDB creates a minimal in-memory database with a tenant fixture.
 func setupDB() (*db.DB, string, error) {
 	tenantUUID := db.RandomID()
-	d, err := db.Connect(":memory:")
+	d, err := db.Connect("sqlite3", ":memory:")
 	if err != nil {
 		return nil, "", err
 	}
