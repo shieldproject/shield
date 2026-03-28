@@ -12,7 +12,7 @@ var _ = Describe("Database", func() {
 	Describe("Connecting to the database", func() {
 		Context("With an in-memory SQLite database", func() {
 			It("should succeed", func() {
-				db, err := Connect(":memory:")
+				db, err := Connect("sqlite3", ":memory:")
 
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(db.Connected()).Should(BeTrue())
@@ -25,7 +25,7 @@ var _ = Describe("Database", func() {
 		var db *DB
 
 		BeforeEach(func() {
-			db, _ = Connect(":memory:")
+			db, _ = Connect("sqlite3", ":memory:")
 		})
 
 		AfterEach(func() {
@@ -51,7 +51,7 @@ var _ = Describe("Database", func() {
 		Context("With an empty table", func() {
 			BeforeEach(func() {
 				var err error
-				db, err = Connect(":memory:")
+				db, err = Connect("sqlite3", ":memory:")
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(db.Exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
@@ -118,7 +118,7 @@ var _ = Describe("Database", func() {
 
 			BeforeEach(func() {
 				var err error
-				db, err = Connect("file::memory:?cache=shared")
+				db, err = Connect("sqlite3", "file::memory:?cache=shared")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(db.Exec(`CREATE TABLE stuff (numb INTEGER, iter INTEGER)`)).Should(Succeed())
 			})
