@@ -8,6 +8,8 @@ import (
 	log "github.com/shieldproject/shield/internal/log"
 
 	// sql drivers
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/shieldproject/shield/db"
@@ -16,6 +18,7 @@ import (
 var Version = ""
 
 func main() {
+	var driver string
 	var database string
 	var revision int
 	var debug bool
@@ -45,7 +48,7 @@ func main() {
 
 			log.Infof("starting schema...")
 			log.Debugf("connecting to database at %s", database)
-			d, err := db.Connect(database)
+			d, err := db.Connect(driver, database)
 			if err != nil {
 				log.Errorf("failed to connect to database at %s: %s", database, err)
 				os.Exit(1)
@@ -71,7 +74,8 @@ func main() {
 		},
 	}
 
-	rootCmd.Flags().StringVarP(&database, "database", "d", "", "Path to the SQLite3 database file")
+	rootCmd.Flags().StringVarP(&driver, "driver", "", "sqlite3", "Database driver (sqlite3, pgx, mysql)")
+	rootCmd.Flags().StringVarP(&database, "database", "d", "", "Database DSN or file path")
 	rootCmd.Flags().IntVarP(&revision, "revision", "r", 0, "Schema version to deploy (default: latest)")
 	rootCmd.Flags().BoolVarP(&debug, "debug", "D", false, "Enable debugging output")
 

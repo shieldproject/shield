@@ -117,8 +117,17 @@ func (c *Core) ConnectToDatabase() {
 		return
 	}
 
-	log.Debugf("connecting to database at %s...", c.DataFile("shield.db"))
-	db, err := db.Connect(c.DataFile("shield.db"))
+	driver := c.Config.Database.Driver
+	dsn := c.Config.Database.DSN
+	if driver == "" {
+		driver = "sqlite3"
+	}
+	if driver == "sqlite3" && dsn == "" {
+		dsn = c.DataFile("shield.db")
+	}
+
+	log.Debugf("connecting to %s database at %s...", driver, dsn)
+	db, err := db.Connect(driver, dsn)
 	c.MaybeTerminate(err)
 	c.db = db
 

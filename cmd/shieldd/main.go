@@ -8,6 +8,8 @@ import (
 	log "github.com/shieldproject/shield/internal/log"
 
 	// sql drivers
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/shieldproject/shield/core"

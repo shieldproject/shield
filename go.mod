@@ -14,6 +14,7 @@ require (
 	github.com/google/go-github/v66 v66.0.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/hashicorp/consul/api v1.33.7
+	github.com/jackc/pgx/v5 v5.9.1
 	github.com/jhunt/go-ansi v0.0.0-20181127194324-5fd839f108b6
 	github.com/jhunt/go-envirotron v0.0.0-20191007155228-c8f2a184ad0f
 	github.com/jhunt/go-table v0.0.0-20181127194439-fcc252a20f4c
@@ -96,6 +97,9 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/klauspost/compress v1.18.3 // indirect
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
