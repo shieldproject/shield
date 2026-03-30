@@ -238,7 +238,7 @@ func (c *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
 
 	err = c.db.PokeSession(session)
 	if err != nil {
-		log.Errorf("Failed to poke session %s with error %s", session, err.Error())
+		log.Errorf("Failed to poke session %s with error %s", session.UUID, err.Error())
 	}
 
 	return user, nil

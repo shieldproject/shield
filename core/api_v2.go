@@ -538,7 +538,7 @@ func (c *Core) v2API() *route.Router {
 						closeMeSoftly()
 						err := socket.SendClose()
 						if err != nil {
-							log.Warnf("message bus web client [id:%d] failed to write close message")
+							log.Warnf("message bus web client [id:%d] failed to write close message", slot)
 						}
 						break writeLoop
 					}
@@ -549,7 +549,7 @@ func (c *Core) v2API() *route.Router {
 				}
 			case <-pingTimer.C:
 				if err := socket.Ping(); err != nil {
-					log.Infof("message bus web client [id:%d] failed to write ping")
+					log.Infof("message bus web client [id:%d] failed to write ping", slot)
 					closeMeSoftly()
 					break writeLoop
 				}

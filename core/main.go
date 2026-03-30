@@ -303,7 +303,7 @@ func (c *Core) ConnectToVault() {
 	c.MaybeTerminate(err)
 
 	if status != vault.Ready {
-		log.Errorf("SHIELD's vault is %s; please initialize or unlock this SHIELD core via the web UI or the CLI", status)
+		log.Errorf("SHIELD's vault is %d; please initialize or unlock this SHIELD core via the web UI or the CLI", status)
 	}
 
 	c.vault = v
@@ -438,7 +438,7 @@ func (c *Core) ScheduleAgentStatusCheckTasks(f *db.AgentFilter) {
 		if agent.Status == "pending" {
 			agent.Status = "checking"
 			if err := c.db.UpdateAgent(agent); err != nil {
-				log.Errorf("error update agent '%s' status to 'checking': %s", err)
+				log.Errorf("error update agent '%s' status to 'checking': %s", agent.Name, err)
 				continue
 			}
 		}
@@ -502,7 +502,7 @@ func (c *Core) TasksToChores() {
 
 		case db.RestoreOperation:
 			if op, ok := inflight[task.TargetUUID]; ok {
-				log.Infof("SCHEDULER: SKIPPING [%s] task %s, another %s operation is already in-flight for target [%s]", task.Op, task.UUID, op, task.TargetUUID)
+				log.Infof("SCHEDULER: SKIPPING [%s] task %s, another %s operation is already in-flight for target [%s]", task.Op, task.UUID, op.Op, task.TargetUUID)
 				continue
 			}
 			encryption, err := c.vault.Retrieve(task.ArchiveUUID)
@@ -528,7 +528,7 @@ func (c *Core) TasksToChores() {
 		}
 
 		if err := c.db.ScheduledTask(task.UUID); err != nil {
-			log.Errorf("unable to mark task %s as 'scheduled' in the database: %s", err)
+			log.Errorf("unable to mark task %s as 'scheduled' in the database: %s", task.UUID, err)
 			log.Errorf("THIS TASK MAY BE INADVERTANTLY RE-SCHEDULED!!!")
 		}
 	}
@@ -544,7 +544,7 @@ func (c *Core) CheckArchiveExpiries() {
 	}
 
 	for _, archive := range l {
-		log.Infof("archive %s has expiration %s, marking as expired", archive.UUID, archive.ExpiresAt)
+		log.Infof("archive %s has expiration %d, marking as expired", archive.UUID, archive.ExpiresAt)
 		if err := c.db.ExpireArchive(archive.UUID); err != nil {
 			log.Errorf("error marking archive %s as expired: %s", archive.UUID, err)
 			continue
