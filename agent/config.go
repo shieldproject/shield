@@ -13,7 +13,7 @@ import (
 	env "github.com/jhunt/go-envirotron"
 	"github.com/shieldproject/shield/internal/log"
 	"golang.org/x/crypto/ssh"
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 type Config struct {

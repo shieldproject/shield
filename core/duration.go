@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strconv"
 
-	"gopkg.in/yaml.v3"
 )
 
 var durationPattern *regexp.Regexp
@@ -85,8 +84,12 @@ func (d duration) parse(raw string) (int, error) {
 	return 0, fmt.Errorf("unrecognized duration unit '%s' (in '%s')", m[2], raw)
 }
 
-func (d *duration) UnmarshalYAML(value *yaml.Node) error {
-	d.UnmarshalEnv(value.Value)
+func (d *duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var raw string
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+	d.UnmarshalEnv(raw)
 	return nil
 }
 
