@@ -11,6 +11,7 @@ require (
 	github.com/cloudfoundry-community/vaultkv v0.7.0
 	github.com/fsouza/go-dockerclient v1.13.0
 	github.com/go-sql-driver/mysql v1.9.3
+	github.com/goccy/go-yaml v1.18.0
 	github.com/google/go-github/v66 v66.0.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/hashicorp/consul/api v1.33.7
@@ -34,7 +35,6 @@ require (
 	golang.org/x/net v0.52.0
 	golang.org/x/oauth2 v0.36.0
 	google.golang.org/api v0.273.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
