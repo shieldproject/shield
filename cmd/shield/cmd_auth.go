@@ -94,6 +94,16 @@ var loginCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := clientFromConfig()
 
+		if loginToken == "" {
+			loginToken = os.Getenv("SHIELD_CORE_TOKEN")
+		}
+		if loginUsername == "" {
+			loginUsername = os.Getenv("SHIELD_CORE_USERNAME")
+		}
+		if loginPassword == "" {
+			loginPassword = os.Getenv("SHIELD_CORE_PASSWORD")
+		}
+
 		if loginProviders {
 			providers, err := c.AuthProviders()
 			bail(err)
