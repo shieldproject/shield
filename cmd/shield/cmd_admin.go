@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	fmt "github.com/jhunt/go-ansi"
 	"github.com/spf13/cobra"
 
@@ -22,6 +24,9 @@ var initCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := clientFromConfig()
 		master := adminInitMaster
+		if master == "" {
+			master = os.Getenv("SHIELD_CORE_MASTER")
+		}
 		if master == "" {
 			a := secureprompt("@Y{New SHIELD Core master password}: ")
 			b := secureprompt("@Y{Confirm new master password}: ")
@@ -68,6 +73,9 @@ var unlockCmd = &cobra.Command{
 		c := clientFromConfig()
 		master := adminUnlockMaster
 		if master == "" {
+			master = os.Getenv("SHIELD_CORE_MASTER")
+		}
+		if master == "" {
 			master = secureprompt("@Y{SHIELD Core master password:} ")
 		}
 		err := c.Unlock(master)
@@ -85,6 +93,9 @@ var rekeyCmd = &cobra.Command{
 		oldMaster := adminRekeyOld
 		newMaster := adminRekeyNew
 
+		if oldMaster == "" {
+			oldMaster = os.Getenv("SHIELD_CORE_MASTER")
+		}
 		if oldMaster == "" {
 			oldMaster = secureprompt("@Y{Current master password:} ")
 		}
