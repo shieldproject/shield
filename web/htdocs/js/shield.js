@@ -134,6 +134,7 @@ function dispatch(page) {
       $('#viewport').template('decide');
       $('#viewport').html($($.template('decide'))
         .on("submit", ".restore", function (event) {
+          event.preventDefault();
           $('#viewport').template('restore');
           $('#viewport').html($($.template('restore'))
             .on("submit", ".restore", function (event) {
@@ -191,12 +192,14 @@ function dispatch(page) {
           }
         })
         .on("submit", ".setpass", function (event) {
+          event.preventDefault();
           $('#viewport').template('init');
           $('#viewport').html($($.template('init'))
             .on("submit", ".setpass", function (event) {
               event.preventDefault();
               var $form = $(event.target);
               var data = $form.serializeObject();
+              $form.reset();
               if (data.masterpass == "") {
                 $form.error('masterpass', 'missing');
 
