@@ -1,7 +1,6 @@
-FROM nginx:1.31-trixie
-MAINTAINER James Hunt <james@niftylogic.com>
+FROM nginx:stable-bookworm
 
-ADD nginx.conf /etc/nginx/
-ADD webdav /
+COPY nginx.conf /etc/nginx/
+COPY webdav /
 
 CMD ["/webdav", "-g", "daemon off;"]
