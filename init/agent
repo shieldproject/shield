@@ -1,44 +1,47 @@
 #!/bin/bash
 set -eu
 
-if [[ -z "${SHIELD_API:-}" ]]; then
-  echo >&2 "SHIELD_API not set in environment."
-  echo >&2
-  echo >&2 "Please set this to the full URL of your SHIELD core"
-  exit 1
-fi
+SHIELD_API="${SHIELD_API:-http://core:8080}"
+SHIELD_AGENT_NAME="${SHIELD_AGENT_NAME:-demo-shield-agent}"
 
+# Create directories
 mkdir -p /etc/shield
+
+# Generate SSH host key if not present
 if [[ ! -f /etc/shield/ssh.key ]]; then
   ssh-keygen -m PEM -t rsa -f /etc/shield/ssh.key -N ''
   rm -f /etc/shield/ssh.key.pub
 fi
 
-echo "waiting for SHIELD Core to spin up on ${SHIELD_API}..."
+# Wait for SHIELD core to be ready
+echo "$(date) waiting for SHIELD core at ${SHIELD_API}..."
 count=240
-while ! curl -Ls ${SHIELD_API}/v2/info 2>/dev/null | grep -q '"api"'; do
+while ! curl -Ls "${SHIELD_API}/v2/info" 2>/dev/null | grep -q '"api"'; do
   sleep 1
-  count=$(( count - 1 ))
-  if [[ $count == 0 ]]; then
+  count=$((count - 1))
+  if [[ $count -eq 0 ]]; then
     echo >&2 "failed to find SHIELD core after 4 minutes; giving up."
     exit 2
   fi
 done
-curl "${SHIELD_API}/v1/meta/pubkey" >> /etc/shield/authorized_keys
+echo "$(date) SHIELD core is ready"
+
+# Fetch the core's SSH public key
+curl -sLk "${SHIELD_API}/v1/meta/pubkey" > /etc/shield/authorized_keys
+
+# Write agent config
 cat > /etc/shield/agent.conf <<EOF
 ---
+name: ${SHIELD_AGENT_NAME}
 authorized_keys_file: /etc/shield/authorized_keys
 host_key_file: /etc/shield/ssh.key
 listen_address: 0.0.0.0:5444
 plugin_paths:
   - /shield/plugins
-
-name: ${SHIELD_AGENT_NAME:-$(hostname)}
 registration:
   url: ${SHIELD_API}
-  interval: ${SHIELD_REGISTRATION_INTERVAL:-15}
+  interval: 15
 EOF
 
-export PATH=$PATH:/shield/bin
-exec /shield/bin/shield-agent --config "/etc/shield/agent.conf" "$@"
-exit 1
+echo "$(date) starting shield-agent..."
+exec shield-agent --log-level debug --config /etc/shield/agent.conf

@@ -1,49 +1,44 @@
-version: '3'
-services:
-  vault:
-    image: hashicorp/vault:1.14
-    ports: ['8201:8200']
-    networks: [internal]
-    environment:
-      VAULT_API_ADDR: http://127.0.0.1:8200
-      VAULT_LOCAL_CONFIG: >-
-        {
-          "disable_mlock": 1,
-          "backend": {
-            "file": {
-              "path": "/vault/file"
-            }
-          },
-          "listener": {
-            "tcp": {
-              "address": "0.0.0.0:8201",
-              "tls_disable": 1
-            }
-          },
-          "default_lease_ttl": "168h",
-          "max_lease_ttl": "720h"
-        }
-    cap_add:
-      - IPC_LOCK
-    volumes:
-      - 'vault-data:/vault/file'
+name: shield-local
 
+services:
   core:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         VERSION: local
-    image: shieldproject/shield:local-core
-    ports: ['9009:80']
+    image: shieldproject/shield:local
+    ports: ['9009:8080']
     networks: [internal]
     command: ['/shield/init/core']
-    environment:
-      SHIELD_VAULT_ADDRESS: http://vault:8201
-      SHIELD_API_BIND: core:80
     volumes:
-      - 'shield-data:/var/shield'
+      - 'shield-data:/shield/data'
+      - 'vault-data:/shield/vault-data'
       - 'shield-etc:/etc/shield'
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/v2/info"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+    restart: unless-stopped
+
+  agent:
+    image: shieldproject/shield:local
+    depends_on:
+      core:
+        condition: service_healthy
+      webdav:
+        condition: service_started
+    ports: ['5444:5444']
+    networks: [internal]
+    command: ['/shield/init/agent']
+    environment:
+      SHIELD_API: 'http://core:8080'
+      SHIELD_AGENT_NAME: 'demo-shield-agent'
+    volumes:
+      - 'demo-data:/www'
+    restart: unless-stopped
 
   webdav:
     build:
@@ -56,35 +51,15 @@ services:
       PASSWORD: password
     volumes:
       - 'webdav-data:/var/webdav'
-
-  agent:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        VERSION: local
-    image: shieldproject/shield:local-agent
-    depends_on:
-      - core
-      - webdav
-    ports: ['5444:5444']
-    networks: [internal]
-    command: ['/shield/init/agent']
-    environment:
-      SHIELD_API: 'http://core:80'
-      SHIELD_AGENT_NAME: 'demo-shield-agent'
-    volumes:
-      - 'shield-data:/var/shield'
-      - 'shield-etc:/etc/shield'
-      - 'demo-data:/www'
+    restart: unless-stopped
 
   demo:
     build:
       context: docker/demo
       dockerfile: Dockerfile
     depends_on:
-      - core
-      - webdav
+      core:
+        condition: service_healthy
     ports: ['9008:80']
     networks: [internal]
     volumes:
@@ -94,8 +69,8 @@ networks:
   internal:
 
 volumes:
-  vault-data:
   shield-data:
+  vault-data:
   shield-etc:
   webdav-data:
   demo-data:
