@@ -714,6 +714,9 @@ table {
   font-size: 13px;
   margin-top: 8px;
 }
+#initialize .errors [data-error] {
+  display: none;
+}
 
 /* ================================================
    BANNERS
