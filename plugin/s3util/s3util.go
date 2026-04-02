@@ -72,6 +72,12 @@ func NewClient(cfg S3Config) (*s3.Client, error) {
 		return nil, fmt.Errorf("s3util: failed to load AWS config: %w", err)
 	}
 
+	// Disable automatic checksum calculation for streaming uploads to
+	// non-TLS endpoints (e.g. RustFS/MinIO over HTTP). The SDK default
+	// (WhenSupported) requires a seekable body for trailing checksums,
+	// which fails when piping stdin.
+	awsCfg.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
+
 	var opts []func(*s3.Options)
 
 	if cfg.Endpoint != "" {

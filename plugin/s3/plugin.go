@@ -410,17 +410,30 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 		"    at path   '%s'\n"+
 		"    in bucket '%s'", path, c.Bucket)
 
-	cr := s3util.NewCountingReader(os.Stdin)
-	partSize := int64(c.PartSize)
-	if partSize < 5*1024*1024 {
-		partSize = 5 * 1024 * 1024
+	// Buffer stdin to a temp file so the body is seekable for AWS SDK v2
+	// signature computation (PutObject requires seekable body for payload hash).
+	tmpFile, err := os.CreateTemp("", "shield-s3-upload-*")
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to create temp file for S3 upload: %w", err)
 	}
-	plugin.Infof("streaming standard input to s3 in %d-byte blocks", partSize)
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	n, err := io.Copy(tmpFile, os.Stdin)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to buffer backup to temp file: %w", err)
+	}
+	if _, err := tmpFile.Seek(0, 0); err != nil {
+		return "", 0, fmt.Errorf("failed to seek temp file: %w", err)
+	}
+
+	plugin.Infof("uploading %d bytes to s3", n)
 
 	_, err = client.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket: aws.String(c.Bucket),
-		Key:    aws.String(path),
-		Body:   cr,
+		Bucket:        aws.String(c.Bucket),
+		Key:           aws.String(path),
+		Body:          tmpFile,
+		ContentLength: &n,
 	})
 	if err != nil {
 		if isRedirectError(err) {
@@ -430,8 +443,8 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 		return "", 0, err
 	}
 
-	plugin.Infof("upload complete; uploaded %d bytes of data", cr.N)
-	return path, cr.N, nil
+	plugin.Infof("upload complete; uploaded %d bytes of data", n)
+	return path, n, nil
 }
 
 func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
