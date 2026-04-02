@@ -40,7 +40,7 @@ func qsGenerate(q *url.Values, t reflect.Type, v *reflect.Value) {
 		tag := field.Tag.Get("qs")
 		switch field.Type.Kind() {
 		case reflect.String:
-			if s := v.Field(i).Elem().String(); s != "" {
+			if s := v.Field(i).String(); s != "" {
 				q.Add(tag, s)
 			}
 
