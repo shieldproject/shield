@@ -179,6 +179,14 @@ func (p ConsulPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 			kvs = append(kvs, kv)
 		}
 	}
+
+	// Delete all existing keys before restoring so that keys created
+	// after the backup was taken do not persist through a restore.
+	_, err = kvClient.DeleteTree("/", nil)
+	if err != nil {
+		return err
+	}
+
 	for _, kv := range kvs {
 		_, err := kvClient.Put(&kv, nil)
 		if err != nil {
