@@ -8,7 +8,7 @@ require (
 	github.com/ErikDubbelboer/gspt v0.0.0-20180711091504-e39e726e09cc
 	github.com/cloudfoundry-community/vaultkv v0.7.0
 	github.com/fsouza/go-dockerclient v1.12.1
-	github.com/go-sql-driver/mysql v1.5.0
+	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/go-github v0.0.0-20150605201353-af17a5fa8537
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/consul/api v1.18.0
@@ -40,6 +40,7 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230106234847-43070de90fa1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
