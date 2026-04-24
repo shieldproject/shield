@@ -1,4 +1,4 @@
-FROM nginx:1-bullseye
+FROM nginx:1.27-bookworm
 MAINTAINER James Hunt <james@niftylogic.com>
 
 ADD nginx.conf /etc/nginx/
