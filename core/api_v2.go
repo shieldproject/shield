@@ -824,7 +824,7 @@ func (c *Core) v2API() *route.Router {
 
 		spec, err := timespec.Parse(in.Timespec)
 		if err != nil {
-			r.Fail(route.Bad(err, fmt.Sprintf("%s", err)))
+			r.Fail(route.Bad(err, "%s", err))
 			return
 		}
 

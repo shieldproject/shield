@@ -40,7 +40,7 @@ func (db *DB) importAgents(n uint, in *json.Decoder) error {
 		}
 
 		if v.Error != "" {
-			return fmt.Errorf(v.Error)
+			return fmt.Errorf("%s", v.Error)
 		}
 
 		log.Infof("IMPORT: inserting agent %s...", v.UUID)
@@ -91,7 +91,7 @@ func (db *DB) importArchives(n uint, in *json.Decoder, vlt *vault.Client) error 
 		}
 
 		if v.Error != "" {
-			return fmt.Errorf(v.Error)
+			return fmt.Errorf("%s", v.Error)
 		}
 
 		log.Infof("IMPORT: inserting archive %s...", v.UUID)
@@ -140,7 +140,7 @@ func (db *DB) importFixups(n uint, in *json.Decoder) error {
 		}
 
 		if v.Error != "" {
-			return fmt.Errorf(v.Error)
+			return fmt.Errorf("%s", v.Error)
 		}
 
 		log.Infof("IMPORT: inserting fixup #%s...", v.ID)
@@ -184,7 +184,7 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 		}
 
 		if v.Error != "" {
-			return fmt.Errorf(v.Error)
+			return fmt.Errorf("%s", v.Error)
 		}
 
 		log.Infof("IMPORT: inserting job %s...", v.UUID)
@@ -222,7 +222,7 @@ func (db *DB) importMemberships(n uint, in *json.Decoder) error {
 		}
 
 		if v.Error != "" {
-			return fmt.Errorf(v.Error)
+			return fmt.Errorf("%s", v.Error)
 		}
 
 		err := db.exec(`
@@ -263,7 +263,7 @@ func (db *DB) importStores(n uint, in *json.Decoder) error {
 		}
 
 		if v.Error != "" {
-			return fmt.Errorf(v.Error)
+			return fmt.Errorf("%s", v.Error)
 		}
 
 		log.Infof("IMPORT: inserting store %s...", v.UUID)
@@ -310,7 +310,7 @@ func (db *DB) importTargets(n uint, in *json.Decoder) error {
 		}
 
 		if v.Error != "" {
-			return fmt.Errorf(v.Error)
+			return fmt.Errorf("%s", v.Error)
 		}
 
 		log.Infof("IMPORT: inserting target %s...", v.UUID)
@@ -369,7 +369,7 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		}
 
 		if v.Error != "" {
-			return fmt.Errorf(v.Error)
+			return fmt.Errorf("%s", v.Error)
 		}
 
 		if v.TargetPlugin == MetaPluginName && v.Op == "backup" && v.Status == "running" {
@@ -432,7 +432,7 @@ func (db *DB) importTenants(n uint, in *json.Decoder) error {
 		}
 
 		if v.Error != "" {
-			return fmt.Errorf(v.Error)
+			return fmt.Errorf("%s", v.Error)
 		}
 
 		log.Infof("IMPORT: inserting tenant %s...", v.UUID)
@@ -471,7 +471,7 @@ func (db *DB) importUsers(n uint, in *json.Decoder) error {
 		}
 
 		if v.Error != "" {
-			return fmt.Errorf(v.Error)
+			return fmt.Errorf("%s", v.Error)
 		}
 
 		log.Infof("IMPORT: inserting user %s...", v.UUID)
@@ -513,7 +513,7 @@ func (db *DB) importSessions(n uint, in *json.Decoder) error {
 		}
 
 		if v.Error != "" {
-			return fmt.Errorf(v.Error)
+			return fmt.Errorf("%s", v.Error)
 		}
 
 		log.Infof("IMPORT: inserting session %s...", v.UUID)
@@ -541,7 +541,7 @@ func (db *DB) importFinalizer(n uint, in *json.Decoder, restoreKey string, ctx *
 	}
 
 	if fin.Error != "" {
-		return fmt.Errorf(fin.Error)
+		return fmt.Errorf("%s", fin.Error)
 	}
 
 	log.Infof("IMPORT: finalizing progenitor backup task [%s], which was in-flight when the export was taken", fin.Task)
@@ -732,7 +732,7 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client, restoreKey, uuid str
 				}
 
 				if ctx.Finalizer.Error != "" {
-					return fmt.Errorf(ctx.Finalizer.Error)
+					return fmt.Errorf("%s", ctx.Finalizer.Error)
 				}
 
 			case "":
