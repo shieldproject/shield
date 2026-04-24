@@ -9,7 +9,7 @@ require (
 	github.com/cloudfoundry-community/vaultkv v0.7.0
 	github.com/fsouza/go-dockerclient v1.12.1
 	github.com/go-sql-driver/mysql v1.9.3
-	github.com/google/go-github v0.0.0-20150605201353-af17a5fa8537
+	github.com/google/go-github/v76 v76.0.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/consul/api v1.29.6
 	github.com/jhunt/go-ansi v0.0.0-20181127194324-5fd839f108b6
@@ -62,7 +62,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.4 // indirect
 	github.com/google/uuid v1.3.1 // indirect
