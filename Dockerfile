@@ -1,4 +1,4 @@
-FROM golang:1.21-bookworm as build
+FROM golang:1.25-bookworm as build
 
 RUN apt-get update \
  && apt-get install -y bzip2 gzip unzip curl openssh-client
