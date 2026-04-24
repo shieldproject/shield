@@ -3,6 +3,7 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build sqlite_vtable || vtable
 // +build sqlite_vtable vtable
 
 package sqlite3
@@ -300,10 +301,18 @@ const (
 	OpLT            = 16
 	OpGE            = 32
 	OpMATCH         = 64
-	OpLIKE          = 65 /* 3.10.0 and later only */
-	OpGLOB          = 66 /* 3.10.0 and later only */
-	OpREGEXP        = 67 /* 3.10.0 and later only */
-	OpScanUnique    = 1  /* Scan visits at most 1 row */
+	OpLIKE          = 65  /* 3.10.0 and later only */
+	OpGLOB          = 66  /* 3.10.0 and later only */
+	OpREGEXP        = 67  /* 3.10.0 and later only */
+	OpNE            = 68  /* 3.21.0 and later only */
+	OpISNOT         = 69  /* 3.21.0 and later */
+	OpISNOTNULL     = 70  /* 3.21.0 and later */
+	OpISNULL        = 71  /* 3.21.0 and later */
+	OpIS            = 72  /* 3.21.0 and later */
+	OpLIMIT         = 73  /* 3.38.0 and later */
+	OpOFFSET        = 74  /* 3.38.0 and later */
+	OpFUNCTION      = 150 /* 3.25.0 and later */
+	OpScanUnique    = 1   /* Scan visits at most 1 row */
 )
 
 // InfoConstraint give information of constraint.
@@ -516,7 +525,7 @@ func goMDestroy(pClientData unsafe.Pointer) {
 func goVFilter(pCursor unsafe.Pointer, idxNum C.int, idxName *C.char, argc C.int, argv **C.sqlite3_value) *C.char {
 	vtc := lookupHandle(pCursor).(*sqliteVTabCursor)
 	args := (*[(math.MaxInt32 - 1) / unsafe.Sizeof((*C.sqlite3_value)(nil))]*C.sqlite3_value)(unsafe.Pointer(argv))[:argc:argc]
-	vals := make([]interface{}, 0, argc)
+	vals := make([]any, 0, argc)
 	for _, v := range args {
 		conv, err := callbackArgGeneric(v)
 		if err != nil {
@@ -588,7 +597,7 @@ func goVUpdate(pVTab unsafe.Pointer, argc C.int, argv **C.sqlite3_value, pRowid 
 	if v, ok := vt.vTab.(VTabUpdater); ok {
 		// convert argv
 		args := (*[(math.MaxInt32 - 1) / unsafe.Sizeof((*C.sqlite3_value)(nil))]*C.sqlite3_value)(unsafe.Pointer(argv))[:argc:argc]
-		vals := make([]interface{}, 0, argc)
+		vals := make([]any, 0, argc)
 		for _, v := range args {
 			conv, err := callbackArgGeneric(v)
 			if err != nil {
@@ -662,9 +671,9 @@ type VTab interface {
 // deleted.
 // See: https://sqlite.org/vtab.html#xupdate
 type VTabUpdater interface {
-	Delete(interface{}) error
-	Insert(interface{}, []interface{}) (int64, error)
-	Update(interface{}, []interface{}) error
+	Delete(any) error
+	Insert(any, []any) (int64, error)
+	Update(any, []any) error
 }
 
 // VTabCursor describes cursors that point into the virtual table and are used
@@ -673,7 +682,7 @@ type VTabCursor interface {
 	// http://sqlite.org/vtab.html#xclose
 	Close() error
 	// http://sqlite.org/vtab.html#xfilter
-	Filter(idxNum int, idxStr string, vals []interface{}) error
+	Filter(idxNum int, idxStr string, vals []any) error
 	// http://sqlite.org/vtab.html#xnext
 	Next() error
 	// http://sqlite.org/vtab.html#xeof

@@ -23,7 +23,7 @@ require (
 	github.com/kurin/blazer v0.5.1
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-shellwords v1.0.12
-	github.com/mattn/go-sqlite3 v1.14.15
+	github.com/mattn/go-sqlite3 v1.14.42
 	github.com/ncw/swift v1.0.48-0.20190410202254-753d2090bb62
 	github.com/okta/okta-jwt-verifier-golang v1.3.1
 	github.com/onsi/ginkgo v1.16.5
