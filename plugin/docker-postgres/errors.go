@@ -13,7 +13,7 @@ type MultiError struct {
 }
 
 func (e *MultiError) Append(x error) {
-	plugin.DEBUG(x.Error())
+	plugin.DEBUG("%s", x.Error())
 	e.errors = append(e.errors, x)
 }
 

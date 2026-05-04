@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v76/github"
 	"golang.org/x/oauth2"
 )
 
@@ -31,9 +31,10 @@ func NewClient(api, token string) (*Client, error) {
 }
 
 func (c *Client) Lookup() (string, string, map[string][]string, error) {
+	ctx := context.Background()
 	m := make(map[string][]string)
 
-	user, _, err := c.gh.Users.Get("")
+	user, _, err := c.gh.Users.Get(ctx, "")
 	if err != nil {
 		return "", "", nil, err
 	}
@@ -41,8 +42,8 @@ func (c *Client) Lookup() (string, string, map[string][]string, error) {
 		return "", "", nil, fmt.Errorf("no login name found in Github profile...")
 	}
 
-	//not passing username below only works in github enterprise.
-	orgs, _, err := c.gh.Organizations.List(*user.Login, nil)
+	// not passing username below only works in github enterprise.
+	orgs, _, err := c.gh.Organizations.List(ctx, *user.Login, nil)
 	if err != nil {
 		return "", "", nil, err
 	}
@@ -50,8 +51,7 @@ func (c *Client) Lookup() (string, string, map[string][]string, error) {
 		m[*org.Login] = make([]string, 0)
 	}
 
-	//below function is from v3, latest is v47, hence it prints empty output (in debugging) without read:org in authentication.
-	teams, _, err := c.gh.Organizations.ListUserTeams(nil)
+	teams, _, err := c.gh.Teams.ListUserTeams(ctx, nil)
 	if err != nil {
 		return "", "", nil, err
 	}
