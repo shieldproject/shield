@@ -139,6 +139,13 @@ var (
 	DefaultConfig Config
 )
 
+// DefaultLegacyAgentMACs is the MAC negotiation list core uses for legacy SSH
+// agents when the operator configures none. It is exported so the SSH-channel
+// probe (agent/xcrypto_probe_test.go) asserts the real list rather than a copy
+// that could silently drift. Treat as read-only: it backs a config field, so
+// callers must not append to it in place.
+var DefaultLegacyAgentMACs = []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"}
+
 func init() {
 	DefaultConfig.DataDir = "/shield/data"
 	DefaultConfig.WebRoot = "/shield/ui"
@@ -309,7 +316,7 @@ func Configure(file string, config Config) (*Core, error) {
 		}
 
 		if len(c.Config.LegacyAgents.MACs) == 0 {
-			c.Config.LegacyAgents.MACs = []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"}
+			c.Config.LegacyAgents.MACs = DefaultLegacyAgentMACs
 		}
 		c.Config.LegacyAgents.cc = &ssh.ClientConfig{
 			Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
