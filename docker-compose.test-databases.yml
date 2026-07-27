@@ -1,0 +1,29 @@
+# Throwaway PostgreSQL and MySQL servers for the db package's integration
+# specs. See `make test-databases`.
+name: shield-test-databases
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports: ['15432:5432']
+    environment:
+      POSTGRES_USER: shield
+      POSTGRES_PASSWORD: shield
+      POSTGRES_DB: shield
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U shield -d shield']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mysql:
+    image: mysql:8
+    ports: ['13306:3306']
+    environment:
+      MYSQL_ROOT_PASSWORD: shield
+      MYSQL_DATABASE: shield
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -pshield']
+      interval: 2s
+      timeout: 3s
+      retries: 30

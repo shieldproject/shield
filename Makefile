@@ -26,6 +26,18 @@ go-tests: shield
 api-tests: shieldd shield-schema shield-crypt shield-agent shield-report
 	./t/api
 
+# The db package's PostgreSQL and MySQL specs skip themselves unless a DSN is
+# exported, so that `make test` needs nothing but SQLite. This target stands
+# the servers up and runs them for real.
+test-databases:
+	docker compose -f docker-compose.test-databases.yml up -d --wait
+	SHIELD_TEST_PG_DSN='postgres://shield:shield@127.0.0.1:15432/shield?sslmode=disable' \
+	SHIELD_TEST_MYSQL_DSN='root:shield@tcp(127.0.0.1:13306)/shield?parseTime=true' \
+	go test -count=1 ./db/
+
+test-databases-down:
+	docker compose -f docker-compose.test-databases.yml down -v
+
 # Running Tests for race conditions
 race:
 	go run github.com/onsi/ginkgo/v2/ginkgo run -race ./...
