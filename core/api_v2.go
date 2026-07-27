@@ -3545,6 +3545,29 @@ func (c *Core) v2API() *route.Router {
 		r.OK(store)
 	})
 	// }}}
+	r.Dispatch("POST /v2/global/stores/:uuid/test", func(r *route.Request) { // {{{
+		if c.IsNotSystemEngineer(r) {
+			return
+		}
+
+		store, err := c.db.GetStore(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+		if store == nil || store.TenantUUID != db.GlobalTenantUUID {
+			r.Fail(route.NotFound(err, "No such storage system"))
+			return
+		}
+
+		if _, err := c.db.CreateTestStoreTask("system", store); err != nil {
+			r.Fail(route.Oops(err, "Unable to schedule storage system test"))
+			return
+		}
+
+		r.Success("Storage system test initiated")
+	})
+	// }}}
 	r.Dispatch("DELETE /v2/global/stores/:uuid", func(r *route.Request) { // {{{
 		if c.IsNotSystemEngineer(r) {
 			return
