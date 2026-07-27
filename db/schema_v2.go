@@ -5,12 +5,12 @@ type v2Schema struct{}
 func (s v2Schema) Deploy(db *DB) error {
 	var err error
 
-	err = db.Exec(`ALTER TABLE archives ADD COLUMN purge_reason TEXT DEFAULT ''`)
+	err = db.Exec(`ALTER TABLE archives ADD COLUMN purge_reason TEXT DEFAULT ('')`)
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE archives ADD COLUMN status TEXT DEFAULT 'valid'`)
+	err = db.Exec(`ALTER TABLE archives ADD COLUMN status TEXT DEFAULT ('valid')`)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func (s v2Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN store_uuid UUID`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN store_uuid VARCHAR(36)`)
 	if err != nil {
 		return err
 	}

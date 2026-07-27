@@ -5,7 +5,7 @@ type v5Schema struct{}
 func (s v5Schema) Deploy(db *DB) error {
 	var err error
 
-	err = db.Exec(`ALTER TABLE targets ADD compression TEXT NOT NULL DEFAULT 'none'`)
+	err = db.Exec(`ALTER TABLE targets ADD compression TEXT NOT NULL DEFAULT ('none')`)
 	if err != nil {
 		return err
 	}
@@ -20,7 +20,7 @@ func (s v5Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE archives ADD compression TEXT NOT NULL DEFAULT 'none'`)
+	err = db.Exec(`ALTER TABLE archives ADD compression TEXT NOT NULL DEFAULT ('none')`)
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func (s v5Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD compression TEXT NOT NULL DEFAULT ''`)
+	err = db.Exec(`ALTER TABLE tasks ADD compression TEXT NOT NULL DEFAULT ('')`)
 	if err != nil {
 		return err
 	}

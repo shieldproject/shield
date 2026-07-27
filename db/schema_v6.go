@@ -11,10 +11,10 @@ func (s v6Schema) Deploy(db *DB) error {
 
 	// set the tenant_uuid column to NOT NULL
 	err = db.Exec(`CREATE TABLE jobs_new (
-	               uuid               UUID PRIMARY KEY,
-	               target_uuid        UUID NOT NULL,
-	               store_uuid         UUID NOT NULL,
-	               tenant_uuid        UUID NOT NULL,
+	               uuid               VARCHAR(36) PRIMARY KEY,
+	               target_uuid        VARCHAR(36) NOT NULL,
+	               store_uuid         VARCHAR(36) NOT NULL,
+	               tenant_uuid        VARCHAR(36) NOT NULL,
 	               name               TEXT,
 	               summary            TEXT,
 	               schedule           TEXT NOT NULL,
@@ -23,7 +23,7 @@ func (s v6Schema) Deploy(db *DB) error {
 	               next_run           INTEGER DEFAULT 0,
 	               priority           INTEGER DEFAULT 50,
 	               paused             BOOLEAN,
-	               fixed_key          INTEGER DEFAULT 0,
+	               fixed_key          BOOLEAN NOT NULL DEFAULT FALSE,
 	               healthy            BOOLEAN
 	             )`)
 	if err != nil {

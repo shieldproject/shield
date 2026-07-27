@@ -17,15 +17,15 @@ func (s v12Schema) Deploy(db *DB) error {
 		}
 	}
 	err = db.Exec(`CREATE TABLE targets_new (
-                    uuid               UUID PRIMARY KEY,
-                    tenant_uuid        UUID NOT NULL DEFAULT '%s',
+                    uuid               VARCHAR(36) PRIMARY KEY,
+                    tenant_uuid        VARCHAR(36) NOT NULL DEFAULT '%s',
                     name               TEXT NOT NULL,
-                    summary            TEXT NOT NULL DEFAULT '',
+                    summary            TEXT NOT NULL DEFAULT (''),
                     plugin             TEXT NOT NULL,
                     endpoint           TEXT NOT NULL,
                     agent              TEXT NOT NULL,
-                    compression        TEXT NOT NULL DEFAULT 'none',
-                    healthy            BOOLEAN NOT NULL DEFAULT 0
+                    compression        TEXT NOT NULL DEFAULT ('none'),
+                    healthy            BOOLEAN NOT NULL DEFAULT FALSE
                 )`)
 	if err != nil {
 		return err
@@ -35,7 +35,7 @@ func (s v12Schema) Deploy(db *DB) error {
                                             healthy)
                         SELECT t.uuid, t.tenant_uuid, t.name, t.summary,
                                     t.plugin, t.endpoint, t.agent, t.compression,
-                                    0
+                                    FALSE
                             FROM targets t`)
 	if err != nil {
 		return err
