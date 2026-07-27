@@ -80,7 +80,7 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 	}
 
 	if len(wheres) == 0 {
-		wheres = []string{"1"}
+		wheres = []string{"true"}
 	} else if len(wheres) > 1 {
 		wheres = []string{strings.Join(wheres, " OR ")}
 	}

@@ -756,7 +756,7 @@ func (db *DB) ScheduledTask(id string) error {
 	return nil
 }
 
-func (db *DB) updateTaskStatus(id, status string, at int64, ok int) error {
+func (db *DB) updateTaskStatus(id, status string, at int64, ok bool) error {
 	err := db.Exec(
 		`UPDATE tasks SET status = ?, stopped_at = ?, ok = ? WHERE uuid = ?`,
 		status, at, ok, id)
@@ -784,12 +784,12 @@ func (db *DB) updateTaskStatus(id, status string, at int64, ok int) error {
 
 func (db *DB) CancelTask(id string, at time.Time) error {
 	//updateTaskStatus grabs the lock
-	return db.updateTaskStatus(id, CanceledStatus, effectively(at), 1)
+	return db.updateTaskStatus(id, CanceledStatus, effectively(at), true)
 }
 
 func (db *DB) FailTask(id string, at time.Time) error {
 	//updateTaskStatus grabs the lock
-	err := db.updateTaskStatus(id, FailedStatus, effectively(at), 0)
+	err := db.updateTaskStatus(id, FailedStatus, effectively(at), false)
 	if err != nil {
 		return err
 	}
@@ -812,7 +812,7 @@ func (db *DB) FailTask(id string, at time.Time) error {
 
 func (db *DB) CompleteTask(id string, at time.Time) error {
 	//updateTaskStatus grabs the lock
-	err := db.updateTaskStatus(id, DoneStatus, effectively(at), 1)
+	err := db.updateTaskStatus(id, DoneStatus, effectively(at), true)
 	if err != nil {
 		return err
 	}
@@ -834,8 +834,11 @@ func (db *DB) CompleteTask(id string, at time.Time) error {
 }
 
 func (db *DB) UpdateTaskLog(id string, more string) error {
+	/* COALESCE guards the NULL log a task starts life with; both || and
+	   MySQL's CONCAT propagate NULL, silently dropping the line. */
 	err := db.Exec(
-		`UPDATE tasks SET log = log || ? WHERE uuid = ?`,
+		`UPDATE tasks SET log = `+Concat(db.dialect, `COALESCE(log, '')`, `?`)+
+			` WHERE uuid = ?`,
 		more, id,
 	)
 	if err != nil {
@@ -935,34 +938,37 @@ func (db *DB) AnnotateTargetTask(target, id string, t *TaskAnnotation) error {
 	args = append(args, target, id)
 	return db.Exec(
 		`UPDATE tasks SET `+strings.Join(updates, ", ")+
-			`WHERE target_uuid = ? AND uuid = ?`, args...)
+			` WHERE target_uuid = ? AND uuid = ?`, args...)
 }
 
 func (db *DB) MarkTasksIrrelevant() error {
 	err := db.Exec(
-		`UPDATE tasks SET relevant = 0
-      WHERE relevant = 1
+		`UPDATE tasks SET relevant = FALSE
+      WHERE relevant = TRUE
         AND clear = 'immediate'`)
 
 	if err != nil {
 		return err
 	}
 
+	/* Correlate to jobs with EXISTS rather than `uuid IN (SELECT ... FROM
+	   tasks ...)`: MySQL refuses to read the table an UPDATE targets from a
+	   subquery's FROM clause. */
 	err = db.Exec(
-		`UPDATE tasks SET relevant = 0
-      WHERE relevant = 1 AND clear = 'normal'
-        AND uuid IN (
-          SELECT tasks.uuid FROM tasks
-            INNER JOIN jobs ON jobs.uuid = tasks.job_uuid
-                 WHERE jobs.keepdays * 86400 + tasks.started_at < ?`, time.Now().Unix())
+		`UPDATE tasks SET relevant = FALSE
+      WHERE relevant = TRUE AND clear = 'normal'
+        AND EXISTS (
+          SELECT 1 FROM jobs
+                 WHERE jobs.uuid = tasks.job_uuid
+                   AND jobs.keep_days * 86400 + tasks.started_at < ?)`, time.Now().Unix())
 
 	if err != nil {
 		return err
 	}
 
 	err = db.Exec(
-		`UPDATE tasks SET relevant = 1
-      WHERE relevant = 0 AND clear = 'manual'`)
+		`UPDATE tasks SET relevant = TRUE
+      WHERE relevant = FALSE AND clear = 'manual'`)
 	if err != nil {
 		return err
 	}

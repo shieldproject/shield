@@ -98,7 +98,7 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	}
 
 	if len(wheres) == 0 {
-		wheres = []string{"1"}
+		wheres = []string{"true"}
 	} else if len(wheres) > 1 {
 		wheres = []string{strings.Join(wheres, " OR ")}
 	}
@@ -130,10 +130,22 @@ func (f *JobFilter) Query() (string, []interface{}) {
 
 	return `
 	   WITH recent_tasks AS (
-	           SELECT uuid AS task_uuid, job_uuid, started_at, status
-	             FROM tasks
-	            WHERE stopped_at IS NOT NULL
-	         GROUP BY job_uuid
+	           /* The most recently started finished task for each job.
+	              Selecting bare columns alongside a GROUP BY only works on
+	              SQLite, and even there it picks an arbitrary row rather than
+	              the newest one; rank the rows instead so that every backend
+	              agrees on which task is "recent". */
+	           SELECT task_uuid, job_uuid, started_at, status
+	             FROM (
+	                   SELECT uuid AS task_uuid, job_uuid, started_at, status,
+	                          ROW_NUMBER() OVER (PARTITION BY job_uuid
+	                                                 ORDER BY started_at DESC,
+	                                                          uuid DESC) AS recency
+	                     FROM tasks
+	                    WHERE stopped_at IS NOT NULL
+	                      AND started_at IS NOT NULL
+	                  ) ranked
+	            WHERE recency = 1
 	        )
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
@@ -225,7 +237,7 @@ func (f *JobFilter) QueryV6() (string, []interface{}) {
 	}
 
 	if len(wheres) == 0 {
-		wheres = []string{"1"}
+		wheres = []string{"true"}
 	} else if len(wheres) > 1 {
 		wheres = []string{strings.Join(wheres, " OR ")}
 	}
@@ -257,10 +269,22 @@ func (f *JobFilter) QueryV6() (string, []interface{}) {
 
 	return `
 	   WITH recent_tasks AS (
-	           SELECT uuid AS task_uuid, job_uuid, started_at, status
-	             FROM tasks
-	            WHERE stopped_at IS NOT NULL
-	         GROUP BY job_uuid
+	           /* The most recently started finished task for each job.
+	              Selecting bare columns alongside a GROUP BY only works on
+	              SQLite, and even there it picks an arbitrary row rather than
+	              the newest one; rank the rows instead so that every backend
+	              agrees on which task is "recent". */
+	           SELECT task_uuid, job_uuid, started_at, status
+	             FROM (
+	                   SELECT uuid AS task_uuid, job_uuid, started_at, status,
+	                          ROW_NUMBER() OVER (PARTITION BY job_uuid
+	                                                 ORDER BY started_at DESC,
+	                                                          uuid DESC) AS recency
+	                     FROM tasks
+	                    WHERE stopped_at IS NOT NULL
+	                      AND started_at IS NOT NULL
+	                  ) ranked
+	            WHERE recency = 1
 	        )
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
