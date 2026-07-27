@@ -120,7 +120,7 @@ func (r *Request) Fail(e Error) {
 
 	b, err := json.Marshal(e)
 	if err != nil {
-		log.Errorf("%s %s errored again, trying to marshal a JSON error response: %s", err)
+		log.Errorf("%s errored again, trying to marshal a JSON error response: %s", r, err)
 		r.Fail(Oops(err, "an unknown error has occurred"))
 		return
 	}
@@ -222,7 +222,7 @@ func (r *Request) Missing(params ...string) bool {
 	}
 
 	if len(params) > 0 {
-		log.Errorf("%s called Missing() with an odd number of arguments")
+		log.Errorf("%s called Missing() with an odd number of arguments", r)
 	}
 
 	if len(e.Missing) > 0 {

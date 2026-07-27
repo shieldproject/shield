@@ -757,7 +757,7 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client, restoreKey, uuid str
 		}
 
 		if task == nil {
-			log.Errorf("IMPORT: unable to find task [%s] in the database; skipping finalization...")
+			log.Errorf("IMPORT: unable to find task [%s] in the database; skipping finalization...", ctx.Finalizer.Task)
 		} else {
 			log.Infof("IMPORT: marking progenitor backup task [%s] as complete", task.UUID)
 			err = db.CompleteTask(task.UUID, time.Unix(ctx.Finalizer.TakenAt, 0))
