@@ -72,4 +72,9 @@ demo/shield-agent/in
 demo/shield-core/in
 demo/shared
 demo/cached
+
+# ignore editor, tooling, and OS scratch
 /.vscode
+/.claude
+/.env
+.DS_Store
