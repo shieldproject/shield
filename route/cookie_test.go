@@ -1,6 +1,7 @@
 package route_test
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
 
@@ -46,9 +47,11 @@ var _ = Describe("Session Cookie Security", func() {
 			Ω(cookies[0].HttpOnly).Should(BeTrue())
 		})
 
-		It("sets the Secure flag", func() {
+		// shieldd always speaks plain HTTP; a Secure cookie handed back over
+		// an unencrypted connection is dropped by the browser on the spot.
+		It("omits the Secure flag over a plain connection", func() {
 			cookies := w.Result().Cookies()
-			Ω(cookies[0].Secure).Should(BeTrue())
+			Ω(cookies[0].Secure).Should(BeFalse())
 		})
 
 		// Strict would withhold this cookie on the top-level cross-site
@@ -56,6 +59,37 @@ var _ = Describe("Session Cookie Security", func() {
 		It("sets SameSite=Lax", func() {
 			cookies := w.Result().Cookies()
 			Ω(cookies[0].SameSite).Should(Equal(http.SameSiteLaxMode))
+		})
+	})
+
+	Describe("SetSession over TLS", func() {
+		It("sets the Secure flag when the request arrived over TLS", func() {
+			req.TLS = &tls.ConnectionState{}
+			route.NewRequest(w, req, false).SetSession("test-session-id")
+
+			cookies := w.Result().Cookies()
+			Ω(len(cookies)).Should(BeNumerically(">=", 1))
+			Ω(cookies[0].Secure).Should(BeTrue())
+		})
+
+		// The daemon is normally fronted by a TLS-terminating proxy, so the
+		// only evidence it has of the browser's scheme is this header.
+		It("sets the Secure flag when a proxy reports an https scheme", func() {
+			req.Header.Set("X-Forwarded-Proto", "https")
+			route.NewRequest(w, req, false).SetSession("test-session-id")
+
+			cookies := w.Result().Cookies()
+			Ω(len(cookies)).Should(BeNumerically(">=", 1))
+			Ω(cookies[0].Secure).Should(BeTrue())
+		})
+
+		It("ignores a proxy reporting a plain scheme", func() {
+			req.Header.Set("X-Forwarded-Proto", "http")
+			route.NewRequest(w, req, false).SetSession("test-session-id")
+
+			cookies := w.Result().Cookies()
+			Ω(len(cookies)).Should(BeNumerically(">=", 1))
+			Ω(cookies[0].Secure).Should(BeFalse())
 		})
 	})
 
@@ -96,9 +130,9 @@ var _ = Describe("Session Cookie Security", func() {
 			Ω(cookies[0].HttpOnly).Should(BeTrue())
 		})
 
-		It("sets the Secure flag", func() {
+		It("omits the Secure flag over a plain connection", func() {
 			cookies := w.Result().Cookies()
-			Ω(cookies[0].Secure).Should(BeTrue())
+			Ω(cookies[0].Secure).Should(BeFalse())
 		})
 
 		It("sets SameSite=Lax", func() {
