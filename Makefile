@@ -201,4 +201,4 @@ docker-release:
 	done
 
 
-.PHONY: plugins dev shield shieldd shield-schema shield-agent shield-crypt shield-report demo docs
+.PHONY: plugins dev shield shieldd shield-schema shield-agent shield-crypt shield-report demo docs test-databases test-databases-down
