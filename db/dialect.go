@@ -52,6 +52,20 @@ func Rebind(dialect Dialect, query string) string {
 	return buf.String()
 }
 
+// Concat returns a SQL expression that appends b to a.
+//
+// There is no spelling of string concatenation that all three backends accept:
+// MySQL reads || as logical OR unless PIPES_AS_CONCAT is set, and while every
+// backend now has a CONCAT() function, PostgreSQL cannot infer the type of a
+// bare placeholder passed to a variadic one ("could not determine data type of
+// parameter $1").
+func Concat(dialect Dialect, a, b string) string {
+	if dialect == DialectMySQL {
+		return fmt.Sprintf("CONCAT(%s, %s)", a, b)
+	}
+	return fmt.Sprintf("(%s || %s)", a, b)
+}
+
 // Vendor codes for "that relation does not exist".
 const (
 	pgUndefinedTable    = "42P01" // SQLSTATE undefined_table

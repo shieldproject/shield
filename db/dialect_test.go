@@ -71,6 +71,21 @@ var _ = Describe("Dialect", func() {
 		})
 	})
 
+	Describe("Concat", func() {
+		It("uses || for SQLite3", func() {
+			Ω(Concat(DialectSQLite3, "a", "?")).Should(Equal("(a || ?)"))
+		})
+
+		It("uses || for PostgreSQL", func() {
+			Ω(Concat(DialectPostgreSQL, "a", "?")).Should(Equal("(a || ?)"))
+		})
+
+		// MySQL reads || as logical OR unless PIPES_AS_CONCAT is set.
+		It("uses CONCAT for MySQL", func() {
+			Ω(Concat(DialectMySQL, "a", "?")).Should(Equal("CONCAT(a, ?)"))
+		})
+	})
+
 	Describe("IsNoSuchTable", func() {
 		It("returns false for nil error", func() {
 			Ω(IsNoSuchTable(nil, "schema_info")).Should(BeFalse())
