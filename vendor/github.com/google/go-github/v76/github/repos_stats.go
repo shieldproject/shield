@@ -231,15 +231,9 @@ func (s *RepositoriesService) ListPunchCard(ctx context.Context, owner, repo str
 			continue
 		}
 		card := &PunchCard{
-<<<<<<<< HEAD:vendor/github.com/google/go-github/v76/github/repos_stats.go
 			Day:     Ptr(result[0]),
 			Hour:    Ptr(result[1]),
 			Commits: Ptr(result[2]),
-========
-			Day:     Int(result[0]),
-			Hour:    Int(result[1]),
-			Commits: Int(result[2]),
->>>>>>>> 2bdfd3af (Update go.mod and vendor for v10.0.0 deps):vendor/github.com/google/go-github/v66/github/repos_stats.go
 		}
 		cards = append(cards, card)
 	}
