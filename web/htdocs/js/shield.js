@@ -1301,6 +1301,43 @@ function dispatch(page) {
     break; /* #!/admin/stores/delete */
     // }}}
 
+  case '#!/admin/stores/test': /* {{{ */
+    if (!AEGIS.is('engineer')) {
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
+      break;
+    }
+    api({
+      type: 'GET',
+      url:  '/v2/global/stores/'+args.uuid,
+      error: "Failed to retrieve storage system information from the SHIELD API.",
+      success: function (store) {
+        modal($($.template('stores-test', { store: store }))
+          .on('click', '[rel="yes"]', function (event) {
+            event.preventDefault();
+            api({
+              type: 'POST',
+              url:  '/v2/global/stores/'+args.uuid+'/test',
+              error: "Unable to test the storage system",
+              complete: function () {
+                modal(true);
+              },
+              success: function (event) {
+                goto('#!/admin/stores/store:uuid:'+args.uuid);
+                banner('Started storage health check.');
+              }
+            });
+          })
+          .on('click', '[rel="close"]', function (event) {
+            modal(true);
+            goto('#!/admin/stores/store:uuid:'+args.uuid);
+          })
+        );
+      }
+    });
+
+    break; /* #!/admin/stores/test */
+    // }}}
+
   case '#!/admin/sessions': /* {{{ */
     if (!AEGIS.is('admin')) {
       $('#main').template('access-denied', { level: 'system', need: 'admin' });
