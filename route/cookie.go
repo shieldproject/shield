@@ -2,6 +2,7 @@ package route
 
 import (
 	"net/http"
+	"strings"
 )
 
 func SessionID(req *http.Request) string {
@@ -29,13 +30,37 @@ func (r *Request) SessionID() string {
 // subresource requests, which is where the CSRF risk actually lives.
 const cookieSameSite = http.SameSiteLaxMode
 
+// secure reports whether the browser reached us over TLS, and so whether the
+// Secure attribute belongs on the cookies we hand back.
+//
+// It cannot be set unconditionally: shieldd itself only ever speaks plain
+// HTTP, and a browser discards a Secure cookie that arrives over an
+// unencrypted connection.  Marking every cookie Secure therefore locks users
+// out of the web UI of any SHIELD that is not fronted by a TLS terminator.
+// On a plain connection the session id travels in the clear regardless, so
+// the attribute has nothing left to protect there anyway.
+func (r *Request) secure() bool {
+	if r.Req == nil {
+		return false
+	}
+	if r.Req.TLS != nil {
+		return true
+	}
+
+	/* A TLS-terminating proxy reports the browser's original scheme here.
+	   Honoring it from an untrusted client can only ever add the attribute,
+	   never remove it, so a forged header costs that client its own cookie
+	   and gains it nothing. */
+	return strings.EqualFold(r.Req.Header.Get("X-Forwarded-Proto"), "https")
+}
+
 func (r *Request) SetCookie(name, val, path string) {
 	http.SetCookie(r.w, &http.Cookie{
 		Name:     name,
 		Value:    val,
 		Path:     path,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   r.secure(),
 		SameSite: cookieSameSite,
 	})
 }
@@ -46,7 +71,7 @@ func (r *Request) ClearCookie(name, path string) {
 		Path:     path,
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   r.secure(),
 		SameSite: cookieSameSite,
 	})
 }
