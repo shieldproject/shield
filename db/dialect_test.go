@@ -3,6 +3,8 @@ package db
 import (
 	"fmt"
 
+	"github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5/pgconn"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -74,19 +76,56 @@ var _ = Describe("Dialect", func() {
 			Ω(IsNoSuchTable(nil, "schema_info")).Should(BeFalse())
 		})
 
-		It("matches SQLite3 missing table error", func() {
+		It("matches the error go-sqlite3 returns", func() {
 			err := fmt.Errorf("no such table: schema_info")
 			Ω(IsNoSuchTable(err, "schema_info")).Should(BeTrue())
 		})
 
-		It("matches PostgreSQL missing table error", func() {
-			err := fmt.Errorf(`pq: relation "schema_info" does not exist`)
+		It("matches the error pgx returns", func() {
+			err := &pgconn.PgError{
+				Severity: "ERROR",
+				Code:     "42P01",
+				Message:  `relation "schema_info" does not exist`,
+			}
 			Ω(IsNoSuchTable(err, "schema_info")).Should(BeTrue())
 		})
 
-		It("matches MySQL missing table error", func() {
-			err := fmt.Errorf("Error 1146: Table 'db.schema_info' doesn't exist")
+		It("matches the error go-sql-driver returns", func() {
+			err := &mysql.MySQLError{
+				Number:   1146,
+				SQLState: [5]byte{'4', '2', 'S', '0', '2'},
+				Message:  "Table 'shield.schema_info' doesn't exist",
+			}
 			Ω(IsNoSuchTable(err, "schema_info")).Should(BeTrue())
+		})
+
+		It("matches a driver error a caller has wrapped", func() {
+			err := fmt.Errorf("querying schema: %w", &pgconn.PgError{
+				Code:    "42P01",
+				Message: `relation "schema_info" does not exist`,
+			})
+			Ω(IsNoSuchTable(err, "schema_info")).Should(BeTrue())
+		})
+
+		It("does not match when a different table is missing", func() {
+			err := &pgconn.PgError{
+				Code:    "42P01",
+				Message: `relation "jobs" does not exist`,
+			}
+			Ω(IsNoSuchTable(err, "schema_info")).Should(BeFalse())
+		})
+
+		It("does not match a table whose name merely shares a prefix", func() {
+			err := fmt.Errorf("no such table: schema_info_backup")
+			Ω(IsNoSuchTable(err, "schema_info")).Should(BeFalse())
+		})
+
+		It("does not match other errors that name the table", func() {
+			err := &pgconn.PgError{
+				Code:    "42501", // insufficient_privilege
+				Message: `permission denied for table schema_info`,
+			}
+			Ω(IsNoSuchTable(err, "schema_info")).Should(BeFalse())
 		})
 
 		It("returns false for unrelated errors", func() {
