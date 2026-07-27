@@ -26,11 +26,7 @@ func Stringify(message any) string {
 // stringifyValue was heavily inspired by the goprotobuf library.
 
 func stringifyValue(w *bytes.Buffer, val reflect.Value) {
-<<<<<<<< HEAD:vendor/github.com/google/go-github/v76/github/strings.go
 	if val.Kind() == reflect.Pointer && val.IsNil() {
-========
-	if val.Kind() == reflect.Ptr && val.IsNil() {
->>>>>>>> 2bdfd3af (Update go.mod and vendor for v10.0.0 deps):vendor/github.com/google/go-github/v66/github/strings.go
 		w.WriteString("<nil>")
 		return
 	}
@@ -42,11 +38,7 @@ func stringifyValue(w *bytes.Buffer, val reflect.Value) {
 		fmt.Fprintf(w, `"%v"`, v)
 	case reflect.Slice:
 		w.WriteByte('[')
-<<<<<<<< HEAD:vendor/github.com/google/go-github/v76/github/strings.go
 		for i := range v.Len() {
-========
-		for i := 0; i < v.Len(); i++ {
->>>>>>>> 2bdfd3af (Update go.mod and vendor for v10.0.0 deps):vendor/github.com/google/go-github/v66/github/strings.go
 			if i > 0 {
 				w.WriteByte(' ')
 			}
