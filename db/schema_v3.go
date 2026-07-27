@@ -5,27 +5,27 @@ type v3Schema struct{}
 func (s v3Schema) Deploy(db *DB) error {
 	var err error
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN target_plugin TEXT DEFAULT ''`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN target_plugin TEXT DEFAULT ('')`)
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN target_endpoint TEXT DEFAULT ''`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN target_endpoint TEXT DEFAULT ('')`)
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN store_plugin TEXT DEFAULT ''`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN store_plugin TEXT DEFAULT ('')`)
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN store_endpoint TEXT DEFAULT ''`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN store_endpoint TEXT DEFAULT ('')`)
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN restore_key TEXT DEFAULT ''`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN restore_key TEXT DEFAULT ('')`)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (s v3Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN agent TEXT DEFAULT ''`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN agent TEXT DEFAULT ('')`)
 	if err != nil {
 		return err
 	}
