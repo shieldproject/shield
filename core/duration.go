@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-
 )
 
 var durationPattern *regexp.Regexp

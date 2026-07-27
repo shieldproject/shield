@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/goccy/go-yaml"
 	env "github.com/jhunt/go-envirotron"
 	"github.com/shieldproject/shield/internal/log"
 	"golang.org/x/crypto/ssh"
-	"github.com/goccy/go-yaml"
 )
 
 type Config struct {

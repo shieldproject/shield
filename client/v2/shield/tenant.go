@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-"github.com/pborman/uuid"
+	"github.com/pborman/uuid"
 )
 
 type Tenant struct {

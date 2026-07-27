@@ -10,9 +10,9 @@ import (
 	"regexp"
 	"strings"
 
-	gofmt "github.com/jhunt/go-ansi"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	gofmt "github.com/jhunt/go-ansi"
 
 	"github.com/shieldproject/shield/plugin"
 	"github.com/shieldproject/shield/plugin/s3util"
@@ -87,10 +87,10 @@ func main() {
 type BackblazePlugin plugin.PluginInfo
 
 type backblazeEndpoint struct {
-	AccessKey  string
-	SecretKey  string
-	Prefix     string
-	Bucket     string
+	AccessKey string
+	SecretKey string
+	Prefix    string
+	Bucket    string
 }
 
 func (p BackblazePlugin) Meta() plugin.PluginInfo {

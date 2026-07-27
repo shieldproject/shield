@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	log "github.com/shieldproject/shield/internal/log"
+	"github.com/spf13/cobra"
 
 	"github.com/shieldproject/shield/agent"
 )

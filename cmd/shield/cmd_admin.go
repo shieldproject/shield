@@ -10,11 +10,11 @@ import (
 )
 
 var (
-	adminInitMaster    string
-	adminUnlockMaster  string
-	adminRekeyOld      string
-	adminRekeyNew      string
-	adminRekeyRotate   bool
+	adminInitMaster   string
+	adminUnlockMaster string
+	adminRekeyOld     string
+	adminRekeyNew     string
+	adminRekeyRotate  bool
 )
 
 var initCmd = &cobra.Command{

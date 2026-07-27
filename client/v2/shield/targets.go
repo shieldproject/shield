@@ -3,7 +3,7 @@ package shield
 import (
 	"fmt"
 
-"github.com/pborman/uuid"
+	"github.com/pborman/uuid"
 )
 
 type Target struct {

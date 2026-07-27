@@ -198,7 +198,6 @@ var deleteUserCmd = &cobra.Command{
 	},
 }
 
-
 func init() {
 	usersCmd.Flags().StringVar(&usersWithSystemRole, "with-system-role", "", "Filter by system role")
 

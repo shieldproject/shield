@@ -6,8 +6,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/shieldproject/shield/internal/log"
 	"github.com/pborman/uuid"
+	"github.com/shieldproject/shield/internal/log"
 
 	"github.com/shieldproject/shield/core/bus"
 )
