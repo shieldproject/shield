@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	log "github.com/shieldproject/shield/internal/log"
+	"github.com/spf13/cobra"
 
 	// sql drivers
 	_ "github.com/go-sql-driver/mysql"

@@ -21,14 +21,14 @@ import (
 
 // S3Config holds the connection parameters for an S3-compatible endpoint.
 type S3Config struct {
-	Region              string
-	AccessKeyID         string
-	SecretAccessKey     string
-	SessionToken        string
-	Endpoint            string // full URL, e.g. "https://s3.amazonaws.com"
-	UsePathStyle        bool
-	InsecureSkipVerify  bool
-	SOCKS5Proxy         string
+	Region             string
+	AccessKeyID        string
+	SecretAccessKey    string
+	SessionToken       string
+	Endpoint           string // full URL, e.g. "https://s3.amazonaws.com"
+	UsePathStyle       bool
+	InsecureSkipVerify bool
+	SOCKS5Proxy        string
 }
 
 // NewClient constructs an AWS SDK v2 S3 client from the provided S3Config.

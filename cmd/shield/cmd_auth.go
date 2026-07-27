@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	apiSkipSSL    bool
-	apiCACert     string
+	apiSkipSSL bool
+	apiCACert  string
 
 	loginProviders bool
 	loginUsername  string

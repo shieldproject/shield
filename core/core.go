@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goccy/go-yaml"
 	env "github.com/jhunt/go-envirotron"
 	log "github.com/shieldproject/shield/internal/log"
 	"golang.org/x/crypto/ssh"
-	"github.com/goccy/go-yaml"
 
 	"github.com/shieldproject/shield/core/bus"
 	"github.com/shieldproject/shield/core/fabric"

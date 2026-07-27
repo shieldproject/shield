@@ -1,9 +1,9 @@
 package core
 
 import (
+	"github.com/goccy/go-yaml"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/goccy/go-yaml"
 )
 
 var _ = Describe("Duration YAML Unmarshaling", func() {

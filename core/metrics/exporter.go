@@ -3,10 +3,10 @@ package metrics
 import (
 	"net/http"
 
-	log "github.com/shieldproject/shield/internal/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shieldproject/shield/core/bus"
+	log "github.com/shieldproject/shield/internal/log"
 )
 
 type Exporter struct {

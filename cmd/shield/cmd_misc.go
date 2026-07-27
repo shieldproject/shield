@@ -7,19 +7,19 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/goccy/go-yaml"
 	fmt "github.com/jhunt/go-ansi"
 	"github.com/jhunt/go-table"
 	"github.com/spf13/cobra"
-	"github.com/goccy/go-yaml"
 
 	"github.com/shieldproject/shield/client/v2/shield"
 )
 
 var (
-	cmdCommandsList bool
-	cmdCurlFile     string
-	cmdStatusGlobal bool
-	cmdEventsSkip   []string
+	cmdCommandsList  bool
+	cmdCurlFile      string
+	cmdStatusGlobal  bool
+	cmdEventsSkip    []string
 	cmdImportExample bool
 )
 
