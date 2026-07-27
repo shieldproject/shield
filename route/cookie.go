@@ -20,6 +20,15 @@ func (r *Request) SessionID() string {
 	return SessionID(r.Req)
 }
 
+// SameSite=Lax, not Strict.  SHIELD's OAuth2 providers (github, okta, uaa)
+// send the browser back to /auth/:provider/redir as a top-level cross-site
+// navigation.  Strict cookies are withheld on such a navigation, so both the
+// "via" cookie and any pre-existing session cookie would be missing by the
+// time the redirect handler runs -- breaking `shield login` against every
+// oauth provider.  Lax still withholds the cookie from cross-site POSTs and
+// subresource requests, which is where the CSRF risk actually lives.
+const cookieSameSite = http.SameSiteLaxMode
+
 func (r *Request) SetCookie(name, val, path string) {
 	http.SetCookie(r.w, &http.Cookie{
 		Name:     name,
@@ -27,7 +36,7 @@ func (r *Request) SetCookie(name, val, path string) {
 		Path:     path,
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: cookieSameSite,
 	})
 }
 
@@ -38,7 +47,7 @@ func (r *Request) ClearCookie(name, path string) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: cookieSameSite,
 	})
 }
 
