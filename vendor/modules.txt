@@ -390,8 +390,8 @@ github.com/jhunt/go-envirotron
 # github.com/jhunt/go-table v0.0.0-20181127194439-fcc252a20f4c
 ## explicit
 github.com/jhunt/go-table
-# github.com/klauspost/compress v1.18.3
-## explicit; go 1.23
+# github.com/klauspost/compress v1.18.7
+## explicit; go 1.24
 github.com/klauspost/compress
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -443,8 +443,8 @@ github.com/mattn/go-sqlite3
 # github.com/mitchellh/go-homedir v1.1.0
 ## explicit
 github.com/mitchellh/go-homedir
-# github.com/moby/go-archive v0.2.0
-## explicit; go 1.23.0
+# github.com/moby/go-archive v0.3.0
+## explicit; go 1.25
 github.com/moby/go-archive
 github.com/moby/go-archive/compression
 github.com/moby/go-archive/tarheader
@@ -459,14 +459,14 @@ github.com/moby/moby/client/pkg/jsonmessage
 # github.com/moby/moby/v2 v2.0.0-beta.6
 ## explicit; go 1.25.0
 github.com/moby/moby/v2/pkg/homedir
-# github.com/moby/patternmatcher v0.6.0
+# github.com/moby/patternmatcher v0.6.1
 ## explicit; go 1.19
 github.com/moby/patternmatcher
-# github.com/moby/sys/sequential v0.6.0
-## explicit; go 1.17
+# github.com/moby/sys/sequential v0.7.0
+## explicit; go 1.24.0
 github.com/moby/sys/sequential
-# github.com/moby/sys/user v0.4.0
-## explicit; go 1.17
+# github.com/moby/sys/user v0.4.1
+## explicit; go 1.18
 github.com/moby/sys/user
 # github.com/moby/sys/userns v0.1.0
 ## explicit; go 1.21
