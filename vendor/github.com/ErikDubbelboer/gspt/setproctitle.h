@@ -115,6 +115,12 @@ static char **spt_find_argv_from_env(int argc, char *arg0) {
     // Walk back from environ until you find argc-1 null-terminated strings.
     // Don't look for argv[0] as it's probably not preceded by 0.
     ptr = SPT.env0;
+
+    if (!ptr) {
+        // If there is no env there is no space we can use.
+        return NULL;
+    }
+
     limit = ptr - 8192; // TODO: empiric limit: should use MAX_ARG
     --ptr;
     for (i = argc - 1; i >= 1; --i) {
@@ -166,6 +172,10 @@ static void spt_init2(int argc, char *arg0) {
   char **envp = &SPT.env0;
   char *base, *end, *nul, *tmp;
   int i;
+
+  if (!argv) {
+    return;
+  }
 
   if (!(base = argv[0]))
     return;

@@ -1,5 +1,5 @@
 ARG UBUNTU_RELEASE=noble
-ARG GO_VERSION=1.26.1
+ARG GO_VERSION=1.27.1
 
 FROM ubuntu:${UBUNTU_RELEASE} AS build
 ARG GO_VERSION
@@ -7,7 +7,7 @@ ARG TARGETARCH
 ARG VERSION=local
 
 RUN apt-get update \
- && apt-get install -y bzip2 gzip unzip curl git make gcc libc6-dev openssh-client ca-certificates \
+ && apt-get install -y --no-install-recommends bzip2 gzip unzip curl git make gcc libc6-dev openssh-client ca-certificates \
  && curl -sL https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz | tar -C /usr/local -xzf - \
  && rm -rf /var/lib/apt/lists/*
 
@@ -46,7 +46,7 @@ RUN curl -sLo /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSIO
 FROM ubuntu:${UBUNTU_RELEASE}
 
 RUN apt-get update \
- && apt-get install -y curl netcat-openbsd openssh-client \
+ && apt-get install -y --no-install-recommends curl netcat-openbsd openssh-client \
  && rm -rf /var/lib/apt/lists/* \
  && useradd -r -m -s /bin/bash vcap
 

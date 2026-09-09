@@ -1,0 +1,13 @@
+# Trivy suppressions. Every entry names the finding and the reason we accept
+# it; anything not listed here has to be fixed rather than muted.
+
+# DS-0002 -- "Specify at least 1 USER command in Dockerfile".
+#
+# The SHIELD image's entrypoint scripts (init/core, init/agent) run as root
+# on purpose: they lay down the data and vault-data directories, chown them
+# to vcap, and hand off. The image already creates the unprivileged vcap
+# account for the daemon itself, so a USER line at the top would only break
+# the setup that grants that account its directories. The demo and webdav
+# images under docker/ are local development fixtures that never leave a
+# laptop or a lab, and neither one is published as a runtime dependency.
+DS-0002

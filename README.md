@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/starkandwayne/shield.svg)](https://travis-ci.org/starkandwayne/shield)
+[![CI](https://github.com/shieldproject/shield/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/shieldproject/shield/actions/workflows/ci.yml)
 
 S.H.I.E.L.D. Data Protection
 ============================

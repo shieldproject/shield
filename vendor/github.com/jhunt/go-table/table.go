@@ -167,12 +167,12 @@ func (t *Grid) prepare() {
 	}
 
 	fml := make([]string, len(g)) //Format string for each line
-	//Determine the format string for each cell. Start with the expected width of
+	// Determine the format string for each cell. Start with the expected width of
 	// a column, and alter if non-printing characters are found
 	var rowLineNum int
 	for _, row := range t.rows {
 		ffml := make([][]string, row.Height()) //Array of format strings for this row
-		//Initialize inner slices to default column width values.
+		// Initialize inner slices to default column width values.
 		// This corrects cases for multiple line cells, because it will fill in values for
 		// the cells of the grid that don't actually have a cell line associated with it
 		for i := range ffml {
