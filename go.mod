@@ -15,7 +15,7 @@ require (
 	github.com/google/go-github/v76 v76.0.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/hashicorp/consul/api v1.33.7
-	github.com/jackc/pgx/v5 v5.9.1
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/jhunt/go-ansi v0.0.0-20181127194324-5fd839f108b6
 	github.com/jhunt/go-envirotron v0.0.0-20191007155228-c8f2a184ad0f
 	github.com/jhunt/go-table v0.0.0-20181127194439-fcc252a20f4c
