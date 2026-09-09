@@ -32,7 +32,7 @@ require (
 	github.com/thanhpk/randstr v1.0.4
 	go.etcd.io/etcd/client/v3 v3.6.9
 	golang.org/x/crypto v0.52.0
-	golang.org/x/net v0.54.0
+	golang.org/x/net v0.55.0
 	golang.org/x/oauth2 v0.36.0
 	google.golang.org/api v0.273.0
 )
