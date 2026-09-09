@@ -61,5 +61,31 @@ Running example
   // kDX1m81u14YwEiCY
 ```
 
+### Generate a random decimal number string
+```go
+token := randstr.Dec(16) // generate a random 16 length string of decimal number
+```
+Running example
+```go
+  package main
+  import(
+    "github.com/thanhpk/randstr"
+    "fmt"
+  )
+
+  func main() {
+    for i := 0; i < 5; i++ {
+      token := randstr.Dec(16)
+      fmt.Println(token)
+    }
+  }
+  // Output:
+	//1232392418047380
+	//9160917876815937
+	//6629264107419930
+	//0271037110897873
+	//0337735480322223
+```
+
 ## License [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 MIT

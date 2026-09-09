@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	HaveSetProcTitle int
+	HaveSetProcTitle     int
 	HaveSetProcTitleFast int
 )
 
