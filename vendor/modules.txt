@@ -33,7 +33,7 @@ github.com/Azure/go-ansiterm/winterm
 # github.com/ErikDubbelboer/gspt v0.0.0-20210805194459-ce36a5128377
 ## explicit
 github.com/ErikDubbelboer/gspt
-# github.com/Masterminds/semver/v3 v3.4.0
+# github.com/Masterminds/semver/v3 v3.5.0
 ## explicit; go 1.21
 github.com/Masterminds/semver/v3
 # github.com/Microsoft/go-winio v0.6.3-0.20251027160822-ad3df93bed29
@@ -269,8 +269,8 @@ github.com/google/go-github/v76/github
 # github.com/google/go-querystring v1.2.0
 ## explicit; go 1.13
 github.com/google/go-querystring/query
-# github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83
-## explicit; go 1.24.0
+# github.com/google/pprof v0.0.0-20260906184651-6331bc6350fe
+## explicit; go 1.25.0
 github.com/google/pprof/profile
 # github.com/google/s2a-go v0.1.9
 ## explicit; go 1.20
@@ -494,8 +494,8 @@ github.com/okta/okta-jwt-verifier-golang/discovery
 github.com/okta/okta-jwt-verifier-golang/discovery/oidc
 github.com/okta/okta-jwt-verifier-golang/errors
 github.com/okta/okta-jwt-verifier-golang/utils
-# github.com/onsi/ginkgo/v2 v2.28.1
-## explicit; go 1.24.0
+# github.com/onsi/ginkgo/v2 v2.32.2
+## explicit; go 1.25.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
 github.com/onsi/ginkgo/v2/formatter
@@ -518,8 +518,8 @@ github.com/onsi/ginkgo/v2/internal/reporters
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.39.1
-## explicit; go 1.24.0
+# github.com/onsi/gomega v1.43.0
+## explicit; go 1.25.0
 github.com/onsi/gomega
 github.com/onsi/gomega/format
 github.com/onsi/gomega/internal
