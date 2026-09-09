@@ -9,81 +9,45 @@ on:
 permissions:
   contents: read
 
-# The lab runners are a small, shared pool, so a superseded pull-request run
-# would keep them busy long after its result stopped mattering. Cancel it when
-# new commits arrive, and never cancel a run on develop or main.
+# A superseded pull-request run tells us nothing once new commits arrive, so
+# cancel it. Runs on develop and main are never cancelled: those are the ones
+# whose result we go back and read.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Each lab runner VM hosts four jobs on eight cores. Go sizes its build
-# parallelism from the host core count, so without this every job fans out as
-# if it owned the machine and four of them together exhaust the VM's memory.
-# Runner-level env does not cross into container jobs; workflow env is part of
-# the job context, which the runner does carry in.
-env:
-  GOMAXPROCS: 2
-
 jobs:
-  # Every job runs in a golang container. The self-hosted runner host is
-  # deliberately minimal, and mixing host jobs with container jobs leaves the
-  # shared workspace owned by two different uids (the host runner user and
-  # container root), which breaks checkout cleanup and trips git's
-  # dubious-ownership guard.
+  # Every job runs on GitHub's standard hosted runners, which are free and
+  # unmetered for public repositories. That also keeps fork pull requests off
+  # our own hardware: this repository has dozens of forks, and a self-hosted
+  # runner would be executing their code.
   #
-  # The "Trust the checkout" step writes safe.directory at --system level
-  # (/etc/gitconfig). The checkout action writes it under its own HOME, which
-  # the shell steps in the container do not share, so git run by go build's
-  # VCS stamping would otherwise exit 128 on the runner-user-owned .git.
+  # Actions are pinned to full commit SHAs, since tags move under you.
+  # Dependabot's github-actions ecosystem updates the SHA and its trailing
+  # version comment together, which is what makes the pins maintainable.
   #
-  # Actions are pinned to full commit SHAs, since tags move and these jobs run
-  # on a lab runner; Dependabot's github-actions ecosystem keeps the pins
-  # current. persist-credentials is off everywhere: no job pushes, and the
-  # workspace survives between jobs on this runner.
+  # persist-credentials is off everywhere: no job pushes.
   #
-  # timeout-minutes is set on every job, because a hung job would otherwise
-  # hold a runner for GitHub's six-hour default.
-  #
-  # The Go module and build caches are host directories bind-mounted into each
-  # container rather than the Actions cache service. The container filesystem
-  # is fresh every job but the runner is persistent, so fetching and unpacking
-  # a multi-GB cache.tzst costs more than the build it saves, and it untars
-  # over Go's read-only module cache. setup-go's own cache stays off for the
-  # same reason. The mounts live outside _work, so the runner's workspace
-  # reclaim hook leaves them alone. GOCACHE is set explicitly because the
-  # runner overrides HOME to /github/home inside the container, which lives
-  # under _work/_temp and is wiped between jobs.
+  # timeout-minutes is set on every job so a hung one cannot burn through
+  # GitHub's six-hour default.
   lint:
     name: Lint
-    runs-on: self-hosted
-    container:
-      image: golang:1.27.1
-      volumes:
-        - /home/runner/gha-container-cache/go:/go
-        - /home/runner/gha-container-cache/go-build:/root/.cache/go-build
-    env:
-      GOCACHE: /root/.cache/go-build
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Trust the checkout despite mixed file owners
-        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
-
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27.1'
-          # The mounted /go volume is the module cache; the action's own cache
-          # would restore a second copy over it and fail on tar.
-          cache: false
 
       # gofmt is checked over the tracked sources only. The vendor tree is
       # third-party code we do not reformat, and `make format` would rewrite
-      # files rather than report them.
+      # the files rather than report them.
       - name: Check gofmt
         run: |
           unformatted=$(gofmt -l $(git ls-files '*.go' | grep -v '^vendor/'))
@@ -98,33 +62,22 @@ jobs:
 
   test:
     name: Test
-    runs-on: self-hosted
-    container:
-      image: golang:1.27.1
-      volumes:
-        - /home/runner/gha-container-cache/go:/go
-        - /home/runner/gha-container-cache/go-build:/root/.cache/go-build
-    env:
-      GOCACHE: /root/.cache/go-build
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Trust the checkout despite mixed file owners
-        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
-
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27.1'
-          cache: false
 
       # `make go-tests` builds the daemon, agent, schema, crypt and report
       # binaries first and then runs `go test -race` with the repository root
-      # and bin/ on PATH. The agent suite shells out to shield-pipe, so the
+      # and bin/ on PATH. The agent suite shells out to shield-pipe, so those
       # binaries have to exist before the tests run; calling `go test` on its
       # own leaves five agent specs failing with exit status 127.
       - name: Run unit tests with the race detector
@@ -132,15 +85,8 @@ jobs:
 
   build:
     name: Build
-    runs-on: self-hosted
-    container:
-      image: golang:1.27.1
-      volumes:
-        - /home/runner/gha-container-cache/go:/go
-        - /home/runner/gha-container-cache/go-build:/root/.cache/go-build
-    env:
-      GOCACHE: /root/.cache/go-build
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [lint, test]
     steps:
       - name: Checkout code
@@ -148,19 +94,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Trust the checkout despite mixed file owners
-        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
-
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27.1'
-          cache: false
 
-      # The repository vendors its dependencies, so the build must not reach
-      # the network. `go mod verify` checks the module cache against go.sum,
-      # and building with -mod=vendor proves the vendor tree is complete and
-      # consistent with go.mod.
+      # The repository vendors its dependencies, so the build must not need to
+      # reach the network. `go mod verify` checks the module cache against
+      # go.sum, and building with -mod=vendor proves the vendor tree is
+      # complete and consistent with go.mod.
       - name: Verify vendored dependencies
         run: |
           go mod verify
@@ -171,15 +113,8 @@ jobs:
 
   plugin-tests:
     name: Plugin Tests
-    runs-on: self-hosted
-    container:
-      image: golang:1.27.1
-      volumes:
-        - /home/runner/gha-container-cache/go:/go
-        - /home/runner/gha-container-cache/go-build:/root/.cache/go-build
-    env:
-      GOCACHE: /root/.cache/go-build
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [lint, test]
     # Eight of the 134 plugin specs in t/plugins already fail on develop: they
     # assert the compact "USAGE: ..." help that the plugin framework printed
@@ -194,65 +129,50 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Trust the checkout despite mixed file owners
-        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
-
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27.1'
-          cache: false
 
       - name: Run plugin tests
         run: make plugin-tests
 
   security:
     name: Security Scan
-    runs-on: self-hosted
-    container:
-      image: golang:1.27.1
-      volumes:
-        - /home/runner/gha-container-cache/go:/go
-        - /home/runner/gha-container-cache/go-build:/root/.cache/go-build
-    env:
-      GOCACHE: /root/.cache/go-build
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Trust the checkout despite mixed file owners
-        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
-
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27.1'
-          cache: false
 
       # govulncheck reports only the advisories whose vulnerable symbols this
-      # code actually reaches, so it is the gate that can stay red-means-broken
-      # rather than red-means-someone-published-a-CVE.
+      # code actually reaches, so it is the gate that can stay
+      # red-means-broken rather than red-means-someone-published-a-CVE.
       - name: Run govulncheck
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           "$(go env GOPATH)/bin/govulncheck" ./...
 
-      # Installed from the pinned release rather than through trivy-action: the
-      # action's own installer resolves "latest" unless pinned twice, and a
-      # plain binary drop keeps this job's moving parts visible.
+      # Installed from the pinned release rather than through trivy-action:
+      # the action's own installer resolves "latest" unless pinned twice, and
+      # a plain binary drop keeps this job's moving parts visible.
       - name: Install trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-            | sh -s -- -b /usr/local/bin v0.74.0
+            | sudo sh -s -- -b /usr/local/bin v0.74.0
 
-      # Gating on HIGH and CRITICAL only, so an unfixable low-severity advisory
-      # cannot hold CI red with nothing to remediate. The vendor tree is
-      # skipped for misconfiguration scanning: it carries upstream projects'
-      # own Dockerfiles, which we neither build nor ship. Suppressions with
-      # their justifications live in .trivyignore.
+      # Gating on HIGH and CRITICAL only, so an unfixable low-severity
+      # advisory cannot hold CI red with nothing to remediate. The vendor tree
+      # is skipped for misconfiguration scanning: it carries upstream
+      # projects' own Dockerfiles, which we neither build nor ship.
+      # Suppressions with their justifications live in .trivyignore.
       - name: Scan repository
         run: >-
           trivy fs
