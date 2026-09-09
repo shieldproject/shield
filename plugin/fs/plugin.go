@@ -299,7 +299,7 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		header, err := archive.Next()
 		if err != nil {
 			if err == io.EOF {
-				return nil
+				break
 			}
 			return err
 		}
