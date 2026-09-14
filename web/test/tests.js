@@ -75,6 +75,19 @@ QUnit.assert.any = function (actual, expected, message) {
   });
 };
 
+QUnit.module('Agent UI Helpers');
+QUnit.test('agentByUUID selects the clicked agent', function (is) {
+  var agents = [
+    { uuid: 'first-agent', name: 'First' },
+    { uuid: 'second-agent', name: 'Second' }
+  ];
+
+  is.equal(agentByUUID(agents, 'second-agent').name, 'Second',
+           'the confirmation modal receives the clicked agent');
+  is.strictEqual(agentByUUID(agents, 'missing-agent'), undefined,
+                 'an unknown UUID does not select another agent');
+});
+
 QUnit.module('AEGIS Data Operations');
 QUnit.test('Basic Operations', function(is) {
   var thing, db = $.aegis();

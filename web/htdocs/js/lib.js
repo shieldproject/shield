@@ -34,6 +34,15 @@
     return ok
   };
 
+  exported.agentByUUID = function (agents, uuid) {
+    for (var i = 0; i < agents.length; i++) {
+      if (agents[i].uuid == uuid) {
+        return agents[i];
+      }
+    }
+    return undefined;
+  };
+
   /***************************************************
     pluralize(n, word [, words]) - Pluralize a number + unit.
 

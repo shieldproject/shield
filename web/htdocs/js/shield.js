@@ -714,7 +714,9 @@ function dispatch(page) {
               });
             } else if (action == 'delete') {
               var agent_uuid = $(event.target).extract('agent-uuid');
-              modal($($.template('agents-delete', { agent: data.agents[0] }))
+              modal($($.template('agents-delete', {
+                agent: agentByUUID(data.agents, agent_uuid)
+              }))
               .on('click', '[rel="yes"]', function (event) {
                 event.preventDefault();
                 api({
