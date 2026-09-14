@@ -7,14 +7,14 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.47.0
 	github.com/aws/aws-sdk-go-v2/config v1.33.4
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.4
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.113.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.113.1
 	github.com/cloudfoundry-community/vaultkv v0.7.2
 	github.com/fsouza/go-dockerclient v1.13.3
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-github/v76 v76.0.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/hashicorp/consul/api v1.34.4
+	github.com/hashicorp/consul/api v1.34.5
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/jhunt/go-ansi v0.0.0-20181127194324-5fd839f108b6
 	github.com/jhunt/go-envirotron v0.0.0-20191007155228-c8f2a184ad0f
