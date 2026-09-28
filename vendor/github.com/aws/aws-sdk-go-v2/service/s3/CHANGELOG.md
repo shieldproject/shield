@@ -1,3 +1,19 @@
+# v1.113.4 (2026-09-24)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.113.3 (2026-09-23)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.113.2 (2026-09-21)
+
+* **Bug Fix**: Expand S3 operations that check for an error inside an HTTP 200 response (wave 4/4)
+
+# v1.113.1 (2026-09-11)
+
+* **Documentation**: Updated S3 Object Lock Default Retention documentation.
+
 # v1.113.0 (2026-09-09)
 
 * **Feature**: Stop registering the `retry.MetricsHeader` middleware in generated clients. The `Amz-Sdk-Request` header is now set by the retry middleware itself.
