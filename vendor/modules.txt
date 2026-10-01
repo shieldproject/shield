@@ -317,9 +317,9 @@ github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options
 # github.com/hashicorp/cap v0.14.0
 ## explicit; go 1.24.0
 github.com/hashicorp/cap/util
-# github.com/hashicorp/consul/api v1.34.5
-## explicit; go 1.26.7
-github.com/hashicorp/consul/api
+# github.com/hashicorp/consul/api/v2 v2.0.0
+## explicit; go 1.26
+github.com/hashicorp/consul/api/v2
 # github.com/hashicorp/errwrap v1.1.0
 ## explicit
 github.com/hashicorp/errwrap
@@ -347,6 +347,8 @@ github.com/hashicorp/go-secure-stdlib/base62
 # github.com/hashicorp/go-uuid v1.0.4
 ## explicit; go 1.25.13
 github.com/hashicorp/go-uuid
+# github.com/hashicorp/go-version v1.9.0
+## explicit
 # github.com/hashicorp/golang-lru v1.0.2
 ## explicit; go 1.12
 github.com/hashicorp/golang-lru/simplelru

@@ -14,7 +14,7 @@ require (
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-github/v76 v76.0.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/hashicorp/consul/api v1.34.5
+	github.com/hashicorp/consul/api/v2 v2.0.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/jhunt/go-ansi v0.0.0-20181127194324-5fd839f108b6
 	github.com/jhunt/go-envirotron v0.0.0-20191007155228-c8f2a184ad0f
@@ -93,6 +93,7 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/base62 v0.1.2 // indirect
 	github.com/hashicorp/go-uuid v1.0.4 // indirect
+	github.com/hashicorp/go-version v1.9.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/serf v0.11.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
