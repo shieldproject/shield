@@ -12,7 +12,7 @@ require (
 	github.com/fsouza/go-dockerclient v1.13.3
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-yaml v1.19.2
-	github.com/google/go-github/v76 v76.0.0
+	github.com/google/go-github/v92 v92.0.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/hashicorp/consul/api/v2 v2.0.0
 	github.com/jackc/pgx/v5 v5.11.0
