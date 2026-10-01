@@ -1,0 +1,29 @@
+# Stale dependencies we have looked at and decided to keep. Each entry is on
+# its latest available version, so there is nothing to upgrade to. Re-check any
+# decision older than a year rather than trusting it.
+#
+# modrot matches the module path alone, so a reason has to sit on its own '#'
+# line above the entry. An inline comment stops the entry from matching at all.
+
+# 2026-09-30 keep: latest commit, niche setproctitle binding with no successor
+github.com/ErikDubbelboer/gspt
+
+# 2026-09-30 keep: latest commit, James Hunt's own libraries, which shield was
+# written around. 41 files import go-ansi and 14 import go-table, so replacing
+# either is a port rather than a dependency bump.
+github.com/jhunt/go-ansi
+
+# 2026-09-30 keep: latest commit, 2 call sites, no successor
+github.com/jhunt/go-envirotron
+
+# 2026-09-30 keep: latest commit, see the go-ansi note above
+github.com/jhunt/go-table
+
+# 2026-09-30 keep: latest tag v1.2.1. github.com/google/uuid is the maintained
+# successor and is already in the tree indirectly, but its Parse returns
+# (UUID, error) where pborman's returns a nil UUID, so swapping it across 14
+# files changes error handling rather than just an import path.
+github.com/pborman/uuid
+
+# 2026-09-30 keep: latest tag v1.0.6, 1 call site, no successor
+github.com/thanhpk/randstr
