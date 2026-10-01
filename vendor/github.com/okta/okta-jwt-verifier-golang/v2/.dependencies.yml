@@ -1,0 +1,9 @@
+vault:
+  - USERNAME:
+      devex/okta-jwt-verifier-golang: USERNAME
+  - PASSWORD:
+      devex/okta-jwt-verifier-golang: PASSWORD
+  - CLIENT_ID:
+      devex/okta-jwt-verifier-golang: CLIENT_ID
+  - ISSUER:
+      devex/okta-jwt-verifier-golang: ISSUER
