@@ -2,6 +2,7 @@ package swift
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -14,9 +15,9 @@ import (
 // This encapsulates the different authentication schemes in use
 type Authenticator interface {
 	// Request creates an http.Request for the auth - return nil if not needed
-	Request(*Connection) (*http.Request, error)
+	Request(context.Context, *Connection) (*http.Request, error)
 	// Response parses the http.Response
-	Response(resp *http.Response) error
+	Response(ctx context.Context, resp *http.Response) error
 	// The public storage URL - set Internal to true to read
 	// internal/service net URL
 	StorageUrl(Internal bool) string
@@ -88,8 +89,8 @@ type v1Auth struct {
 }
 
 // v1 Authentication - make request
-func (auth *v1Auth) Request(c *Connection) (*http.Request, error) {
-	req, err := http.NewRequest("GET", c.AuthUrl, nil)
+func (auth *v1Auth) Request(ctx context.Context, c *Connection) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", c.AuthUrl, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +101,7 @@ func (auth *v1Auth) Request(c *Connection) (*http.Request, error) {
 }
 
 // v1 Authentication - read response
-func (auth *v1Auth) Response(resp *http.Response) error {
+func (auth *v1Auth) Response(_ context.Context, resp *http.Response) error {
 	auth.Headers = resp.Header
 	return nil
 }
@@ -141,7 +142,7 @@ type v2Auth struct {
 }
 
 // v2 Authentication - make request
-func (auth *v2Auth) Request(c *Connection) (*http.Request, error) {
+func (auth *v2Auth) Request(ctx context.Context, c *Connection) (*http.Request, error) {
 	auth.Region = c.Region
 	// Toggle useApiKey if not first run and not OK yet
 	if auth.notFirst && !auth.useApiKeyOk {
@@ -176,7 +177,7 @@ func (auth *v2Auth) Request(c *Connection) (*http.Request, error) {
 		url += "/"
 	}
 	url += "tokens"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +187,7 @@ func (auth *v2Auth) Request(c *Connection) (*http.Request, error) {
 }
 
 // v2 Authentication - read response
-func (auth *v2Auth) Response(resp *http.Response) error {
+func (auth *v2Auth) Response(_ context.Context, resp *http.Response) error {
 	auth.Auth = new(v2AuthResponse)
 	err := readJson(resp, auth.Auth)
 	// If successfully read Auth then no need to toggle useApiKey any more

@@ -47,7 +47,6 @@ func (t *timeoutReader) Read(p []byte) (int, error) {
 		t.cancel()
 		return 0, TimeoutError
 	}
-	panic("unreachable") // for Go 1.0
 }
 
 // Close the channel

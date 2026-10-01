@@ -4,13 +4,14 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 
 	fmt "github.com/jhunt/go-ansi"
-	"github.com/ncw/swift"
+	"github.com/ncw/swift/v2"
 
 	"github.com/shieldproject/shield/plugin"
 )
@@ -161,7 +162,9 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 		return "", 0, err
 	}
 
-	conn, err := swift.Connect()
+	ctx := context.Background()
+
+	conn, err := swift.Connect(ctx)
 	if err != nil {
 		return "", 0, err
 	}
@@ -175,7 +178,7 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 		return "", 0, err
 	}
 
-	if err := conn.ObjectPutBytes(swift.Container, path, contents, ""); err != nil {
+	if err := conn.ObjectPutBytes(ctx, swift.Container, path, contents, ""); err != nil {
 		return "", 0, err
 	}
 
@@ -188,12 +191,14 @@ func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error
 		return err
 	}
 
-	conn, err := swift.Connect()
+	ctx := context.Background()
+
+	conn, err := swift.Connect(ctx)
 	if err != nil {
 		return err
 	}
 
-	contents, err := conn.ObjectGetBytes(swift.Container, file)
+	contents, err := conn.ObjectGetBytes(ctx, swift.Container, file)
 	if err != nil {
 		return err
 	}
@@ -211,12 +216,14 @@ func (p SwiftPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 		return err
 	}
 
-	conn, err := swift.Connect()
+	ctx := context.Background()
+
+	conn, err := swift.Connect(ctx)
 	if err != nil {
 		return err
 	}
 
-	return conn.ObjectDelete(swift.Container, file)
+	return conn.ObjectDelete(ctx, swift.Container, file)
 }
 
 func getConnInfo(e plugin.ShieldEndpoint) (info *SwiftConnectionInfo, err error) {
@@ -271,7 +278,7 @@ func (info SwiftConnectionInfo) genBackupPath() string {
 	return path
 }
 
-func (info SwiftConnectionInfo) Connect() (*swift.Connection, error) {
+func (info SwiftConnectionInfo) Connect(ctx context.Context) (*swift.Connection, error) {
 	conn := &swift.Connection{
 		UserName: info.Username,
 		ApiKey:   info.Password,
@@ -280,7 +287,7 @@ func (info SwiftConnectionInfo) Connect() (*swift.Connection, error) {
 		Tenant:   info.ProjectName,
 	}
 
-	if err := conn.Authenticate(); err != nil {
+	if err := conn.Authenticate(ctx); err != nil {
 		return nil, err
 	}
 

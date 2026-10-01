@@ -3,12 +3,14 @@ package swift
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	gopath "path"
 	"strconv"
@@ -17,7 +19,9 @@ import (
 )
 
 // NotLargeObject is returned if an operation is performed on an object which isn't large.
-var NotLargeObject = errors.New("Not a large object")
+//
+//nolint:stylecheck
+var NotLargeObject = errors.New("not a large object")
 
 // readAfterWriteTimeout defines the time we wait before an object appears after having been uploaded
 var readAfterWriteTimeout = 15 * time.Second
@@ -56,13 +60,17 @@ func getSegment(segmentPath string, partNumber int) string {
 	return fmt.Sprintf("%s/%016d", segmentPath, partNumber)
 }
 
-func parseFullPath(manifest string) (container string, prefix string) {
+func parseFullPath(manifest string) (container string, prefix string, err error) {
+	manifest, err = url.PathUnescape(manifest)
+	if err != nil {
+		return
+	}
 	components := strings.SplitN(manifest, "/", 2)
 	container = components[0]
 	if len(components) > 1 {
 		prefix = components[1]
 	}
-	return container, prefix
+	return container, prefix, nil
 }
 
 func (headers Headers) IsLargeObjectDLO() bool {
@@ -79,14 +87,17 @@ func (headers Headers) IsLargeObject() bool {
 	return headers.IsLargeObjectSLO() || headers.IsLargeObjectDLO()
 }
 
-func (c *Connection) getAllSegments(container string, path string, headers Headers) (string, []Object, error) {
+func (c *Connection) getAllSegments(ctx context.Context, container string, path string, headers Headers) (string, []Object, error) {
 	if manifest, isDLO := headers["X-Object-Manifest"]; isDLO {
-		segmentContainer, segmentPath := parseFullPath(manifest)
-		segments, err := c.getAllDLOSegments(segmentContainer, segmentPath)
+		segmentContainer, segmentPath, err := parseFullPath(manifest)
+		if err != nil {
+			return segmentContainer, nil, err
+		}
+		segments, err := c.getAllDLOSegments(ctx, segmentContainer, segmentPath)
 		return segmentContainer, segments, err
 	}
 	if headers.IsLargeObjectSLO() {
-		return c.getAllSLOSegments(container, path)
+		return c.getAllSLOSegments(ctx, container, path)
 	}
 	return "", nil, NotLargeObject
 }
@@ -108,19 +119,23 @@ type LargeObjectOpts struct {
 }
 
 type LargeObjectFile interface {
-	io.Writer
 	io.Seeker
+	io.Writer
 	io.Closer
+
+	WriteWithContext(ctx context.Context, p []byte) (n int, err error)
+	CloseWithContext(ctx context.Context) error
 	Size() int64
-	Flush() error
+	Flush(ctx context.Context) error
 }
 
 // largeObjectCreate creates a large object at opts.Container, opts.ObjectName.
 //
 // opts.Flags can have the following bits set
-//   os.TRUNC  - remove the contents of the large object if it exists
-//   os.APPEND - write at the end of the large object
-func (c *Connection) largeObjectCreate(opts *LargeObjectOpts) (*largeObjectCreateFile, error) {
+//
+//	os.TRUNC  - remove the contents of the large object if it exists
+//	os.APPEND - write at the end of the large object
+func (c *Connection) largeObjectCreate(ctx context.Context, opts *LargeObjectOpts) (*largeObjectCreateFile, error) {
 	var (
 		segmentPath      string
 		segmentContainer string
@@ -135,13 +150,16 @@ func (c *Connection) largeObjectCreate(opts *LargeObjectOpts) (*largeObjectCreat
 		return nil, err
 	}
 
-	if info, headers, err := c.Object(opts.Container, opts.ObjectName); err == nil {
+	if info, headers, err := c.Object(ctx, opts.Container, opts.ObjectName); err == nil {
 		if opts.Flags&os.O_TRUNC != 0 {
-			c.LargeObjectDelete(opts.Container, opts.ObjectName)
+			err := c.LargeObjectDelete(ctx, opts.Container, opts.ObjectName)
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			currentLength = info.Bytes
 			if headers.IsLargeObject() {
-				segmentContainer, segments, err = c.getAllSegments(opts.Container, opts.ObjectName, headers)
+				segmentContainer, segments, err = c.getAllSegments(ctx, opts.Container, opts.ObjectName, headers)
 				if err != nil {
 					return nil, err
 				}
@@ -149,7 +167,7 @@ func (c *Connection) largeObjectCreate(opts *LargeObjectOpts) (*largeObjectCreat
 					segmentPath = gopath.Dir(segments[0].Name)
 				}
 			} else {
-				if err = c.ObjectMove(opts.Container, opts.ObjectName, opts.Container, getSegment(segmentPath, 1)); err != nil {
+				if err = c.ObjectMove(ctx, opts.Container, opts.ObjectName, opts.Container, getSegment(segmentPath, 1)); err != nil {
 					return nil, err
 				}
 				segments = append(segments, info)
@@ -198,15 +216,15 @@ func (c *Connection) largeObjectCreate(opts *LargeObjectOpts) (*largeObjectCreat
 }
 
 // LargeObjectDelete deletes the large object named by container, path
-func (c *Connection) LargeObjectDelete(container string, objectName string) error {
-	_, headers, err := c.Object(container, objectName)
+func (c *Connection) LargeObjectDelete(ctx context.Context, container string, objectName string) error {
+	_, headers, err := c.Object(ctx, container, objectName)
 	if err != nil {
 		return err
 	}
 
 	var objects [][]string
 	if headers.IsLargeObject() {
-		segmentContainer, segments, err := c.getAllSegments(container, objectName, headers)
+		segmentContainer, segments, err := c.getAllSegments(ctx, container, objectName, headers)
 		if err != nil {
 			return err
 		}
@@ -216,13 +234,13 @@ func (c *Connection) LargeObjectDelete(container string, objectName string) erro
 	}
 	objects = append(objects, []string{container, objectName})
 
-	info, err := c.cachedQueryInfo()
+	info, err := c.cachedQueryInfo(ctx)
 	if err == nil && info.SupportsBulkDelete() && len(objects) > 0 {
 		filenames := make([]string, len(objects))
 		for i, obj := range objects {
 			filenames[i] = obj[0] + "/" + obj[1]
 		}
-		_, err = c.doBulkDelete(filenames, nil)
+		_, err = c.doBulkDelete(ctx, filenames, nil)
 		// Don't fail on ObjectNotFound because eventual consistency
 		// makes this situation normal.
 		if err != nil && err != Forbidden && err != ObjectNotFound {
@@ -230,7 +248,7 @@ func (c *Connection) LargeObjectDelete(container string, objectName string) erro
 		}
 	} else {
 		for _, obj := range objects {
-			if err := c.ObjectDelete(obj[0], obj[1]); err != nil {
+			if err := c.ObjectDelete(ctx, obj[0], obj[1]); err != nil {
 				return err
 			}
 		}
@@ -244,13 +262,13 @@ func (c *Connection) LargeObjectDelete(container string, objectName string) erro
 // that have the prefix as indicated by the manifest.
 // If the object is a Static Large Object (SLO), it retrieves the JSON content
 // of the manifest and return all the segments of it.
-func (c *Connection) LargeObjectGetSegments(container string, path string) (string, []Object, error) {
-	_, headers, err := c.Object(container, path)
+func (c *Connection) LargeObjectGetSegments(ctx context.Context, container string, path string) (string, []Object, error) {
+	_, headers, err := c.Object(ctx, container, path)
 	if err != nil {
 		return "", nil, err
 	}
 
-	return c.getAllSegments(container, path, headers)
+	return c.getAllSegments(ctx, container, path, headers)
 }
 
 // Seek sets the offset for the next write operation
@@ -293,7 +311,7 @@ func withLORetry(expectedSize int64, fn func() (Headers, int64, error)) (err err
 		select {
 		case <-endTimer.C:
 			waitTimer.Stop()
-			err = fmt.Errorf("Timeout expired while waiting for object to have size == %d, got: %d", expectedSize, sz)
+			err = fmt.Errorf("timeout expired while waiting for object to have size == %d, got: %d", expectedSize, sz)
 			return
 		case <-waitTimer.C:
 			waitingTime *= 2
@@ -301,11 +319,11 @@ func withLORetry(expectedSize int64, fn func() (Headers, int64, error)) (err err
 	}
 }
 
-func (c *Connection) waitForSegmentsToShowUp(container, objectName string, expectedSize int64) (err error) {
+func (c *Connection) waitForSegmentsToShowUp(ctx context.Context, container, objectName string, expectedSize int64) (err error) {
 	err = withLORetry(expectedSize, func() (Headers, int64, error) {
 		var info Object
 		var headers Headers
-		info, headers, err = c.objectBase(container, objectName)
+		info, headers, err = c.objectBase(ctx, container, objectName)
 		if err != nil {
 			return headers, 0, err
 		}
@@ -314,8 +332,11 @@ func (c *Connection) waitForSegmentsToShowUp(container, objectName string, expec
 	return
 }
 
-// Write satisfies the io.Writer interface
 func (file *largeObjectCreateFile) Write(buf []byte) (int, error) {
+	return file.WriteWithContext(context.Background(), buf)
+}
+
+func (file *largeObjectCreateFile) WriteWithContext(ctx context.Context, buf []byte) (int, error) {
 	var sz int64
 	var relativeFilePos int
 	writeSegmentIdx := 0
@@ -329,7 +350,7 @@ func (file *largeObjectCreateFile) Write(buf []byte) (int, error) {
 	}
 	sizeToWrite := len(buf)
 	for offset := 0; offset < sizeToWrite; {
-		newSegment, n, err := file.writeSegment(buf[offset:], writeSegmentIdx, relativeFilePos)
+		newSegment, n, err := file.writeSegment(ctx, buf[offset:], writeSegmentIdx, relativeFilePos)
 		if err != nil {
 			return 0, err
 		}
@@ -350,7 +371,7 @@ func (file *largeObjectCreateFile) Write(buf []byte) (int, error) {
 	return sizeToWrite, nil
 }
 
-func (file *largeObjectCreateFile) writeSegment(buf []byte, writeSegmentIdx int, relativeFilePos int) (*Object, int, error) {
+func (file *largeObjectCreateFile) writeSegment(ctx context.Context, buf []byte, writeSegmentIdx int, relativeFilePos int) (obj *Object, n int, err error) {
 	var (
 		readers         []io.Reader
 		existingSegment *Object
@@ -366,11 +387,16 @@ func (file *largeObjectCreateFile) writeSegment(buf []byte, writeSegmentIdx int,
 		if relativeFilePos > 0 {
 			headers := make(Headers)
 			headers["Range"] = "bytes=0-" + strconv.FormatInt(int64(relativeFilePos-1), 10)
-			existingSegmentReader, _, err := file.conn.ObjectOpen(file.segmentContainer, segmentName, true, headers)
+			existingSegmentReader, _, err := file.conn.ObjectOpen(ctx, file.segmentContainer, segmentName, true, headers)
 			if err != nil {
 				return nil, 0, err
 			}
-			defer existingSegmentReader.Close()
+			defer func() {
+				closeErr := existingSegmentReader.Close()
+				if closeErr != nil {
+					err = closeErr
+				}
+			}()
 			sizeToRead -= relativeFilePos
 			segmentSize += relativeFilePos
 			readers = []io.Reader{existingSegmentReader}
@@ -384,16 +410,21 @@ func (file *largeObjectCreateFile) writeSegment(buf []byte, writeSegmentIdx int,
 	if existingSegment != nil && segmentSize < int(existingSegment.Bytes) {
 		headers := make(Headers)
 		headers["Range"] = "bytes=" + strconv.FormatInt(int64(segmentSize), 10) + "-"
-		tailSegmentReader, _, err := file.conn.ObjectOpen(file.segmentContainer, segmentName, true, headers)
+		tailSegmentReader, _, err := file.conn.ObjectOpen(ctx, file.segmentContainer, segmentName, true, headers)
 		if err != nil {
 			return nil, 0, err
 		}
-		defer tailSegmentReader.Close()
+		defer func() {
+			closeErr := tailSegmentReader.Close()
+			if closeErr != nil {
+				err = closeErr
+			}
+		}()
 		segmentSize = int(existingSegment.Bytes)
 		readers = append(readers, tailSegmentReader)
 	}
 	segmentReader := io.MultiReader(readers...)
-	headers, err := file.conn.ObjectPut(file.segmentContainer, segmentName, segmentReader, true, "", file.contentType, nil)
+	headers, err := file.conn.ObjectPut(ctx, file.segmentContainer, segmentName, segmentReader, true, "", file.contentType, nil)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -416,11 +447,19 @@ type bufferedLargeObjectFile struct {
 }
 
 func (blo *bufferedLargeObjectFile) Close() error {
+	return blo.CloseWithContext(context.Background())
+}
+
+func (blo *bufferedLargeObjectFile) CloseWithContext(ctx context.Context) error {
 	err := blo.bw.Flush()
 	if err != nil {
 		return err
 	}
-	return blo.LargeObjectFile.Close()
+	return blo.LargeObjectFile.CloseWithContext(ctx)
+}
+
+func (blo *bufferedLargeObjectFile) WriteWithContext(_ context.Context, p []byte) (n int, err error) {
+	return blo.Write(p)
 }
 
 func (blo *bufferedLargeObjectFile) Write(p []byte) (n int, err error) {
@@ -439,10 +478,10 @@ func (blo *bufferedLargeObjectFile) Size() int64 {
 	return blo.LargeObjectFile.Size() + int64(blo.bw.Buffered())
 }
 
-func (blo *bufferedLargeObjectFile) Flush() error {
+func (blo *bufferedLargeObjectFile) Flush(ctx context.Context) error {
 	err := blo.bw.Flush()
 	if err != nil {
 		return err
 	}
-	return blo.LargeObjectFile.Flush()
+	return blo.LargeObjectFile.Flush(ctx)
 }

@@ -2,6 +2,7 @@ package swift
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,7 +14,6 @@ const (
 	v3AuthMethodToken                 = "token"
 	v3AuthMethodPassword              = "password"
 	v3AuthMethodApplicationCredential = "application_credential"
-	v3CatalogTypeObjectStore          = "object-store"
 )
 
 // V3 Authentication request
@@ -122,7 +122,7 @@ type v3Auth struct {
 	Headers http.Header
 }
 
-func (auth *v3Auth) Request(c *Connection) (*http.Request, error) {
+func (auth *v3Auth) Request(ctx context.Context, c *Connection) (*http.Request, error) {
 	auth.Region = c.Region
 
 	var v3i interface{}
@@ -179,6 +179,9 @@ func (auth *v3Auth) Request(c *Connection) (*http.Request, error) {
 			Secret: c.ApplicationCredentialSecret,
 			User:   user,
 		}
+	} else if c.Token != "" {
+		v3.Auth.Identity.Methods = []string{v3AuthMethodToken}
+		v3.Auth.Identity.Token = &v3AuthToken{Id: c.Token}
 	} else if c.UserName == "" && c.UserId == "" {
 		v3.Auth.Identity.Methods = []string{v3AuthMethodToken}
 		v3.Auth.Identity.Token = &v3AuthToken{Id: c.ApiKey}
@@ -242,7 +245,7 @@ func (auth *v3Auth) Request(c *Connection) (*http.Request, error) {
 		url += "/"
 	}
 	url += "auth/tokens"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +254,7 @@ func (auth *v3Auth) Request(c *Connection) (*http.Request, error) {
 	return req, nil
 }
 
-func (auth *v3Auth) Response(resp *http.Response) error {
+func (auth *v3Auth) Response(_ context.Context, resp *http.Response) error {
 	auth.Auth = &v3AuthResponse{}
 	auth.Headers = resp.Header
 	err := readJson(resp, auth.Auth)

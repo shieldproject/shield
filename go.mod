@@ -22,7 +22,7 @@ require (
 	github.com/mattn/go-isatty v0.0.24
 	github.com/mattn/go-shellwords v1.0.15
 	github.com/mattn/go-sqlite3 v1.14.52
-	github.com/ncw/swift v1.0.53
+	github.com/ncw/swift/v2 v2.0.5
 	github.com/okta/okta-jwt-verifier-golang v1.3.1
 	github.com/onsi/ginkgo/v2 v2.33.0
 	github.com/onsi/gomega v1.44.0
