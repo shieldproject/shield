@@ -16,7 +16,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/thanhpk/randstr"
 
-	verifier "github.com/okta/okta-jwt-verifier-golang"
+	verifier "github.com/okta/okta-jwt-verifier-golang/v2"
 )
 
 type OktaAuthProvider struct {
@@ -308,7 +308,10 @@ func (p *OktaAuthProvider) verifyToken(t string, category string) (*verifier.Jwt
 		ClaimsToValidate: toValidate,
 	}
 
-	verifier := jwtVerifierSetup.New()
+	verifier, err := jwtVerifierSetup.New()
+	if err != nil {
+		return nil, fmt.Errorf("could not set up %s token verifier: %s", category, err)
+	}
 
 	if category == "id" {
 		token, err := verifier.VerifyIdToken(t)

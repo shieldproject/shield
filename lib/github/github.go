@@ -3,9 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
-	"net/url"
 
-	"github.com/google/go-github/v76/github"
+	"github.com/google/go-github/v92/github"
 )
 
 type Client struct {
@@ -13,14 +12,14 @@ type Client struct {
 }
 
 func NewClient(api, token string) (*Client, error) {
-	gh := github.NewClient(nil).WithAuthToken(token)
-
+	opts := []github.ClientOptionsFunc{github.WithAuthToken(token)}
 	if api != "" {
-		u, err := url.Parse(api)
-		if err != nil {
-			return nil, err
-		}
-		gh.BaseURL = u
+		opts = append(opts, github.WithURLs(&api, nil))
+	}
+
+	gh, err := github.NewClient(opts...)
+	if err != nil {
+		return nil, err
 	}
 	return &Client{gh: gh}, nil
 }

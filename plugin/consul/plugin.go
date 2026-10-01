@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/shieldproject/shield/plugin"
