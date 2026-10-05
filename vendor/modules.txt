@@ -438,7 +438,7 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.24
 ## explicit; go 1.20
 github.com/mattn/go-isatty
-# github.com/mattn/go-shellwords v1.0.15
+# github.com/mattn/go-shellwords v1.0.16
 ## explicit; go 1.13
 github.com/mattn/go-shellwords
 # github.com/mattn/go-sqlite3 v1.14.52
@@ -775,7 +775,7 @@ golang.org/x/tools/internal/pkgbits
 golang.org/x/tools/internal/stdlib
 golang.org/x/tools/internal/typesinternal
 golang.org/x/tools/internal/versions
-# google.golang.org/api v0.299.0
+# google.golang.org/api v0.300.0
 ## explicit; go 1.26.0
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport

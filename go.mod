@@ -20,7 +20,7 @@ require (
 	github.com/jhunt/go-envirotron v0.0.0-20191007155228-c8f2a184ad0f
 	github.com/jhunt/go-table v0.0.0-20181127210244-68a841ca53dc
 	github.com/mattn/go-isatty v0.0.24
-	github.com/mattn/go-shellwords v1.0.15
+	github.com/mattn/go-shellwords v1.0.16
 	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/ncw/swift/v2 v2.0.5
 	github.com/okta/okta-jwt-verifier-golang/v2 v2.1.1
@@ -34,7 +34,7 @@ require (
 	golang.org/x/crypto v0.57.0
 	golang.org/x/net v0.59.0
 	golang.org/x/oauth2 v0.37.0
-	google.golang.org/api v0.299.0
+	google.golang.org/api v0.300.0
 )
 
 require (
