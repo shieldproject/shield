@@ -7,8 +7,12 @@ import (
 	"encoding/binary"
 )
 
-// Bytes generates n random bytes
+// Bytes generates n random bytes.
+// A non-positive n returns an empty slice.
 func Bytes(n int) []byte {
+	if n <= 0 {
+		return []byte{}
+	}
 	b := make([]byte, n)
 	_, err := rand.Read(b)
 	if err != nil {
@@ -49,12 +53,19 @@ var defLetters = []rune(Base62Chars)
 // String generates a random string using only letters provided in the letters parameter.
 //
 // If user omits letters parameter, this function will use Base62Chars instead.
+// A non-positive n, or an empty letters alphabet, returns an empty string.
 func String(n int, letters ...string) string {
+	if n <= 0 {
+		return ""
+	}
 	var letterRunes []rune
 	if len(letters) == 0 {
 		letterRunes = defLetters
 	} else {
 		letterRunes = []rune(letters[0])
+	}
+	if len(letterRunes) == 0 {
+		return ""
 	}
 
 	var bb bytes.Buffer
