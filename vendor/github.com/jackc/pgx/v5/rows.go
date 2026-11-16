@@ -203,7 +203,7 @@ func (rows *baseRows) Close() {
 	}
 
 	if rows.batchTracer != nil {
-		rows.batchTracer.TraceBatchQuery(rows.ctx, rows.conn, TraceBatchQueryData{SQL: rows.sql, Args: rows.args, CommandTag: rows.commandTag, Err: rows.err})
+		rows.batchTracer.TraceBatchQuery(rows.ctx, rows.conn, TraceBatchQueryData{SQL: rows.sql, Args: rows.args, CommandTag: rows.commandTag, Err: rows.err, ReadStartTime: rows.startTime})
 	} else if rows.queryTracer != nil {
 		rows.queryTracer.TraceQueryEnd(rows.ctx, rows.conn, TraceQueryEndData{rows.commandTag, rows.err})
 	}
@@ -316,11 +316,18 @@ func (rows *baseRows) Values() ([]any, error) {
 		return nil, errors.New("rows is closed")
 	}
 
-	values := make([]any, 0, len(rows.FieldDescriptions()))
+	fieldDescriptions := rows.FieldDescriptions()
+	if len(fieldDescriptions) != len(rows.values) {
+		err := fmt.Errorf("number of field descriptions must equal number of values, got %d and %d", len(fieldDescriptions), len(rows.values))
+		rows.fatal(err)
+		return nil, err
+	}
 
-	for i := range rows.FieldDescriptions() {
+	values := make([]any, 0, len(fieldDescriptions))
+
+	for i := range fieldDescriptions {
 		buf := rows.values[i]
-		fd := &rows.FieldDescriptions()[i]
+		fd := &fieldDescriptions[i]
 
 		if buf == nil {
 			values = append(values, nil)

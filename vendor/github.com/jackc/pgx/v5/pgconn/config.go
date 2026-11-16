@@ -59,6 +59,14 @@ type Config struct {
 
 	SSLNegotiation string // sslnegotiation=postgres or sslnegotiation=direct
 
+	// SSLCertMode controls client certificate usage. Valid values are "disable", "allow", and "require".
+	// The default is "allow"; an empty field is also treated as "allow".
+	// "disable" prevents sending a certificate, even if TLSConfig supplies one.
+	// "require" rejects successful authentication unless the server requested and the client sent a certificate.
+	// TLS session resumption is disabled in "require" mode so that every connection exchanges a certificate.
+	// It does not guarantee that the server validated the certificate.
+	SSLCertMode string
+
 	// AfterNetConnect is called after the network connection, including TLS if applicable, is established but before any
 	// PostgreSQL protocol communication. It takes the established net.Conn and returns a net.Conn that will be used in
 	// its place. It can be used to wrap the net.Conn (e.g. for logging, diagnostics, or testing). Its functionality has
@@ -111,6 +119,10 @@ type Config struct {
 	RequireAuth string
 
 	createdByParseConfig bool // Used to enforce created by ParseConfig rule.
+
+	// File-backed client certificates are installed only on connection-specific TLS
+	// configs, so callers can override Certificates or GetClientCertificate.
+	clientCertificateLoaders map[*tls.Config]func(*tls.CertificateRequestInfo) (*tls.Certificate, error)
 }
 
 // defaultPort is the port used when neither the connection string, the environment, nor the
@@ -169,8 +181,18 @@ type ParseConfigOptions struct {
 func (c *Config) Copy() *Config {
 	newConf := new(Config)
 	*newConf = *c
+	if c.clientCertificateLoaders != nil {
+		newConf.clientCertificateLoaders = make(map[*tls.Config]func(*tls.CertificateRequestInfo) (*tls.Certificate, error), len(c.clientCertificateLoaders))
+	}
+	cloneTLSConfig := func(config *tls.Config) *tls.Config {
+		cloned := config.Clone()
+		if loader := c.clientCertificateLoaders[config]; loader != nil {
+			newConf.clientCertificateLoaders[cloned] = loader
+		}
+		return cloned
+	}
 	if newConf.TLSConfig != nil {
-		newConf.TLSConfig = c.TLSConfig.Clone()
+		newConf.TLSConfig = cloneTLSConfig(c.TLSConfig)
 	}
 	if newConf.RuntimeParams != nil {
 		newConf.RuntimeParams = make(map[string]string, len(c.RuntimeParams))
@@ -182,7 +204,7 @@ func (c *Config) Copy() *Config {
 			newFallback := new(FallbackConfig)
 			*newFallback = *fallback
 			if newFallback.TLSConfig != nil {
-				newFallback.TLSConfig = fallback.TLSConfig.Clone()
+				newFallback.TLSConfig = cloneTLSConfig(fallback.TLSConfig)
 			}
 			newConf.Fallbacks[i] = newFallback
 		}
@@ -254,6 +276,11 @@ func NetworkAddress(host string, port uint16) (network, address string) {
 // through the connection string be done there. In particular the fields Host, Port, TLSConfig, and Fallbacks can be
 // interdependent (e.g. TLSConfig needs knowledge of the host to validate the server certificate). These fields should
 // not be modified individually. They should all be modified or all left unchanged.
+//
+// Client certificates configured with sslcert and sslkey are reloaded for each TLS certificate request.
+// Setting TLSConfig.Certificates (including a non-nil empty slice) or TLSConfig.GetClientCertificate overrides
+// this behavior. Replacing TLSConfig discards its file-backed certificate settings; use Config.Copy to retain
+// those settings when copying a configuration.
 //
 // ParseConfig supports specifying multiple hosts in similar manner to libpq. Host and port may include comma separated
 // values that will be tried in order. This can be used as part of a high availability system. See
@@ -481,6 +508,16 @@ func ParseConfigWithOptions(connString string, options ParseConfigOptions) (*Con
 		},
 	}
 
+	sslCertMode, present := settings["sslcertmode"]
+	if !present {
+		sslCertMode = "allow"
+	}
+	var err error
+	config.SSLCertMode, err = parseSSLCertMode(sslCertMode)
+	if err != nil {
+		return nil, &ParseConfigError{ConnString: connString, msg: "invalid sslcertmode", err: err}
+	}
+
 	if connectTimeoutSetting, present := settings["connect_timeout"]; present {
 		connectTimeout, err := parseConnectTimeoutSetting(connectTimeoutSetting)
 		if err != nil {
@@ -506,6 +543,7 @@ func ParseConfigWithOptions(connString string, options ParseConfigOptions) (*Con
 		"sslmode":              {},
 		"sslkey":               {},
 		"sslcert":              {},
+		"sslcertmode":          {},
 		"sslrootcert":          {},
 		"sslnegotiation":       {},
 		"sslpassword":          {},
@@ -585,7 +623,7 @@ func ParseConfigWithOptions(connString string, options ParseConfigOptions) (*Con
 			tlsConfigs = append(tlsConfigs, nil)
 		} else {
 			var err error
-			tlsConfigs, err = configTLS(settings, host, options)
+			tlsConfigs, err = config.configTLS(settings, host, options)
 			if err != nil {
 				return nil, &ParseConfigError{ConnString: connString, msg: "failed to configure TLS", err: err}
 			}
@@ -713,6 +751,7 @@ func parseEnvSettings() map[string]string {
 		"PGSSLMODE":            "sslmode",
 		"PGSSLKEY":             "sslkey",
 		"PGSSLCERT":            "sslcert",
+		"PGSSLCERTMODE":        "sslcertmode",
 		"PGSSLSNI":             "sslsni",
 		"PGSSLROOTCERT":        "sslrootcert",
 		"PGSSLPASSWORD":        "sslpassword",
@@ -729,8 +768,9 @@ func parseEnvSettings() map[string]string {
 	}
 
 	for envname, realname := range nameMap {
-		value := os.Getenv(envname)
-		if value != "" {
+		value, present := os.LookupEnv(envname)
+		// Preserve an explicitly empty sslcertmode so it is rejected, like libpq.
+		if value != "" || (present && realname == "sslcertmode") {
 			settings[realname] = value
 		}
 	}
@@ -880,12 +920,16 @@ func parseServiceSettings(servicefilePath, serviceName string) (map[string]strin
 // configTLS uses libpq's TLS parameters to construct  []*tls.Config. It is
 // necessary to allow returning multiple TLS configs as sslmode "allow" and
 // "prefer" allow fallback.
-func configTLS(settings map[string]string, thisHost string, parseConfigOptions ParseConfigOptions) ([]*tls.Config, error) {
+func (c *Config) configTLS(settings map[string]string, thisHost string, parseConfigOptions ParseConfigOptions) ([]*tls.Config, error) {
 	host := thisHost
 	sslmode := settings["sslmode"]
 	sslrootcert := settings["sslrootcert"]
 	sslcert := settings["sslcert"]
 	sslkey := settings["sslkey"]
+	if settings["sslcertmode"] == "disable" {
+		// Like libpq, do not read client certificate or key files in this mode.
+		sslcert, sslkey = "", ""
+	}
 	sslpassword := settings["sslpassword"]
 	sslsni := settings["sslsni"]
 	sslnegotiation := settings["sslnegotiation"]
@@ -999,57 +1043,41 @@ func configTLS(settings map[string]string, thisHost string, parseConfigOptions P
 	}
 
 	if sslcert != "" && sslkey != "" {
-		buf, err := os.ReadFile(sslkey)
+		// Retain the directory used at parse time, while still following symlinks
+		// on each load so certificate rotation can replace their targets.
+		var err error
+		sslcert, err = filepath.Abs(sslcert)
 		if err != nil {
-			return nil, fmt.Errorf("unable to read sslkey: %w", err)
+			return nil, fmt.Errorf("unable to resolve sslcert: %w", err)
 		}
-		block, _ := pem.Decode(buf)
-		if block == nil {
-			return nil, errors.New("failed to decode sslkey")
+		sslkey, err = filepath.Abs(sslkey)
+		if err != nil {
+			return nil, fmt.Errorf("unable to resolve sslkey: %w", err)
 		}
-		var pemKey []byte
-		var decryptedKey []byte
-		var decryptedError error
-		// If PEM is encrypted, attempt to decrypt using pass phrase
-		if x509.IsEncryptedPEMBlock(block) {
-			// Attempt decryption with pass phrase
-			// NOTE: only supports RSA (PKCS#1)
-			if sslpassword != "" {
-				decryptedKey, decryptedError = x509.DecryptPEMBlock(block, []byte(sslpassword)) //nolint:ineffassign
-			}
-			// if sslpassword not provided or has decryption error when use it
-			// try to find sslpassword with callback function
-			if sslpassword == "" || decryptedError != nil {
-				if parseConfigOptions.GetSSLPassword != nil {
-					sslpassword = parseConfigOptions.GetSSLPassword(context.Background())
-				}
-				if sslpassword == "" {
-					return nil, fmt.Errorf("unable to find sslpassword")
-				}
-			}
-			decryptedKey, decryptedError = x509.DecryptPEMBlock(block, []byte(sslpassword))
-			// Should we also provide warning for PKCS#1 needed?
-			if decryptedError != nil {
-				return nil, fmt.Errorf("unable to decrypt key: %w", decryptedError)
+
+		// Read the key & cert so
+		//  (a) we can provide error feedback now and
+		//  (b) invoke the GetSSLPassword callback once if necessary
+		_, resolvedPassword, err := loadClientCertificate(sslcert, sslkey, sslpassword, parseConfigOptions)
+		if err != nil {
+			return nil, err
+		}
+
+		if c.clientCertificateLoaders == nil {
+			c.clientCertificateLoaders = make(map[*tls.Config]func(*tls.CertificateRequestInfo) (*tls.Certificate, error))
+		}
+		c.clientCertificateLoaders[tlsConfig] = func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			cert, _, err := loadClientCertificate(sslcert, sslkey, resolvedPassword, ParseConfigOptions{})
+			if err != nil {
+				return nil, err
 			}
 
-			pemBytes := pem.Block{
-				Type:  "RSA PRIVATE KEY",
-				Bytes: decryptedKey,
+			// Same check crypto/tls provides when passing certs through config.Certificates
+			if cri != nil && cri.SupportsCertificate(&cert) != nil {
+				return new(tls.Certificate), nil
 			}
-			pemKey = pem.EncodeToMemory(&pemBytes)
-		} else {
-			pemKey = pem.EncodeToMemory(block)
+			return &cert, nil
 		}
-		certfile, err := os.ReadFile(sslcert)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read cert: %w", err)
-		}
-		cert, err := tls.X509KeyPair(certfile, pemKey)
-		if err != nil {
-			return nil, fmt.Errorf("unable to load cert: %w", err)
-		}
-		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
 
 	// Set Server Name Indication (SNI), if enabled by connection parameters.
@@ -1068,6 +1096,144 @@ func configTLS(settings map[string]string, thisHost string, parseConfigOptions P
 		return []*tls.Config{tlsConfig}, nil
 	default:
 		panic("BUG: bad sslmode should already have been caught")
+	}
+}
+
+// loadClientCertificate reads sslcert and sslkey and returns the pair, along
+// with the password that decrypted the key (empty when the key is not
+// encrypted). When the key is encrypted and sslpassword does not decrypt it,
+// parseConfigOptions.GetSSLPassword is asked for one.
+func loadClientCertificate(sslcert, sslkey, sslpassword string, parseConfigOptions ParseConfigOptions) (tls.Certificate, string, error) {
+	buf, err := os.ReadFile(sslkey)
+	if err != nil {
+		return tls.Certificate{}, "", fmt.Errorf("unable to read sslkey: %w", err)
+	}
+	block, _ := pem.Decode(buf)
+	if block == nil {
+		return tls.Certificate{}, "", errors.New("failed to decode sslkey")
+	}
+	var pemKey []byte
+	var decryptedKey []byte
+	var decryptedError error
+	// If PEM is encrypted, attempt to decrypt using pass phrase
+	if x509.IsEncryptedPEMBlock(block) {
+		// Attempt decryption with pass phrase
+		if sslpassword != "" {
+			decryptedKey, decryptedError = x509.DecryptPEMBlock(block, []byte(sslpassword)) //nolint:ineffassign
+		}
+		// if sslpassword not provided or has decryption error when use it
+		// try to find sslpassword with callback function
+		if sslpassword == "" || decryptedError != nil {
+			if parseConfigOptions.GetSSLPassword != nil {
+				sslpassword = parseConfigOptions.GetSSLPassword(context.Background())
+			}
+			if sslpassword == "" {
+				return tls.Certificate{}, "", fmt.Errorf("unable to find sslpassword")
+			}
+		}
+		decryptedKey, decryptedError = x509.DecryptPEMBlock(block, []byte(sslpassword))
+		if decryptedError != nil {
+			return tls.Certificate{}, "", fmt.Errorf("unable to decrypt key: %w", decryptedError)
+		}
+
+		pemBytes := pem.Block{
+			// Preserve the old loader's tolerance of non-key PEM labels.
+			// X509KeyPair determines the key format from the decrypted DER.
+			Type:  "PRIVATE KEY",
+			Bytes: decryptedKey,
+		}
+		pemKey = pem.EncodeToMemory(&pemBytes)
+	} else {
+		// Hand over the whole file rather than the first block: X509KeyPair
+		// skips blocks that are not a key, so a combined key+certificate file
+		// works whatever order it is written in.
+		pemKey = buf
+	}
+	certfile, err := os.ReadFile(sslcert)
+	if err != nil {
+		return tls.Certificate{}, "", fmt.Errorf("unable to read cert: %w", err)
+	}
+	cert, err := tls.X509KeyPair(certfile, pemKey)
+	if err != nil {
+		return tls.Certificate{}, "", fmt.Errorf("unable to load cert: %w", err)
+	}
+	return cert, sslpassword, nil
+}
+
+type sslCertState struct {
+	requested bool
+	sent      bool
+}
+
+// checkRequired verifies the required certificate exchange during connection startup.
+// In require mode, a nil state means that no TLS connection was made.
+func (s *sslCertState) checkRequired() error {
+	if s == nil || !s.requested {
+		return &sslCertModeError{msg: "server did not request an SSL certificate"}
+	}
+	if !s.sent {
+		return &sslCertModeError{msg: "server accepted connection without a valid SSL certificate"}
+	}
+	return nil
+}
+
+// prepareTLSConfigForConnect prepares certificate reloading and sslcertmode for one connection.
+// In require mode, the returned state must be checked before accepting AuthenticationOk or ReadyForQuery.
+// Configs may be shared by concurrent connection attempts, so any callback state must
+// belong to a clone made for this attempt, not the original config.
+func (c *Config) prepareTLSConfigForConnect(config *tls.Config) (*tls.Config, *sslCertState) {
+	if c.SSLCertMode != "disable" && config.Certificates == nil && config.GetClientCertificate == nil {
+		if loader := c.clientCertificateLoaders[config]; loader != nil {
+			config = config.Clone()
+			config.GetClientCertificate = loader
+		}
+	}
+	switch c.SSLCertMode {
+	case "disable":
+		config = config.Clone()
+		config.Certificates = nil
+		config.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			return new(tls.Certificate), nil
+		}
+		return config, nil
+	case "require":
+		state := new(sslCertState)
+		original := config
+		config = config.Clone()
+		// Resumed sessions skip the certificate exchange and its callback.
+		config.ClientSessionCache = nil
+		config.GetClientCertificate = func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			state.requested = true
+			var cert *tls.Certificate
+			var err error
+			if original.GetClientCertificate != nil {
+				cert, err = original.GetClientCertificate(cri)
+			} else {
+				// Preserve crypto/tls's default certificate selection, including its
+				// signature scheme and acceptable CA checks.
+				cert = new(tls.Certificate)
+				for i := range original.Certificates {
+					if cri.SupportsCertificate(&original.Certificates[i]) == nil {
+						cert = &original.Certificates[i]
+						break
+					}
+				}
+			}
+			state.sent = err == nil && cert != nil && len(cert.Certificate) > 0
+			return cert, err
+		}
+		return config, state
+	default:
+		return config, nil
+	}
+}
+
+func parseSSLCertMode(s string) (string, error) {
+	switch s {
+	case "disable", "allow", "require":
+		return s, nil
+	default:
+		return "", fmt.Errorf("unknown sslcertmode value: %v", s)
 	}
 }
 
