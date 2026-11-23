@@ -1,3 +1,144 @@
+# 5.13.0 (November 11, 2026)
+
+This release adds automatic client certificate reloading and temporal precision metadata for `database/sql`.
+It also fixes a panic on malformed server responses, unsafe retries after connection failures, and range encoding.
+See Changes for client certificate configuration behavior that may affect existing applications.
+
+## Security Fixes
+
+* **Panic in `Rows.Values` on malformed server responses**
+  ([GHSA-w9rp-vfrh-q8vv](https://github.com/jackc/pgx/security/advisories/GHSA-w9rp-vfrh-q8vv)).
+  A server response containing fewer row values than declared fields could cause an index-out-of-range panic in
+  `Rows.Values`. It now returns an error and closes the rows when the counts differ, including when there are extra
+  values, matching `Rows.Scan` validation.
+
+## Features
+
+* pgconn: reload client certificates and keys configured through `sslcert` and `sslkey` for each TLS certificate
+  request, allowing new connections to pick up rotated credentials without recreating the configuration or
+  restarting the application. Files are still validated during configuration parsing. Relative paths retain their
+  parse-time directory, and reloads follow symlinks (Erin Shepherd)
+* stdlib: expose fractional seconds precision for `timestamp`, `timestamptz`, `time`, `timetz`, and `interval` through
+  `ColumnTypePrecisionScale` and `database/sql.ColumnType.DecimalSize`. These return precision 0, the fractional
+  seconds precision as scale, and `ok=true`. The scale defaults to 6 when no fractional seconds precision is declared;
+  precision 0 means numeric precision is not applicable (Danny Xu)
+
+## Changes
+
+* pgconn: file-backed client certificates are no longer stored in the parsed `TLSConfig.Certificates` slice.
+  Setting `TLSConfig.Certificates` (including a non-nil empty slice) or `TLSConfig.GetClientCertificate` overrides
+  automatic reloading. Replacing `TLSConfig`, including with a direct `TLSConfig.Clone`, discards the file-backed
+  certificate settings; use `pgconn.Config.Copy` to preserve them when copying a configuration. Certificate and key
+  files must remain readable for subsequent TLS certificate requests. Encrypted keys reuse the password resolved
+  during configuration parsing; `GetSSLPassword` is not called again on reload.
+
+## Bug Fixes
+
+* pgconn: do not mark a connection-closed error encountered while receiving a response as safe to retry, since the
+  request may already have reached the server. This prevents `database/sql` from automatically repeating a statement
+  that may already have executed. The error still supports `errors.Is(err, pgconn.ErrConnClosed)` (Aayush Shah)
+* pgconn: skip sending a cancel request when a connection fails during startup, avoiding an unnecessary second
+  connection attempt (felipe stival)
+* pgconn: accept unencrypted combined certificate/key PEM files with the certificate before the key, as well as
+  key-first files (Erin Shepherd)
+* pgtype: encode `Range[any]` values returned by `RangeCodec.DecodeValue` and `Rows.Values` in both binary and text
+  formats, allowing decoded ranges and multiranges to be reused as query arguments or in `CopyFrom` (waw666waw666)
+* stdlib: report `ok=false` for the precision and scale of unconstrained `numeric` columns instead of bogus values
+  (Danny Xu)
+* stdlib: report `math.MaxInt64` for the lengths of unconstrained `varchar`, `bpchar`, and `varbit` columns instead of
+  negative lengths (PerryLink)
+
+## Documentation and Tests
+
+* pgxpool: clarify that a zero `PingTimeout` lets a stalled health-check ping consume the acquiring caller's full
+  deadline, and explain the tradeoffs of a positive timeout (dajiaohuang)
+* Correct the `AppendRows` / `RowToStructByName` benchmark to measure name-based rather than positional mapping
+  (Samir)
+
+# 5.12.0 (October 30, 2026)
+
+This release fixes two security vulnerabilities with narrow triggering conditions but serious impact. Affected
+applications should upgrade to v5.12.0; see Security Fixes below.
+
+It also adds batched transaction startup, client certificate policy controls, and per-query batch timing,
+and improves connection pool cancellation and type handling. Custom implementations
+of `BatchResults`, including mocks, must add the new `Tx` method.
+
+## Security Fixes
+
+* **SQL injection in simple-protocol batches**
+  ([GHSA-j38q-h3ph-jjpq](https://github.com/jackc/pgx/security/advisories/GHSA-j38q-h3ph-jjpq), high severity).
+  In pgx v5 before v5.12.0, `SendBatch` using the non-default simple protocol could allow arbitrary SQL execution
+  with the application's database privileges when a queued query ends in a `--` comment without a newline and the
+  next query has an attacker-controlled string argument on its first line. Batched queries are now separated by
+  a newline to end such comments. Extended-protocol modes are unaffected.
+  Reported by [Igor Kupczyński (@igor-kupczynski)](https://github.com/igor-kupczynski).
+* **Bypass of `require_auth` and `channel_binding=require`**
+  ([GHSA-95fj-3fxw-g62g](https://github.com/jackc/pgx/security/advisories/GHSA-95fj-3fxw-g62g), high severity).
+  In pgx v5.9.0 through v5.11.0, applications relying on these settings without verifying the server's identity
+  with `sslmode=verify-full` (or equivalent TLS verification) could accept an impersonating server that skips
+  authentication. The attacker could read queries and parameters and return fabricated results. pgx now enforces
+  authentication completion and required channel binding before accepting the connection. This vulnerability does
+  not bypass TLS server certificate verification.
+  Reported by [@president-xd](https://github.com/president-xd).
+
+## Features
+
+* Add `Batch.BeginTx` and `BatchResults.Tx` to begin a transaction as the first query of a batch, saving the round
+  trip for `BeginTx`. Call `Batch.BeginTx` before queuing any queries, consume the begin query's result first, and
+  close the batch before using the transaction. With `pgxpool.Pool.SendBatch`, the connection remains acquired until
+  the transaction is committed or rolled back. Add `FailedBatchResults` for wrappers that fail before sending a
+  batch (Timo Furrer)
+* Add `TraceBatchQueryData.ReadStartTime` and per-query durations to `tracelog` batch query entries. These measure
+  result consumption, including application time spent reading rows, rather than server execution alone
+  (Yasser-Ameur)
+* pgconn: support the `sslcertmode` connection parameter, `PGSSLCERTMODE` environment variable, and
+  `Config.SSLCertMode`. The default, `allow`, sends an available client certificate when requested; `disable`
+  prevents sending one and skips loading certificate/key files; `require` fails unless the server requests and
+  receives a certificate. `require` does not guarantee server-side certificate validation, disables TLS session
+  resumption, and stops further host or TLS fallbacks when the certificate requirement fails (k-zshiba)
+* pgtype: add support for PostgreSQL 19's `oid8` and `oid8[]` (k-zshiba)
+
+## Changes
+
+* pgxpool: background attempts to satisfy `MinConns` and `MinIdleConns` now have a 60-second timeout, including
+  connection hooks. Initial background connections preserve the constructor context's values but ignore its
+  cancellation and deadline.
+* pgxpool: canceling `Acquire` during a health-check ping now returns promptly and lets a successful ping return
+  the connection to the pool. The ping retains the caller's deadline and `PingTimeout`, with at most one additional
+  minute to finish after cancellation (lazerg)
+* pgconn: on Windows, look for the default service file at `%APPDATA%\postgresql\.pg_service.conf`, matching libpq.
+  Fall back to the previous home-directory location only when the APPDATA file is missing, or APPDATA is unset;
+  other file errors no longer cause fallback (b84330808)
+
+## Performance Improvements
+
+* pgtype: add fast-path slice scan and encode plans for common primitive types (Andrew Suffield)
+* pgtype: reduce allocations when encoding numbers and times as text (Guillaume Malette)
+* stdlib: cache scan destination type classification on Go 1.27 (DublikuntMux)
+* Reuse the begin statement for standard transaction option combinations (Timo Furrer)
+
+## Bug Fixes
+
+* Fix `NamedArgs` and `StrictNamedArgs` rewriting parameters inside dollar-quoted strings, truncating queries
+  containing U+FFFD (youdie006), and treating a trailing backslash as extending a SQL line comment. Fix the same
+  line-comment handling in simple-protocol argument sanitization.
+* Preserve multidimensional array dimensions in `CopyFrom` (arminazimi)
+* Deduplicate shared type dependencies returned by `LoadTypes` (Grivn)
+* pgconn: preserve SCRAM passwords containing characters unassigned in Unicode 3.2, matching PostgreSQL's SASLprep
+  behavior
+* pgconn: do not retain timeout errors in the background reader after a deadline has been cleared
+  (Vitalii Cherepanov)
+* pgconn: normalize timeout errors after failed writes so context cancellation and deadline errors are reported
+  consistently (lazerg)
+* pgconn: avoid a double-close panic when `OnPgError` closes the connection
+* pgtype: fix interval fractional-second parsing beyond microsecond precision, validate all fractional digits
+  before rounding (Sasha Mitchell), and correctly encode `math.MinInt64` microseconds as text (spicysharkco)
+* pgtype: preserve delimiters inside quoted multirange bounds (Sueun Cho)
+* pgtype: handle SQL NULL in binary `ltree` scan plans without panicking (Januth Nimnal)
+* pgtype: preserve `xid8` values above `math.MaxInt64` when decoding for `sql.Scanner`, returning their decimal
+  string representation instead of overflowing to a negative integer (k-zshiba)
+
 # 5.11.0 (September 7, 2026)
 
 This release adds direct PostgreSQL type scanning through `database/sql` on Go 1.27, improves compatibility with
