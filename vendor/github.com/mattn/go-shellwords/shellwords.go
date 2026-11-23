@@ -1,7 +1,6 @@
 package shellwords
 
 import (
-	"bytes"
 	"errors"
 	"os"
 	"strings"
@@ -24,78 +23,29 @@ func isSpace(r rune) bool {
 	return false
 }
 
-func replaceEnv(getenv func(string) string, s string) string {
-	if getenv == nil {
-		getenv = os.Getenv
-	}
+func isEnvNameRune(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_'
+}
 
-	var buf bytes.Buffer
-	rs := []rune(s)
-	for i := 0; i < len(rs); i++ {
-		r := rs[i]
-		if r == '\\' {
-			i++
-			if i == len(rs) {
-				break
-			}
-			buf.WriteRune(rs[i])
-			continue
-		} else if r == '$' {
-			i++
-			if i == len(rs) {
-				buf.WriteRune(r)
-				break
-			}
-			if rs[i] == 0x7b {
-				i++
-				p := i
-				for ; i < len(rs); i++ {
-					r = rs[i]
-					if r == '\\' {
-						i++
-						if i == len(rs) {
-							return s
-						}
-						continue
-					}
-					if r == 0x7d || (!unicode.IsLetter(r) && r != '_' && !unicode.IsDigit(r)) {
-						break
-					}
-				}
-				if r != 0x7d {
-					return s
-				}
-				if i > p {
-					buf.WriteString(getenv(string(rs[p:i])))
-				}
-			} else {
-				p := i
-				for ; i < len(rs); i++ {
-					r := rs[i]
-					if r == '\\' {
-						i++
-						if i == len(rs) {
-							return s
-						}
-						continue
-					}
-					if !unicode.IsLetter(r) && r != '_' && !unicode.IsDigit(r) {
-						break
-					}
-				}
-				if i > p {
-					buf.WriteString(getenv(string(rs[p:i])))
-					i--
-				} else {
-					buf.WriteRune('$')
-					i--
-				}
-			}
-		} else {
-			buf.WriteRune(r)
+// parseEnvName parses the variable reference that follows a '$' at the start
+// of s, either NAME or {NAME}. It returns the name and the number of bytes
+// consumed, or ok == false if s does not start with a reference.
+func parseEnvName(s string) (name string, n int, ok bool) {
+	if strings.HasPrefix(s, "{") {
+		end := strings.IndexFunc(s[1:], func(r rune) bool { return !isEnvNameRune(r) })
+		if end < 0 || s[1+end] != '}' {
+			return "", 0, false
 		}
+		return s[1 : 1+end], end + 2, true
 	}
-	return buf.String()
+	end := strings.IndexFunc(s, func(r rune) bool { return !isEnvNameRune(r) })
+	if end < 0 {
+		end = len(s)
+	}
+	if end == 0 {
+		return "", 0, false
+	}
+	return s[:end], end, true
 }
 
 type Parser struct {
@@ -152,64 +102,101 @@ func (p *Parser) ExcludedSeparators() []rune {
 }
 
 func (p *Parser) Parse(line string) ([]string, error) {
+	args, _, err := p.parse(line, false)
+	return args, err
+}
+
+// parse splits line into words. If withQuotedAt is true, it also reports
+// for each word the byte offset of its first character that came from
+// quoting, escaping or an expansion, or -1 if the whole word is plain text.
+func (p *Parser) parse(line string, withQuotedAt bool) ([]string, []int, error) {
 	args := make([]string, 0, 1+len(line)/8)
+	var quotedAts []int
 	buf := make([]byte, 0, len(line))
 	var escaped, doubleQuoted, singleQuoted, backQuote, dollarQuote, comment bool
 	var backtick []byte
 
 	pos := -1
 	got := argNo
+	// Whether the pending token contains any quoted or escaped character.
+	tokenQuoted := false
+	// Whether the pending token contains output of a command substitution
+	// or an environment variable expansion.
+	substituted := false
+	// Byte offset in buf of the first character of the pending token that
+	// came from quoting, escaping or an expansion, or -1 if there is none.
+	quotedAt := -1
+	markQuoted := func() {
+		if quotedAt < 0 {
+			quotedAt = len(buf)
+		}
+	}
+	// Whether every word so far was an assignment, so the pending token is
+	// still in assignment position. Only tracked when withQuotedAt is true.
+	assignPos := withQuotedAt
+	// Whether the previous character was an unquoted, unescaped '$'.
+	afterDollar := false
+	// Byte offset in line up to which characters were already consumed.
+	skip := 0
 
-	flush := func() error {
+	getenv := p.Getenv
+	if getenv == nil {
+		getenv = os.Getenv
+	}
+
+	flush := func() {
 		if got == argQuoted || (got != argNo && len(buf) > 0) {
-			token := string(buf)
-			if p.ParseEnv {
-				if got == argSingle {
-					parser := &Parser{ParseEnv: false, ParseBacktick: false, Position: 0, Dir: p.Dir}
-					strs, err := parser.Parse(replaceEnv(p.Getenv, token))
-					if err != nil {
-						return err
-					}
-					args = append(args, strs...)
-				} else {
-					args = append(args, replaceEnv(p.Getenv, token))
+			args = append(args, string(buf))
+			if withQuotedAt {
+				quotedAts = append(quotedAts, quotedAt)
+				if assignPos && !isAssignment(string(buf), quotedAt) {
+					assignPos = false
 				}
-			} else {
-				args = append(args, token)
 			}
 		}
 		buf = buf[:0]
 		got = argNo
-		return nil
+		tokenQuoted = false
+		substituted = false
+		quotedAt = -1
 	}
 
 	i := -1
 loop:
-	for _, r := range line {
+	for idx, r := range line {
 		i++
+
+		if idx < skip {
+			continue
+		}
+
+		prevDollar := afterDollar
+		afterDollar = false
 
 		if comment {
 			if r == '\n' {
 				comment = false
+				// Defensive only: a comment can begin just when got == argNo,
+				// which is reached solely through flush (which clears this
+				// flag), and nothing inside a comment sets it. Kept so the
+				// invariant survives if either of those ever changes.
+				tokenQuoted = false
 			}
 			continue
 		}
 
 		if escaped {
 			escaped = false
+			tokenQuoted = true
+			markQuoted()
 			if backQuote || dollarQuote {
 				buf = append(buf, '\\')
 				buf = append(buf, string(r)...)
 				backtick = append(backtick, '\\')
 				backtick = append(backtick, string(r)...)
-				got = argSingle
-				continue
-			}
-			if p.ParseEnv && r == '$' {
-				// Keep the backslash so replaceEnv treats the '$' as
-				// literal instead of expanding it.
-				buf = append(buf, '\\', '$')
-				got = argSingle
+				if got == argNo {
+					got = argSingle
+				}
 				continue
 			}
 			if r == 't' {
@@ -219,7 +206,9 @@ loop:
 				r = '\n'
 			}
 			buf = append(buf, string(r)...)
-			got = argSingle
+			if got == argNo {
+				got = argSingle
+			}
 			continue
 		}
 
@@ -233,7 +222,9 @@ loop:
 		}
 
 		if p.isExcluded(r) {
-			got = argSingle
+			if got == argNo {
+				got = argSingle
+			}
 			buf = append(buf, string(r)...)
 			if backQuote || dollarQuote {
 				backtick = append(backtick, string(r)...)
@@ -247,8 +238,8 @@ loop:
 				if backQuote || dollarQuote {
 					backtick = append(backtick, byte(r))
 				}
-			} else if err := flush(); err != nil {
-				return nil, err
+			} else {
+				flush()
 			}
 			continue
 		}
@@ -260,9 +251,12 @@ loop:
 					if backQuote {
 						out, err := shellRun(string(backtick), p.Dir)
 						if err != nil {
-							return nil, err
+							return nil, nil, err
 						}
 						buf = append(buf[:len(buf)-len(backtick)], out...)
+						substituted = true
+					} else {
+						markQuoted()
 					}
 					backtick = backtick[:0]
 					backQuote = !backQuote
@@ -280,21 +274,22 @@ loop:
 					// Preserve prior behavior by rejecting unmatched ')'
 					// when command substitution parsing is enabled.
 					if !dollarQuote {
-						return nil, errInvalidCmdLine
+						return nil, nil, errInvalidCmdLine
 					}
 
 					out, err := shellRun(string(backtick), p.Dir)
 					if err != nil {
-						return nil, err
+						return nil, nil, err
 					}
 
 					// Defensive guard: valid $(...) implies the buffer must contain
 					// the "$(" prefix plus the collected command body.
 					if len(buf) < len(backtick)+2 {
-						return nil, errInvalidCmdLine
+						return nil, nil, errInvalidCmdLine
 					}
 
 					buf = append(buf[:len(buf)-len(backtick)-2], out...)
+					substituted = true
 					backtick = backtick[:0]
 					dollarQuote = false
 					continue
@@ -304,24 +299,29 @@ loop:
 				// A bare ')' is a syntax error, consistent with '(' handling.
 				// Only close an already-open $(...) region.
 				if !dollarQuote {
-					return nil, errInvalidCmdLine
+					return nil, nil, errInvalidCmdLine
 				}
 
 				buf = append(buf, ')')
 				backtick = backtick[:0]
 				dollarQuote = false
-				got = argSingle
+				if got == argNo {
+					got = argSingle
+				}
 				continue
 			}
 
 		case '(':
 			if !singleQuoted && !doubleQuoted && !backQuote {
-				if n := len(buf); !dollarQuote && n > 0 && buf[n-1] == '$' && !(n > 1 && buf[n-2] == '\\') {
+				if !dollarQuote && prevDollar {
 					dollarQuote = true
+					if p.ParseBacktick && quotedAt < 0 {
+						quotedAt = len(buf) - 1
+					}
 					buf = append(buf, '(')
 					continue
 				} else {
-					return nil, errInvalidCmdLine
+					return nil, nil, errInvalidCmdLine
 				}
 			}
 
@@ -330,7 +330,9 @@ loop:
 				if doubleQuoted {
 					got = argQuoted
 				}
+				markQuoted()
 				doubleQuoted = !doubleQuoted
+				tokenQuoted = true
 				continue
 			}
 
@@ -339,13 +341,19 @@ loop:
 				if singleQuoted {
 					got = argQuoted
 				}
+				markQuoted()
 				singleQuoted = !singleQuoted
+				tokenQuoted = true
 				continue
 			}
 
 		case ';', '&', '|', '<', '>':
 			if !(escaped || singleQuoted || doubleQuoted || backQuote || dollarQuote) {
-				if r == '>' && len(buf) > 0 {
+				// A file descriptor number is only a redirect prefix while it
+				// is unquoted; quoting makes it an ordinary argument. Output of
+				// a command substitution is never one either, and its length
+				// does not match the source text.
+				if (r == '>' || r == '<') && len(buf) > 0 && !tokenQuoted && !substituted {
 					isDigits := true
 					for _, c := range buf {
 						if c < '0' || c > '9' {
@@ -361,43 +369,83 @@ loop:
 				pos = i
 				break loop
 			}
+		case '$':
+			if p.ParseEnv && !singleQuoted && !backQuote && !dollarQuote {
+				name, n, ok := parseEnvName(line[idx+1:])
+				if !ok {
+					break
+				}
+				skip = idx + 1 + n
+				value := getenv(name)
+				// A shell does not split the value of an assignment, so
+				// FOO=$X stays one word even if X contains spaces.
+				inAssignment := assignPos && isAssignment(string(buf), quotedAt)
+				// Even an empty expansion keeps the word from being an
+				// assignment, as in a shell.
+				markQuoted()
+				if doubleQuoted || inAssignment {
+					buf = append(buf, value...)
+				} else {
+					// Split the value into fields, but never interpret its
+					// contents as shell syntax.
+					for _, c := range value {
+						if isSpace(c) && !p.isExcluded(c) {
+							flush()
+							// The rest of the token still comes from a word
+							// with an expansion before it, so it can never
+							// be an assignment: ${X}A=1 with X=" ".
+							quotedAt = 0
+							continue
+						}
+						markQuoted()
+						buf = append(buf, string(c)...)
+						if got == argNo {
+							got = argSingle
+						}
+					}
+				}
+				substituted = true
+				continue
+			}
+
 		case '#':
-			if p.ParseComment && got == argNo && !(escaped || singleQuoted || doubleQuoted || backQuote || dollarQuote) {
+			if p.ParseComment && got == argNo && !substituted && !(escaped || singleQuoted || doubleQuoted || backQuote || dollarQuote) {
 				comment = true
 				continue loop
 			}
 		}
 
-		got = argSingle
+		if got == argNo {
+			got = argSingle
+		}
 		buf = append(buf, string(r)...)
 		if backQuote || dollarQuote {
 			backtick = append(backtick, string(r)...)
 		}
+		afterDollar = r == '$' && !(singleQuoted || doubleQuoted || backQuote || dollarQuote)
 	}
 
-	if err := flush(); err != nil {
-		return nil, err
-	}
+	flush()
 
 	if escaped || singleQuoted || doubleQuoted || backQuote || dollarQuote {
-		return nil, errInvalidCmdLine
+		return nil, nil, errInvalidCmdLine
 	}
 
 	p.Position = pos
 
-	return args, nil
+	return args, quotedAts, nil
 }
 
 func (p *Parser) ParseWithEnvs(line string) (envs []string, args []string, err error) {
-	_args, err := p.Parse(line)
+	_args, quotedAts, err := p.parse(line, true)
 	if err != nil {
 		return nil, nil, err
 	}
 	envs = []string{}
 	args = []string{}
 	parsingEnv := true
-	for _, arg := range _args {
-		if parsingEnv && isEnv(arg) {
+	for i, arg := range _args {
+		if parsingEnv && isAssignment(arg, quotedAts[i]) {
 			envs = append(envs, arg)
 		} else {
 			if parsingEnv {
@@ -407,6 +455,14 @@ func (p *Parser) ParseWithEnvs(line string) (envs []string, args []string, err e
 		}
 	}
 	return envs, args, nil
+}
+
+// isAssignment reports whether word, whose first quoted, escaped or expanded
+// byte is at quotedAt (-1 if none), is a NAME=value assignment. Only a word
+// whose name and '=' are plain text is one; "A=1", A\=1 or the result of an
+// expansion is an ordinary word.
+func isAssignment(word string, quotedAt int) bool {
+	return isEnv(word) && (quotedAt < 0 || quotedAt > strings.IndexByte(word, '='))
 }
 
 func isEnv(arg string) bool {
